@@ -89,6 +89,7 @@ def main() -> None:
     e.add_argument("--repeats", type=int, default=3)
     e.add_argument("--scenarios", help="comma list of scenario ids, e.g. S01,S07")
     e.add_argument("--workers", type=int, default=4)
+    e.add_argument("--set", choices=["tuning", "heldout"], default="tuning")
     e.set_defaults(func=lambda a: __import__("cric.eval.runner", fromlist=["main_cli"]).main_cli(a))
 
     args = ap.parse_args()

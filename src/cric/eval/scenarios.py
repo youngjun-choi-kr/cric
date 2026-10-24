@@ -43,6 +43,7 @@ class Scenario:
     blackout_structured: bool = True   # False: the blackout is only written in mission_notes
     avoid_option_kind: str | None = None
     message_required: bool = False
+    policy_overrides: dict = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
 
 
@@ -88,4 +89,47 @@ SCENARIOS = [
              data_quality="tle", kp=7.0,
              space_weather_note="NOAA SWPC: G3 (strong) geomagnetic storm in progress, Kp 7 observed. Thermospheric "
                                 "density enhanced; LEO orbit predictions degraded for the next 24-48 h."),
+]
+
+
+# Held-out set: written and committed before any model was run on it (see git history).
+# New kinds of situations, not variations of the tuning set above.
+HELDOUT = [
+    Scenario("H01", "Precise red Pc, but policy caps burns at 0.3 m/s", "kompsat", {"ESCALATE"}, "structured",
+             "Every verified option exceeds the policy cap; nobody may burn without a person deciding.",
+             policy_overrides={"max_dv_ms": 0.3}),
+    Scenario("H02", "TLE yellow Pc, one hour left", "xposat", {"MONITOR", "ESCALATE"}, "structured",
+             "Yellow does not justify a burn and there is no time to get better data.",
+             data_quality="tle", hours_before=1.0),
+    Scenario("H03", "Precise red Pc, Korean note: ground contact ends at 10:00 UTC", "kompsat", {"MANEUVER"}, "text",
+             "Commands after 10:00 cannot be uploaded, so only the early burn is executable.",
+             mission_notes="추진계는 정상입니다. 다만 10:00 UTC 이후에는 다음 날까지 지상국 교신이 불가능하므로 "
+                           "그 이후 시각의 명령은 업로드할 수 없습니다.",
+             avoid_option_kind="latest"),
+    Scenario("H04", "Precise red Pc, the other operator already committed to move", "kompsat",
+             {"MONITOR", "COORDINATE"}, "text",
+             "If both move they can dodge into each other; the other side has confirmed its burn.",
+             other="active_yes",
+             mission_notes="Email from the other operator at 07:55 UTC: 'We will execute an avoidance burn at "
+                           "10:15 UTC for this conjunction. Please do not manoeuvre.'"),
+    Scenario("H05", "TLE low Pc (storm inflates it to yellow), severe storm", "jinjusat", {"MONITOR", "REQUEST_PRECISE_DATA"},
+             "structured", "Low Pc on degraded data; the storm argues for better data, not for a burn.",
+             data_quality="tle", kp=8.0,
+             space_weather_note="NOAA SWPC: G4 (severe) geomagnetic storm, Kp 8. LEO orbit predictions degraded."),
+    Scenario("H06", "Precise red Pc, long notes full of irrelevant items", "kompsat", {"MANEUVER"}, "structured",
+             "Nothing in the notes affects the decision; act on the red Pc.",
+             mission_notes="Reminders: badge renewal due Friday. Ground station B antenna repainting next week (no "
+                           "impact on passes). New flight dynamics intern starts Monday. Cafeteria closed 12-13 UTC."),
+    Scenario("H07", "Precise red Pc, thruster fault limits burns to 0.5 m/s along-track", "kompsat", {"MANEUVER"}, "text",
+             "Only along-track burns up to 0.5 m/s are allowed; the cheapest option fits, the late one does not.",
+             mission_notes="Propulsion team: thruster 2 shows a minor leak. Until further notice fire only along-track "
+                           "(prograde or retrograde), at most 0.5 m/s per burn.",
+             avoid_option_kind="latest"),
+    Scenario("H08", "TLE red diluted Pc, our propulsion unverified", "kompsat", {"ESCALATE", "REQUEST_PRECISE_DATA"},
+             "structured", "We cannot burn on unverified propulsion; escalating or getting data are both acceptable.",
+             data_quality="tle", ours="unknown"),
+    Scenario("H09", "Precise red Pc, Korean note: imaging 09:00-09:40 UTC, no firing", "kompsat", {"MANEUVER"}, "text",
+             "The note rules out the cheapest burn (09:20); only the late option is allowed.",
+             mission_notes="09:00~09:40 UTC 재난 대응 긴급 촬영이 잡혀 있습니다. 이 시간에는 추력기 분사가 금지됩니다.",
+             avoid_option_kind="min_dv"),
 ]

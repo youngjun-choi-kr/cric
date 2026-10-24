@@ -24,7 +24,7 @@ from ..llm import Usage
 from ..physics.timeutil import iso, parse_utc
 from ..pipeline import DEFAULT_POLICY, physics_block
 from ..safety.validator import validate
-from .scenarios import ENCOUNTERS, SCENARIOS, Scenario
+from .scenarios import ENCOUNTERS, HELDOUT, SCENARIOS, Scenario
 
 RESULTS = DATA / "eval"
 
@@ -70,9 +70,13 @@ def build_contexts(scenarios: list[Scenario], log=print) -> dict[str, tuple[dict
         enc = ENCOUNTERS[s.encounter]
         tca = parse_utc(_tca(s.encounter))
         now = tca - timedelta(hours=s.hours_before)
+        policy = DEFAULT_POLICY | s.policy_overrides
+        if s.policy_overrides.get("max_dv_ms"):
+            policy = policy | {"text": DEFAULT_POLICY["text"].replace("Max 1.0 m/s per burn", f"Max {s.policy_overrides['max_dv_ms']} m/s per burn")}
         key = (s.encounter, s.data_quality, s.hours_before, s.kp)
         if key not in physics_cache:
             t0 = time.time()
+            # Options are generated up to the default 1.0 m/s; a stricter policy cap is the decision's problem.
             physics_cache[key] = physics_block(cat, enc["ours"], enc["other"], tca, now, kp=s.kp,
                                                policy=DEFAULT_POLICY, data_quality=s.data_quality)
             log(f"physics {key}: {len(physics_cache[key]['burn_options']['options'])} options, "
@@ -93,7 +97,7 @@ def build_contexts(scenarios: list[Scenario], log=print) -> dict[str, tuple[dict
         ctx |= {"our_satellite": _object_block(cat, enc["ours"], s.ours),
                 "other_object": _object_block(cat, enc["other"], s.other),
                 "space_weather": {"kp": s.kp, "note": s.space_weather_note},
-                "operator_policy": DEFAULT_POLICY,
+                "operator_policy": policy,
                 "mission": {"notes": notes, "blackouts": blackouts}}
         out[s.id] = (ctx, now)
     return out
@@ -170,8 +174,10 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
     return {"decision": dec, "seconds": round(time.time() - t0, 1), "cost_usd": usage.cost_usd}
 
 
-def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = None, workers: int = 4, log=print) -> dict:
-    chosen = [s for s in SCENARIOS if not scenario_ids or s.id in scenario_ids]
+def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = None, workers: int = 4,
+        scenario_set: str = "tuning", log=print) -> dict:
+    pool_ = HELDOUT if scenario_set == "heldout" else SCENARIOS
+    chosen = [s for s in pool_ if not scenario_ids or s.id in scenario_ids]
     contexts = build_contexts(chosen, log=log)
     rows = []
     for s in chosen:
@@ -200,7 +206,7 @@ def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = No
 
     summary = summarize(rows, chosen)
     RESULTS.mkdir(exist_ok=True)
-    path = RESULTS / f"eval_{time.strftime('%Y%m%d_%H%M%S')}.json"
+    path = RESULTS / f"eval_{scenario_set}_{time.strftime('%Y%m%d_%H%M%S')}.json"
     path.write_text(json.dumps({"summary": summary, "rows": rows,
                                 "scenarios": [{**s.__dict__, "expected": sorted(s.expected)} for s in chosen]},
                                indent=1, default=str))
@@ -233,7 +239,8 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
 def main_cli(args) -> None:
     models = {"super": MODEL_SUPER, "nano": MODEL_NANO}
     summary = run([models[m] for m in args.models.split(",")], repeats=args.repeats,
-                  scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers)
+                  scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers,
+                  scenario_set=args.set)
     print()
     hdr = f"{'arm':38} {'acc':>5} {'acc+val':>7} {'unsafe':>6} {'unsafe+val':>10} {'text':>5} {'sec':>5} {'$':>7}"
     print(hdr)
