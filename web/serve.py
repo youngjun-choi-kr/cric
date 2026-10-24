@@ -58,7 +58,7 @@ def _brief(path: pathlib.Path) -> dict:
 def _result_event(d: dict) -> dict:
     ctx = d["context"]
     return {"kind": "result", "pair": d.get("pair"), "decision": d["decision"], "validation": d["validation"],
-            "trajectory": d.get("trajectory"), "usage": d["usage"], "seconds": d["seconds"], "model": d["model"],
+            "trajectory": d.get("trajectory"), "report": d.get("report"), "usage": d["usage"], "seconds": d["seconds"], "model": d["model"],
             "options": ctx["burn_options"]["options"], "risk": ctx["risk"], "conjunction": ctx["conjunction"],
             "ours": ctx["our_satellite"], "other": ctx["other_object"], "mission": ctx["mission"]}
 

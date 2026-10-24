@@ -150,6 +150,7 @@
   <div class="sec" id="optSec" hidden><h3>VERIFIED BURN OPTIONS · OPTIMISER, NOT THE MODEL</h3><div id="optBody"></div></div>
   <div class="sec" id="decSec" hidden><h3>DECISION · NEMOTRON SUPER</h3><div id="decBody"></div></div>
   <div class="sec" id="valSec" hidden><h3>SAFETY VALIDATOR · RULES IN CODE</h3><div id="valBody"></div></div>
+  <div class="sec" id="repSec" hidden><h3 id="repTitle">REPORT · NEMOTRON ULTRA</h3><div id="repBody"></div></div>
   <div class="sec" id="trajSec" hidden><div class="btns"><button id="goBurn">Go to burn</button><button id="kBtn">Path difference ×200</button></div>
     <div class="lim">Green = path after the burn, red = before, yellow dot = burn point. The km-scale difference is exaggerated so it is visible.</div></div>
 </div>
@@ -401,7 +402,7 @@ $('goBurn').onclick = () => { if (traj.data) { simMs = Date.parse(traj.data.burn
 $('kBtn').onclick = () => { traj.k = K_STEPS[(K_STEPS.indexOf(traj.k) + 1) % K_STEPS.length]; $('kBtn').textContent = `Path difference ×${traj.k}`; trajDraw(); };
 
 // ---------- incident pipeline panel ----------
-const MODEL_SHORT = (m) => String(m || '').split('/').pop().replace('nemotron-3-super-120b-a12b', 'Nemotron 3 Super');
+const MODEL_SHORT = (m) => String(m || '').split('/').pop().replace('nemotron-3-super-120b-a12b', 'Nemotron 3 Super').replace('Nemotron-3-Ultra-550b-a55b', 'Nemotron 3 Ultra');
 const inc = { es: null, queue: [], timer: null, rows: {}, running: false, mode: 'replay', streamDone: false, dossierStep: {}, tavily: { search: 0, extract: 0, credits: 0 } };
 function incStats(extra = '') {
   const t = inc.tavily;
@@ -411,7 +412,7 @@ function incReset() {
   inc.es?.close(); inc.es = null; clearTimeout(inc.timer); inc.timer = null; inc.queue = []; inc.rows = {}; inc.dossierStep = {};
   inc.running = false; inc.streamDone = false; inc.tavily = { search: 0, extract: 0, credits: 0 };
   $('incBody').innerHTML = ''; $('incState').textContent = 'idle'; incStats();
-  ['riskSec', 'optSec', 'decSec', 'valSec'].forEach((id) => ($(id).hidden = true));
+  ['riskSec', 'optSec', 'decSec', 'valSec', 'repSec'].forEach((id) => ($(id).hidden = true));
   $('runLive').disabled = $('runReplay').disabled = !sel;
 }
 function step(key, state, html) {
@@ -454,6 +455,14 @@ function renderValidation(v) {
     v.overrides.map((o) => `<div class="ovr">${esc(o.from)} → ${esc(o.to)}: ${esc(o.reason)}</div>`).join('') +
     v.warnings.map((w) => `<div class="lim">warning: ${esc(w)}</div>`).join('');
 }
+function renderReport(r) {
+  if (!r) return;
+  $('repSec').hidden = false;
+  $('repTitle').textContent = `${r.kind === 'coordination_message' ? 'MESSAGE TO THE OTHER OPERATOR' : 'ESCALATION BRIEF FOR THE ON-CALL ENGINEER'} · NEMOTRON ULTRA`;
+  $('repBody').innerHTML = `<div><b>${esc(r.subject)}</b></div><div style="white-space:pre-wrap;margin-top:4px;font-size:11.5px">${esc(r.body)}</div>
+    ${r.asks?.length ? `<div class="factor"><b>Asks:</b> ${esc(r.asks.join(' · '))}</div>` : ''}
+    ${r.decision_deadline_utc ? `<div class="lim">Decision needed by ${esc(r.decision_deadline_utc)}</div>` : ''}`;
+}
 function finish(ok, msg) {
   inc.running = false; inc.es?.close(); inc.es = null;
   $('incState').textContent = ok ? 'done' : 'error';
@@ -495,10 +504,13 @@ function handle(e) {
     renderDecision(e.decision, e.model);
   }
   else if (k === 'validation') { step('val', e.accepted_as_is ? 'ok' : 'warn', `<span class="who">Safety validator</span> ${e.accepted_as_is ? 'accepted' : 'overrode'} → <b>${e.final_action.replace(/_/g, ' ')}</b>`); renderValidation(e); }
+  else if (k === 'report_start') step('rep', 'run', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> writing the ${e.for_action === 'COORDINATE' ? 'coordination message' : 'escalation brief'} (runs only when a person must act)`);
+  else if (k === 'report') { step('rep', 'ok', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> ${esc(e.report.subject)}`); renderReport(e.report); }
+  else if (k === 'report_error') step('rep', 'warn', `<span class="who">Report</span> failed: ${esc(e.message)}`);
   else if (k === 'done') incStats(` · <b>$${e.usage.cost_usd.toFixed(4)}</b> · ${e.usage.calls} model calls · ${e.seconds}s`);
   else if (k === 'result') {
     renderRisk(e.risk, e.conjunction); renderOptions(e.options, e.validation.final_option_id);
-    renderDecision(e.decision, e.model); renderValidation(e.validation);
+    renderDecision(e.decision, e.model); renderValidation(e.validation); renderReport(e.report);
     if (e.trajectory) { traj.data = e.trajectory; $('trajSec').hidden = false; trajDraw(); }
   }
   else if (k === 'error') finish(false, e.message);

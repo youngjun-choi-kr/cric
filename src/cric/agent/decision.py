@@ -36,7 +36,8 @@ class Factor(BaseModel):
 
 class Decision(BaseModel):
     action: Action
-    option_id: str | None = Field(None, description="id of the chosen verified burn option, or null")
+    # Pattern keeps guided decoding from leaking stray text into the id (seen once in the held-out eval).
+    option_id: str | None = Field(None, pattern=r"^O[0-9]{1,2}$", description="id of a verified burn option, e.g. O1, or null")
     rationale: str = Field(min_length=20)
     key_factors: list[Factor] = Field(min_length=2)
     mission_conflicts: list[str] = Field(description="mission or policy constraints that ruled options out or in")

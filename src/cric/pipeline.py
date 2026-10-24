@@ -7,6 +7,8 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from .agent.decision import decide
+from .agent.report import write_report
+from .config import MODEL_ULTRA
 from .config import DATA, MODEL_SUPER
 from .ingest.celestrak import Catalog, load_catalog
 from .llm import Usage
@@ -105,7 +107,8 @@ def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
 def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = None, kp: float = 2.0,
                  space_weather_note: str = "Quiet geomagnetic conditions.", mission: dict | None = None,
                  policy: dict | None = None, use_tavily: bool = True, cat: Catalog | None = None,
-                 data_quality: str = "tle", model: str = MODEL_SUPER, tag: str = "custom", emit=_noop) -> dict:
+                 data_quality: str = "tle", model: str = MODEL_SUPER, tag: str = "custom", with_report: bool = True,
+                 emit=_noop) -> dict:
     """Assess one conjunction from OUR satellite's point of view. now_utc lets a recorded
     encounter be replayed as if the decision were made at that moment."""
     t0 = time.time()
@@ -134,6 +137,16 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     check = validate(decision.model_dump(), ctx, now)
     emit("validation", **check)
 
+    report = None
+    if with_report and check["final_action"] in ("COORDINATE", "ESCALATE"):
+        emit("report_start", model=MODEL_ULTRA, for_action=check["final_action"])
+        try:
+            r = write_report(ctx, decision.model_dump(), check, usage=usage)
+            report = r.model_dump() if r else None
+            emit("report", report=report, model=MODEL_ULTRA)
+        except Exception as exc:  # a missing report must not lose the decision
+            emit("report_error", message=str(exc)[:300])
+
     trajectory = None
     opt = next((o for o in ctx["burn_options"]["options"] if o["id"] == check["final_option_id"]), None)
     if opt:
@@ -143,7 +156,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
 
     result = {"pair": {"ours": ours, "other": other, "tca_utc": iso(tca)}, "context": ctx,
               "decision": decision.model_dump(), "reasoning": reasoning, "validation": check,
-              "trajectory": trajectory, "usage": usage.as_dict(), "seconds": round(time.time() - t0, 1),
+              "report": report, "trajectory": trajectory, "usage": usage.as_dict(), "seconds": round(time.time() - t0, 1),
               "model": model, "trace": trace}
     INCIDENTS.mkdir(exist_ok=True)
     path = INCIDENTS / f"{ours}_{other}_{tca.strftime('%Y%m%dT%H%M%S')}_{now.strftime('%H%M')}_{tag}.json"
