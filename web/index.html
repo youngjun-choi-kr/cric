@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRIC · Orbit Prototype</title>
+<style>
+  :root { --bg:#02040a; --panel:rgba(8,14,28,.72); --line:rgba(120,160,255,.18); --text:#dbe6ff; --dim:#8196c4; --accent:#5ab0ff; --warn:#ff6b57; --ok:#4fe3a1; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:13px/1.45 -apple-system,"Apple SD Gothic Neo","Segoe UI",sans-serif; overflow:hidden; }
+  canvas { display:block; position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:12px 14px; }
+  #hud { top:16px; left:16px; min-width:250px; }
+  #hud h1 { margin:0 0 2px; font-size:15px; letter-spacing:.06em; }
+  #hud .sub { color:var(--dim); font-size:11px; margin-bottom:8px; }
+  #hud .row { display:flex; justify-content:space-between; gap:16px; }
+  #hud .row b { font-variant-numeric:tabular-nums; }
+  #clock { font-size:17px; font-variant-numeric:tabular-nums; margin:6px 0 2px; }
+  #controls { left:16px; bottom:16px; display:flex; gap:6px; flex-wrap:wrap; max-width:420px; }
+  button { background:rgba(90,176,255,.1); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; cursor:pointer; }
+  button:hover { background:rgba(90,176,255,.25); }
+  button.on { background:var(--accent); color:#001224; border-color:var(--accent); font-weight:600; }
+  #events { top:16px; right:16px; width:330px; max-height:calc(100% - 32px); display:flex; flex-direction:column; }
+  #events h2 { margin:0 0 6px; font-size:13px; }
+  #events label { color:var(--dim); font-size:11px; display:block; margin-bottom:8px; cursor:pointer; }
+  #list { overflow:auto; margin:0 -6px; padding:0 6px; }
+  .ev { padding:8px 9px; border:1px solid transparent; border-radius:8px; cursor:pointer; }
+  .ev:hover { background:rgba(90,176,255,.1); }
+  .ev.sel { border-color:var(--warn); background:rgba(255,107,87,.1); }
+  .ev .n { font-weight:600; }
+  .ev .m { color:var(--dim); font-size:11px; font-variant-numeric:tabular-nums; }
+  .ev .d { color:var(--warn); font-weight:700; }
+  #readout { left:50%; bottom:16px; transform:translateX(-50%); text-align:center; min-width:380px; display:none; border-color:rgba(255,107,87,.5); }
+  #readout .big { font-size:26px; font-weight:700; color:var(--warn); font-variant-numeric:tabular-nums; }
+  #readout .names { font-weight:600; margin-bottom:2px; }
+  #readout .dim { color:var(--dim); font-size:11px; }
+  #verdict { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12px; text-align:left; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:99px; font-size:10px; margin-right:6px; background:rgba(255,255,255,.1); }
+  .tag.web { background:rgba(79,227,161,.2); color:var(--ok); }
+  #foot { right:16px; bottom:16px; max-width:330px; font-size:10.5px; color:var(--dim); }
+  #loading { position:fixed; inset:0; display:grid; place-items:center; background:var(--bg); z-index:9; transition:opacity .6s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #tav { top:136px; left:16px; width:340px; max-height:calc(100% - 250px); display:flex; flex-direction:column; padding:0; }
+  #tav header { padding:10px 12px; }
+  #tav h2 { margin:0; font-size:13px; letter-spacing:.04em; display:flex; justify-content:space-between; align-items:center; }
+  #tavBtns { display:flex; gap:6px; margin-top:8px; }
+  #tavStats { color:var(--dim); font-size:11px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  #tavStats b { color:var(--text); }
+  #tavBody { display:none; overflow:auto; min-height:0; padding:0 12px 12px; border-top:1px solid var(--line); padding-top:10px; }
+  #tav.open #tavBody { display:block; }
+  .dim { color:var(--dim); }
+  .card { border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-bottom:8px; }
+  .card h3 { margin:0 0 6px; font-size:12px; }
+  .step { display:flex; gap:8px; font-size:11.5px; margin:5px 0; }
+  .step .ic { width:14px; flex:none; text-align:center; color:var(--dim); }
+  .step.ok .ic { color:var(--ok); } .step.warn .ic { color:#ffc857; }
+  .step.run .ic { color:var(--accent); animation:pulse .9s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.25; } }
+  .step i { color:var(--dim); font-style:normal; }
+  .chips { margin-top:3px; display:flex; gap:4px; flex-wrap:wrap; }
+  .chip { background:rgba(255,255,255,.08); border-radius:99px; padding:1px 7px; font-size:10px; }
+  .prob { margin:4px 0 0; padding-left:16px; color:#ffc857; font-size:10.5px; }
+  .facts { margin-top:8px; border-top:1px solid var(--line); padding-top:6px; }
+  .fact { margin:6px 0; font-size:11.5px; }
+  .fh { display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; }
+  .fk { color:var(--dim); min-width:78px; } .fv { font-weight:600; flex:1; }
+  .fq { color:var(--dim); font-size:10.5px; margin:2px 0 1px; border-left:2px solid var(--line); padding-left:6px; }
+  .fact a { font-size:10.5px; color:var(--accent); text-decoration:none; }
+  .tag.ok { background:rgba(79,227,161,.2); color:var(--ok); } .tag.mid { background:rgba(255,200,87,.18); color:#ffc857; }
+  .tag.bad { background:rgba(255,107,87,.2); color:var(--warn); } .tag.dim { color:var(--dim); }
+  .abl { margin-top:8px; font-size:11px; } .abl .bar { margin:3px 0; background:rgba(255,255,255,.07); border-radius:4px; position:relative; height:16px; }
+  .abl .bar span { display:block; height:100%; border-radius:4px; background:rgba(129,150,196,.55); }
+  .abl .bar.on span { background:rgba(79,227,161,.6); }
+  .abl .bar em { position:absolute; left:6px; top:0; line-height:16px; font-style:normal; font-size:10.5px; }
+  .verdict { border-color:rgba(255,107,87,.5); } .verdict .rec { margin-top:4px; font-weight:600; }
+  @media (max-width:1100px) { #foot { display:none; } #tav { width:300px; } #events { max-height:calc(100% - 250px); } #readout { left:auto; right:16px; transform:none; width:330px; min-width:0; } }
+  @media (max-width:820px) { #tav { display:none; } #events { display:none; } #foot { display:none; } #readout { min-width:0; width:calc(100% - 32px); } #controls { bottom:auto; top:130px; } }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="loading"><div id="loadmsg">궤도 데이터와 지구 텍스처를 불러오는 중…</div></div>
+
+<div class="panel" id="hud">
+  <h1>CRIC · ORBIT PROTOTYPE</h1>
+  <div class="sub">CelesTrak 실제 궤도 · SGP4 전파 · 1 단위 = 1,000 km</div>
+  <div id="clock">--</div>
+  <div class="row"><span>추적 중인 위성</span><b id="cnt">-</b></div>
+  <div class="row"><span>시간 배속</span><b id="spd">10×</b></div>
+</div>
+
+<div class="panel" id="controls">
+  <button data-speed="0">⏸</button>
+  <button data-speed="1">1×</button>
+  <button data-speed="10" class="on">10×</button>
+  <button data-speed="60">60×</button>
+  <button data-speed="300">300×</button>
+  <button id="btnTca">TCA 2분 전으로</button>
+  <button id="btnOverview">전체 보기</button>
+</div>
+
+<div class="panel" id="tav">
+  <header>
+    <h2><span>TAVILY 조사 <span class="dim" id="tavState">대기 중</span></span><button id="tavToggle" title="접기/펼치기">▾</button></h2>
+    <div id="tavBtns"><button id="tavLive">▶ 실시간 조사</button><button id="tavReplay">⟲ 기록 재생</button></div>
+    <div id="tavStats"></div>
+  </header>
+  <div id="tavBody"></div>
+</div>
+
+<div class="panel" id="events">
+  <h2>근접 접근 (다음 6시간 스크리닝)</h2>
+  <label><input type="checkbox" id="incStarlink"> Starlink끼리의 접근도 포함</label>
+  <div id="list"></div>
+</div>
+
+<div class="panel" id="readout">
+  <div class="names" id="rNames"></div>
+  <div class="big" id="rDist">-</div>
+  <div class="dim" id="rSub"></div>
+  <div id="verdict"></div>
+</div>
+
+<div class="panel" id="foot">시각화 프로토타입입니다. 궤도는 TLE 정확도(약 1 km)의 스크리닝 수준이고, 충돌 확률은 계산하지 않습니다. 위성 마커는 화면상 고정 크기입니다.</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const D2R = Math.PI / 180;
+const RE = 6.378137;                      // Earth radius, 1 unit = 1000 km
+const $ = (id) => document.getElementById(id);
+
+// ---------- data ----------
+const [tleText, conj] = await Promise.all([
+  fetch('/data/celestrak_active.tle').then(r => r.text()),
+  fetch('/data/conjunctions.json').then(r => r.json()),
+]);
+const lines = tleText.split('\n').map(l => l.trimEnd()).filter(Boolean);
+const sats = [];
+const bySat = new Map();
+for (let i = 0; i + 2 < lines.length; i += 3) {
+  const rec = satellite.twoline2satrec(lines[i + 1], lines[i + 2]);
+  const s = { name: lines[i].trim(), rec, starlink: lines[i].startsWith('STARLINK') };
+  sats.push(s);
+  bySat.set(String(Number(rec.satnum)), s);
+}
+$('cnt').textContent = sats.length.toLocaleString();
+
+// ---------- renderer ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 3000);
+camera.position.set(0, 7, 19);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+controls.minDistance = 0.05; controls.maxDistance = 400;
+controls.zoomSpeed = 0.8;
+
+// ---------- textures ----------
+const loader = new THREE.TextureLoader();
+const IMG = 'https://unpkg.com/three-globe@2.31.0/example/img/';
+const load = (f, srgb = true) => loader.loadAsync(IMG + f).then(t => {
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
+});
+const [dayTex, nightTex, skyTex] = await Promise.all([load('earth-blue-marble.jpg'), load('earth-night.jpg'), load('night-sky.png')]);
+
+// ---------- sky ----------
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 32),
+  new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, depthWrite: false, color: 0x9aa6c8 }));
+scene.add(sky);
+
+// ---------- earth ----------
+const sunU = { value: new THREE.Vector3(1, 0, 0) };
+const earth = new THREE.Mesh(new THREE.SphereGeometry(RE, 128, 96), new THREE.ShaderMaterial({
+  uniforms: { dayT: { value: dayTex }, nightT: { value: nightTex }, sunDir: sunU },
+  vertexShader: `
+    varying vec2 vUv; varying vec3 vN; varying vec3 vW;
+    void main(){ vUv=uv; vN=normalize(normal); vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `
+    uniform sampler2D dayT, nightT; uniform vec3 sunDir;
+    varying vec2 vUv; varying vec3 vN; varying vec3 vW;
+    void main(){
+      vec3 N=normalize(vN); vec3 S=normalize(sunDir);
+      float d=dot(N,S);
+      vec3 day=texture2D(dayT,vUv).rgb, night=texture2D(nightT,vUv).rgb;
+      float m=smoothstep(-0.10,0.22,d);
+      vec3 lit=day*(0.05+1.25*max(d,0.0));
+      vec3 dark=night*vec3(1.5,1.15,0.75)*1.1+day*0.012;
+      vec3 col=mix(dark,lit,m);
+      float tw=exp(-pow(d/0.10,2.0));
+      col+=vec3(1.0,0.38,0.12)*tw*0.16*(0.3+length(day));
+      vec3 V=normalize(cameraPosition-vW);
+      float f=pow(1.0-max(dot(N,V),0.0),3.2);
+      col+=vec3(0.28,0.55,1.0)*f*0.9*clamp(d*1.6+0.45,0.0,1.0);
+      gl_FragColor=vec4(col,1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+}));
+scene.add(earth);
+
+const atmos = new THREE.Mesh(new THREE.SphereGeometry(RE * 1.035, 96, 64), new THREE.ShaderMaterial({
+  uniforms: { sunDir: sunU }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+  vertexShader: `varying vec3 vN; varying vec3 vWN; void main(){ vN=normalize(normalMatrix*normal); vWN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `
+    uniform vec3 sunDir; varying vec3 vN; varying vec3 vWN;
+    void main(){
+      float i=pow(max(0.62-dot(vN,vec3(0.,0.,1.)),0.0),2.6);
+      float lit=smoothstep(-0.35,0.45,dot(normalize(vWN),normalize(sunDir)));
+      vec3 c=mix(vec3(0.35,0.55,1.0),vec3(1.0,0.55,0.3),smoothstep(0.35,0.0,abs(dot(normalize(vWN),normalize(sunDir)))));
+      gl_FragColor=vec4(c*i*2.4*(0.12+lit),1.0);
+    }`,
+}));
+scene.add(atmos);
+
+// ---------- satellites ----------
+function dotTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.4, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+}
+const dot = dotTexture();
+const N = sats.length;
+const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+sats.forEach((s, i) => { const c = s.starlink ? [0.38, 0.62, 1.0] : [1.0, 0.82, 0.45]; col.set(c, i * 3); });
+const satGeo = new THREE.BufferGeometry();
+satGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+satGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+const satPts = new THREE.Points(satGeo, new THREE.PointsMaterial({
+  size: 3.2, sizeAttenuation: false, vertexColors: true, map: dot, transparent: true, depthWrite: false, alphaTest: 0.02,
+}));
+satPts.frustumCulled = false;
+scene.add(satPts);
+
+const pairPos = new Float32Array(6);
+const pairGeo = new THREE.BufferGeometry();
+pairGeo.setAttribute('position', new THREE.BufferAttribute(pairPos, 3));
+pairGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array([1, .42, .34, .35, 1, .75]), 3));
+const pairPts = new THREE.Points(pairGeo, new THREE.PointsMaterial({
+  size: 16, sizeAttenuation: false, vertexColors: true, map: dot, transparent: true, depthTest: false, depthWrite: false,
+}));
+pairPts.frustumCulled = false; pairPts.visible = false; pairPts.renderOrder = 10;
+scene.add(pairPts);
+const pairLine = new THREE.Line(pairGeo, new THREE.LineBasicMaterial({ color: 0xff6b57, transparent: true, opacity: .9, depthTest: false }));
+pairLine.frustumCulled = false; pairLine.visible = false; pairLine.renderOrder = 9;
+scene.add(pairLine);
+
+const ringGroup = new THREE.Group(); scene.add(ringGroup);   // inertial frame: rotated by -GMST each frame
+function ringFor(rec, date, color) {
+  const period = 2 * Math.PI / rec.no, pts = [];
+  for (let k = 0; k <= 160; k++) {
+    const p = satellite.propagate(rec, new Date(date.getTime() + k / 160 * period * 60000)).position;
+    if (p) pts.push(new THREE.Vector3(p.x / 1000, p.z / 1000, -p.y / 1000));
+  }
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: .55 }));
+}
+
+// ---------- time & geometry helpers ----------
+let simMs = Date.now(), speed = 10;
+function sunVector(date) {
+  const n = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
+  const L = 280.460 + 0.9856474 * n, g = (357.528 + 0.9856003 * n) * D2R;
+  const lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D2R, eps = (23.439 - 4e-7 * n) * D2R;
+  const x = Math.cos(lam), y = Math.cos(eps) * Math.sin(lam), z = Math.sin(eps) * Math.sin(lam);
+  const gm = satellite.gstime(date), c = Math.cos(gm), s = Math.sin(gm);
+  return new THREE.Vector3(x * c + y * s, z, -(-x * s + y * c));
+}
+function updateSats(date) {
+  const gm = satellite.gstime(date), c = Math.cos(gm), s = Math.sin(gm);
+  for (let i = 0; i < N; i++) {
+    const p = satellite.propagate(sats[i].rec, date).position;
+    if (!p) { pos[3 * i] = pos[3 * i + 1] = pos[3 * i + 2] = 0; continue; }
+    pos[3 * i] = (p.x * c + p.y * s) / 1000;
+    pos[3 * i + 1] = p.z / 1000;
+    pos[3 * i + 2] = -(-p.x * s + p.y * c) / 1000;
+  }
+  satGeo.attributes.position.needsUpdate = true;
+}
+const eci = (rec, date) => satellite.propagate(rec, date);
+
+// ---------- selection / camera ----------
+let sel = null, selSats = null, offset = new THREE.Vector3(), fly = null, prevMid = new THREE.Vector3();
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function startFly(goal) { fly = { t: 0, camFrom: camera.position.clone(), tgtFrom: controls.target.clone(), goal }; }
+function pairMid(date) {
+  const gm = satellite.gstime(date), c = Math.cos(gm), s = Math.sin(gm), v = new THREE.Vector3();
+  for (const sat of selSats) {
+    const p = eci(sat.rec, date).position; if (!p) continue;
+    v.add(new THREE.Vector3((p.x * c + p.y * s) / 1000, p.z / 1000, -(-p.x * s + p.y * c) / 1000));
+  }
+  return v.multiplyScalar(0.5);
+}
+function flyToPair() {
+  const mid = pairMid(new Date(simMs)), u = mid.clone().normalize();
+  const side = new THREE.Vector3().crossVectors(u, new THREE.Vector3(0, 1, 0));
+  if (side.lengthSq() < 1e-4) side.set(1, 0, 0);
+  side.normalize();
+  offset = u.clone().multiplyScalar(1.6).add(side.multiplyScalar(3.4)).add(new THREE.Vector3(0, 0.9, 0));
+  startFly(() => { const m = pairMid(new Date(simMs)); return { cam: m.clone().add(offset), tgt: m }; });
+}
+function select(ev, jump = true) {
+  const a = bySat.get(String(ev.object_a.norad_id)), b = bySat.get(String(ev.object_b.norad_id));
+  if (!a || !b) return;
+  sel = ev; selSats = [a, b];
+  tavReset();
+  if (jump) { simMs = Date.parse(ev.tca_utc) - 120000; }
+  ringGroup.clear();
+  ringGroup.add(ringFor(a.rec, new Date(simMs), 0xff6b57), ringFor(b.rec, new Date(simMs), 0x59ffbd));
+  pairPts.visible = pairLine.visible = true;
+  $('readout').style.display = 'block';
+  $('rNames').textContent = `${a.name}  ↔  ${b.name}`;
+  loadVerdict(ev);
+  document.querySelectorAll('.ev').forEach(el => el.classList.toggle('sel', el.dataset.id === evKey(ev)));
+  flyToPair();
+}
+function overview() {
+  sel = null; selSats = null; pairPts.visible = pairLine.visible = false; ringGroup.clear(); tavReset();
+  $('readout').style.display = 'none';
+  document.querySelectorAll('.ev').forEach(el => el.classList.remove('sel'));
+  startFly(() => ({ cam: new THREE.Vector3(0, 8, 21), tgt: new THREE.Vector3(0, 0, 0) }));
+}
+
+// ---------- UI ----------
+const evKey = (e) => `${e.object_a.norad_id}-${e.object_b.norad_id}`;
+const fmtKST = (iso) => new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function renderList() {
+  const inc = $('incStarlink').checked;
+  const evs = conj.events.filter(e => inc || !(e.object_a.name.startsWith('STARLINK') && e.object_b.name.startsWith('STARLINK'))).slice(0, 25);
+  $('list').innerHTML = evs.map(e => `
+    <div class="ev" data-id="${evKey(e)}">
+      <div class="n">${e.object_a.name} ↔ ${e.object_b.name}</div>
+      <div class="m"><span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · 고도 ${e.altitude_km.toFixed(0)} km · ${fmtKST(e.tca_utc)} KST</div>
+    </div>`).join('');
+  document.querySelectorAll('.ev').forEach((el, i) => el.onclick = () => select(evs[i]));
+  if (sel) document.querySelector(`.ev[data-id="${evKey(sel)}"]`)?.classList.add('sel');
+  return evs;
+}
+$('incStarlink').onchange = renderList;
+document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
+  speed = +b.dataset.speed; $('spd').textContent = speed ? speed + '×' : '정지';
+  document.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
+});
+$('btnTca').onclick = () => { if (sel) select(sel, true); };
+$('btnOverview').onclick = overview;
+
+async function loadVerdict(ev) {
+  const el = $('verdict'); el.innerHTML = '';
+  const ids = `${ev.object_a.norad_id}_${ev.object_b.norad_id}`;
+  for (const [suffix, web] of [['', true], ['_notavily', false]]) {
+    try {
+      const r = await fetch(`/data/dossier_pair_${ids}${suffix}.json`); if (!r.ok) continue;
+      const d = (await r.json()).decision;
+      el.innerHTML = `<span class="tag ${web ? 'web' : ''}">${web ? 'Tavily 근거 사용' : 'Tavily 없음 (SATCAT만)'}</span>${d.recommendation}`;
+      return;
+    } catch {}
+  }
+  el.innerHTML = '<span class="tag">신상 조회 없음</span>04_satellite_dossier.py 로 이 쌍의 회피 주체를 조회할 수 있습니다.';
+}
+
+// ---------- Tavily research panel ----------
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return String(u); } };
+const safeUrl = (u) => (/^https?:\/\//.test(u) ? u : '#');
+const STATUS = { sourced: ['출처 확인', 'ok'], inferred: ['추론', 'mid'], unknown: ['모름', 'dim'] };
+const FIELD_KO = { operator: '운영사', country: '국가', mission_type: '임무', launch_mass_kg: '발사 질량(kg)', has_propulsion: '추진계 보유',
+  propulsion_type: '추진 방식', can_maneuver_now: '지금 기동 가능', mission_status: '임무 상태', contact_channel: '연락 경로' };
+const tav = { es: null, queue: [], timer: null, cards: new Map(), stats: null, running: false, mode: 'live', streamDone: false };
+
+function tavStats() {
+  const s = tav.stats;
+  $('tavStats').innerHTML = `검색 <b>${s.search}</b> · 추출 <b>${s.extract}</b> · 크레딧 <b>${s.credits}</b> · 캐시 적중 <b>${s.cached}</b>`;
+}
+function tavReset() {
+  tav.es?.close(); tav.es = null; clearTimeout(tav.timer); tav.timer = null; tav.queue = []; tav.cards.clear();
+  tav.stats = { search: 0, extract: 0, credits: 0, cached: 0 }; tav.running = false; tav.streamDone = false;
+  $('tavBody').innerHTML = ''; $('tavState').textContent = '대기 중'; tavStats();
+  $('tavLive').disabled = $('tavReplay').disabled = !sel;
+}
+function tavCard(norad) {
+  if (tav.cards.has(norad)) return tav.cards.get(norad);
+  const sat = selSats?.find((x) => Number(x.rec.satnum) === Number(norad));
+  const el = document.createElement('div'); el.className = 'card';
+  el.innerHTML = `<h3>${esc(sat?.name || norad)} <span class="dim">NORAD ${esc(norad)}</span></h3><div class="steps"></div><div class="facts"></div>`;
+  $('tavBody').appendChild(el);
+  const c = { el, steps: el.querySelector('.steps'), facts: el.querySelector('.facts'), rows: {} };
+  tav.cards.set(norad, c); return c;
+}
+function tavStep(c, key, state, html) {
+  let r = c.rows[key];
+  if (!r) { r = document.createElement('div'); r.innerHTML = '<span class="ic"></span><div class="tx"></div>'; c.steps.appendChild(r); c.rows[key] = r; }
+  r.className = 'step ' + state;
+  r.querySelector('.ic').textContent = { run: '◐', ok: '✓', warn: '!' }[state];
+  r.querySelector('.tx').innerHTML = html;
+}
+const credTxt = (e) => (tav.mode === 'replay' ? '기록' : e.cached ? '캐시' : `${e.credits} 크레딧`);
+function tavFinish(ok, msg) {
+  tav.running = false; tav.es?.close(); tav.es = null;
+  $('tavState').textContent = ok ? '완료' : '오류';
+  $('tavLive').disabled = $('tavReplay').disabled = !sel;
+  if (!ok) $('tavBody').insertAdjacentHTML('beforeend', `<div class="card verdict"><h3>오류</h3><div>${esc(msg)}</div><div class="dim" style="margin-top:4px">⟲ 기록 재생으로 저장된 조사 과정을 볼 수 있습니다.</div></div>`);
+}
+function tavHandle(e) {
+  const c = e.norad != null ? tavCard(e.norad) : null;
+  switch (e.kind) {
+    case 'satcat':
+      tavStep(c, 'satcat', 'ok', `<b>CelesTrak SATCAT</b> · ${esc(e.type)} · ${esc(e.status)} · 소유 ${esc(e.owner)} · 발사 ${esc(e.launch)}`); break;
+    case 'search_skipped': tavStep(c, 's0', 'warn', '웹 검색 없음 (Tavily 꺼짐)'); break;
+    case 'search_start':
+      c.total = e.total; tavStep(c, 's' + e.index, 'run', `<b>Tavily Search ${e.index + 1}/${e.total}</b> <i>${esc(e.query)}</i>`); break;
+    case 'search_done': {
+      tav.stats.search++; e.cached ? tav.stats.cached++ : (tav.stats.credits += e.credits); tavStats();
+      const hosts = [...new Set(e.results.map((r) => hostOf(r.url)))].slice(0, 5);
+      tavStep(c, 's' + e.index, 'ok', `<b>Search ${e.index + 1}/${e.total ?? c.total ?? '?'}</b> <i>${esc(e.query)}</i><div class="chips">${hosts.map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div><div class="dim">${e.results.length}건 · ${credTxt(e)}</div>`);
+      break; }
+    case 'extract_start': tavStep(c, 'ex', 'run', `<b>Tavily Extract</b> 상위 ${e.urls.length}개 페이지 본문 추출`); break;
+    case 'extract_done':
+      tav.stats.extract++; e.cached ? tav.stats.cached++ : (tav.stats.credits += e.credits); tavStats();
+      tavStep(c, 'ex', 'ok', `<b>Extract</b> ${e.pages.length}개 페이지 본문<div class="chips">${e.pages.map((x) => `<span class="chip">${esc(hostOf(x.url))} ${(x.chars / 1000).toFixed(1)}k자</span>`).join('')}</div><div class="dim">${credTxt(e)}</div>`);
+      break;
+    case 'llm_start': tavStep(c, 'llm', 'run', `<b>Nemotron Super</b>가 출처 ${e.sources}개로 신상 정리 중`); break;
+    case 'llm_done': tavStep(c, 'llm', 'ok', `<b>Nemotron Super</b> · 입력 ${e.usage.prompt} / 출력 ${e.usage.completion} 토큰`); break;
+    case 'claims':
+      tavStep(c, 'claims', e.passed ? 'ok' : 'warn', `<b>인용 검증</b> ${e.passed ? '통과: 모든 인용이 원문에 존재' : `${e.problems.length}건을 걸러냄`}` +
+        (e.problems.length ? `<ul class="prob">${e.problems.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '')); break;
+    case 'facts':
+      c.facts.innerHTML = e.facts.map((f) => {
+        const [label, cls] = f.flagged ? ['검증 실패', 'bad'] : STATUS[f.status] || ['?', 'dim'];
+        const src = f.source_url === 'celestrak:satcat' ? '<span class="dim">CelesTrak SATCAT</span>'
+          : f.source_url ? `<a href="${esc(safeUrl(f.source_url))}" target="_blank" rel="noopener noreferrer">${esc(hostOf(f.source_url))}</a>` : '';
+        return `<div class="fact"><div class="fh"><span class="fk">${esc(FIELD_KO[f.field] || f.field)}</span><span class="fv">${esc(f.value ?? '—')}</span><span class="tag ${cls}">${label}</span></div>${f.quote ? `<div class="fq">“${esc(f.quote)}”</div>` : ''}${src}</div>`;
+      }).join(''); break;
+    case 'result': {
+      const w = e.metrics;
+      fetch(`/data/dossier_${e.norad}_notavily.json`).then((r) => (r.ok ? r.json() : null)).then((nt) => {
+        if (!nt) return;
+        const wo = nt.metrics, pct = (n) => Math.round((n / w.facts) * 100);
+        c.el.insertAdjacentHTML('beforeend', `<div class="abl"><div class="dim">출처가 확인된 사실 (총 ${w.facts}개)</div>
+          <div class="bar"><span style="width:${pct(wo.sourced)}%"></span><em>Tavily 없음 ${wo.sourced}</em></div>
+          <div class="bar on"><span style="width:${pct(w.sourced)}%"></span><em>Tavily 사용 ${w.sourced}</em></div></div>`);
+      }).catch(() => {});
+      break; }
+    case 'decision': {
+      const d = e.decision, chip = (x) => ({ yes: '기동 가능', no: '기동 불가', unknown: '알 수 없음' }[x.can_maneuver]);
+      $('tavBody').insertAdjacentHTML('beforeend', `<div class="card verdict"><h3>회피 주체 판단 (LLM이 아닌 규칙 코드)</h3><div>${esc(d.a.name)}: <b>${chip(d.a)}</b><br>${esc(d.b.name)}: <b>${chip(d.b)}</b></div><div class="rec">${esc(d.recommendation)}</div></div>`);
+      $('verdict').innerHTML = `<span class="tag ok">Tavily 근거 사용</span>${esc(d.recommendation)}`; break; }
+    case 'error': tavFinish(false, e.message); break;
+    case 'done': tavFinish(true); break;
+  }
+  $('tavBody').scrollTop = $('tavBody').scrollHeight;
+}
+function tavPump() {
+  if (tav.timer || !tav.queue.length) return;
+  tavHandle(tav.queue.shift());
+  tav.timer = setTimeout(() => { tav.timer = null; tavPump(); }, tav.mode === 'live' ? 280 : 420);  // paced so each step is readable
+}
+function tavStart(mode) {
+  if (!sel || tav.running) return;
+  const ids = selSats.map((x) => Number(x.rec.satnum));
+  tavReset(); tav.running = true; tav.mode = mode;
+  $('tavLive').disabled = $('tavReplay').disabled = true;
+  $('tav').classList.add('open'); $('tavState').textContent = mode === 'live' ? '실시간 조사 중…' : '기록 재생 중…';
+  const es = tav.es = new EventSource(`/api/dossier?${ids.map((n) => 'norad=' + n).join('&')}&mode=${mode}`);
+  es.onmessage = (m) => {
+    const e = JSON.parse(m.data);
+    if (e.kind === 'done' || e.kind === 'error') { tav.streamDone = true; es.close(); }
+    tav.queue.push(e); tavPump();
+  };
+  es.onerror = () => { es.close(); if (!tav.streamDone) { tav.queue.push({ kind: 'error', message: '서버와의 연결이 끊겼거나 요청이 거부되었습니다 (이미 다른 실행 중이거나 서버 미실행).' }); tavPump(); } };
+}
+$('tavLive').onclick = () => tavStart('live');
+$('tavReplay').onclick = () => tavStart('replay');
+$('tavToggle').onclick = () => $('tav').classList.toggle('open');
+
+// ---------- loop ----------
+let last = performance.now(), lastU = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1); last = now;
+  simMs += dt * 1000 * speed;
+  const date = new Date(simMs);
+  if (now - lastU > (speed >= 60 ? 120 : 260)) { updateSats(date); lastU = now; }
+  sunU.value.copy(sunVector(date));
+  ringGroup.rotation.y = -satellite.gstime(date);
+  $('clock').textContent = date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+
+  if (sel) {
+    const gm = satellite.gstime(date), c = Math.cos(gm), s = Math.sin(gm);
+    const ps = selSats.map(x => eci(x.rec, date).position);
+    if (ps[0] && ps[1]) {
+      ps.forEach((p, k) => {
+        pairPos[3 * k] = (p.x * c + p.y * s) / 1000; pairPos[3 * k + 1] = p.z / 1000; pairPos[3 * k + 2] = -(-p.x * s + p.y * c) / 1000;
+      });
+      pairGeo.attributes.position.needsUpdate = true;
+      const km = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y, ps[0].z - ps[1].z);
+      $('rDist').textContent = km < 10 ? `${(km * 1000).toFixed(0)} m` : `${km.toFixed(1)} km`;
+      const secs = (Date.parse(sel.tca_utc) - simMs) / 1000, a = Math.abs(secs);
+      $('rSub').textContent = `TCA ${secs >= 0 ? '까지' : '지남'} ${Math.floor(a / 60)}분 ${Math.floor(a % 60)}초 · 최근접 예상 ${(sel.miss_distance_km * 1000).toFixed(0)} m · 상대속도 ${sel.relative_speed_kms.toFixed(1)} km/s`;
+    }
+  }
+  if (fly) {
+    fly.t = Math.min(1, fly.t + dt / 1.8);
+    const k = ease(fly.t), g = fly.goal();
+    camera.position.lerpVectors(fly.camFrom, g.cam, k);
+    controls.target.lerpVectors(fly.tgtFrom, g.tgt, k);
+    if (fly.t >= 1) { prevMid = sel ? pairMid(date) : new THREE.Vector3(); fly = null; }
+  } else if (sel) {
+    const mid = pairMid(date), delta = mid.clone().sub(prevMid);
+    camera.position.add(delta); controls.target.add(delta); prevMid = mid;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+updateSats(new Date(simMs));
+const evs = renderList();
+$('loading').classList.add('done');
+setTimeout(() => $('loading').remove(), 800);
+if (evs.length) select(evs[0]);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

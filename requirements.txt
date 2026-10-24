@@ -1,0 +1,8 @@
+sgp4>=2.24
+numpy>=2.0
+scipy>=1.14
+requests>=2.32
+openai>=1.50
+tavily-python>=0.5
+python-dotenv>=1.0
+pydantic>=2.8
