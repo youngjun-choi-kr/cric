@@ -79,6 +79,23 @@ precise ephemeris, imaging pass blocking the cheapest burn, and safe mode.
 Without the server the page runs as a static site (GitHub Pages or `python -m http.server` at the repo root,
 then open `/web/`): it replays the recordings in `web/demo/` (refresh with `scripts/export_demo.py`).
 
+## Cinema mode (for the demo film)
+
+The console's globe engine doubles as the film's camera. Shots are scripted, so a take renders the same frames
+every time.
+
+```bash
+.venv/bin/python web/serve.py 8765
+# preview:  http://localhost:8765/?cinema=1        keys 1-4 shot, Space pause, R restart, L letterbox, C caption, U console
+# render:   http://localhost:8765/?cinema=1&record=find-pair&fps=60&w=3840&h=2160   -> data/frames/find-pair/
+ffmpeg -framerate 60 -i data/frames/find-pair/%05d.png -c:v libx264 -pix_fmt yuv420p -crf 12 find-pair.mp4
+```
+
+Shots: `overview-push`, `find-pair`, `go-to-burn` (chase camera on the post-burn path, exaggerated x200),
+`pass-and-pullback`. For screen captures of the console: `?ui=1.5` scales the panels, the incident panel has replay
+pace (0.5x / 1x / 2x) and pause, and each step briefly highlights the element it fills. Two extra recorded
+situations exist for the film: the May 2024 G5 storm replayed as tonight's weather, and a mission note in Korean.
+
 ## Data sources
 
 CelesTrak GP and SATCAT, NOAA SWPC, NASA SDO via Helioviewer, and web pages found through Tavily. Orbit data is screening-grade (about 1 km); CRIC is a research prototype, not an operational collision-avoidance service.

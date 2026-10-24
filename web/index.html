@@ -83,11 +83,33 @@
   .btns { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
   .lim { color:var(--dim); font-size:10.5px; margin-top:6px; }
 
+  /* UI scale for 4K capture: web/?ui=1.5 */
+  .panel { zoom: var(--ui, 1); }
+  /* spotlight: draws the eye to the element a narration line is about */
+  .spot { animation: spot 2.6s ease-out 1; border-radius: 8px; }
+  @keyframes spot { 0% { box-shadow: 0 0 0 0 rgba(90,176,255,.0); } 15% { box-shadow: 0 0 0 3px rgba(90,176,255,.85), 0 0 28px 6px rgba(90,176,255,.35); } 100% { box-shadow: 0 0 0 0 rgba(90,176,255,0); } }
+  @media (prefers-reduced-motion: reduce) { .spot { animation: none; outline: 2px solid var(--accent); } }
+  .pace { display:flex; gap:4px; align-items:center; }
+  .pace button { padding:4px 8px; font-size:11px; }
+  /* cinema mode: web/?cinema=1 */
+  /* visibility, not display: some panels set an inline display when they open */
+  body.cinema:not(.cinema-ui) .panel, body.cinema:not(.cinema-ui) #leftcol { visibility:hidden !important; }
+  #cine { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  #cine .lb { position:absolute; left:0; right:0; height:0; background:#000; transition:height .6s ease; }
+  #cine .lb.top { top:0; } #cine .lb.bottom { bottom:0; }
+  #cine.letterbox .lb { height:12.2vh; }
+  #cine .cap { position:absolute; left:50%; bottom:15vh; transform:translateX(-50%); max-width:80vw; text-align:center;
+    font:600 clamp(16px, 2.1vw, 40px)/1.3 "Chakra Petch", -apple-system, sans-serif; letter-spacing:.04em; color:#eaf1ff;
+    text-shadow:0 2px 18px rgba(0,0,0,.85); }
+  #cine .help { position:absolute; left:16px; top:16px; font:12px/1.5 ui-monospace, Menlo, monospace; color:rgba(219,230,255,.7);
+    background:rgba(2,4,10,.55); padding:8px 10px; border-radius:6px; }
+  body.cinema-ui #cine .help { display:none; }
   #loading { position:fixed; inset:0; display:grid; place-items:center; background:var(--bg); z-index:9; transition:opacity .6s; }
   #loading.done { opacity:0; pointer-events:none; }
   @media (max-width:1200px) { #readout { left:auto; right:16px; transform:none; width:340px; min-width:0; max-height:45%; } #evalp { display:none; } }
   @media (max-width:820px) { #leftcol, #events { display:none; } #readout { width:calc(100% - 32px); } }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -117,12 +139,17 @@
           <option value="precise">Precise ephemeris received</option>
           <option value="imaging">Imaging pass blocks a burn</option>
           <option value="safe_mode">Satellite in safe mode</option>
+          <option value="storm_2024">Replay: May 2024 G5 storm as tonight's weather</option>
+          <option value="korean_note">Mission note in Korean</option>
         </select>
       </div>
       <div class="ctl">
         <button id="runReplay" class="primary">⟲ Replay recorded run</button>
         <button id="runLive">▶ Run live</button>
       </div>
+      <div class="ctl pace"><span class="dim">Replay pace</span>
+        <button data-pace="0.5">0.5×</button><button data-pace="1" class="on">1×</button><button data-pace="2">2×</button>
+        <button id="pauseBtn" title="Pause or resume the replay">⏸</button></div>
       <div id="incStats"></div>
     </header>
     <div id="incBody"><div class="dim">Pick a close approach, a situation, then replay a recorded run (no API calls) or run it live (Token Factory + Tavily).</div></div>
@@ -191,7 +218,10 @@ $('cnt').textContent = sats.length.toLocaleString();
 const recorded = new Set(saved.filter(s => s.has_trace).map(s => `${s.ours}-${s.other}`));
 
 // ---------- renderer ----------
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const QS = new URLSearchParams(location.search);
+const CINEMA = QS.get('cinema') === '1';
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: QS.has('record') });
+if (QS.get('ui')) document.body.style.setProperty('--ui', String(Math.min(2.5, Math.max(0.75, Number(QS.get('ui')) || 1))));
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -406,7 +436,13 @@ $('kBtn').onclick = () => { traj.k = K_STEPS[(K_STEPS.indexOf(traj.k) + 1) % K_S
 
 // ---------- incident pipeline panel ----------
 const MODEL_SHORT = (m) => String(m || '').split('/').pop().replace('nemotron-3-super-120b-a12b', 'Nemotron 3 Super').replace('Nemotron-3-Ultra-550b-a55b', 'Nemotron 3 Ultra');
-const inc = { es: null, queue: [], timer: null, rows: {}, running: false, mode: 'replay', streamDone: false, dossierStep: {}, tavily: { search: 0, extract: 0, credits: 0 } };
+const inc = { es: null, queue: [], timer: null, rows: {}, running: false, mode: 'replay', streamDone: false, dossierStep: {}, tavily: { search: 0, extract: 0, credits: 0 },
+  pace: 1, paused: false };
+function spotlight(el) { if (!el) return; el.classList.remove('spot'); void el.offsetWidth; el.classList.add('spot'); setTimeout(() => el.classList.remove('spot'), 2700); }
+document.querySelectorAll('[data-pace]').forEach((b) => (b.onclick = () => {
+  inc.pace = Number(b.dataset.pace);
+  document.querySelectorAll('[data-pace]').forEach((x) => x.classList.toggle('on', x === b));
+}));
 function incStats(extra = '') {
   const t = inc.tavily;
   $('incStats').innerHTML = `Tavily search <b>${t.search}</b> · extract <b>${t.extract}</b> · new credits <b>${t.credits}</b>${extra}`;
@@ -481,7 +517,7 @@ function handle(e) {
   if (k === 'geometry') step('geo', 'ok', `<span class="who">Geometry</span> SGP4 on CelesTrak data · miss ${fmtDist(e.miss_km)} · ${e.rel_speed_kms.toFixed(1)} km/s`);
   else if (k === 'risk') { step('risk', e.level === 'red' ? 'warn' : 'ok', `<span class="who">Collision probability</span> Pc ${pcTxt(e.pc)} · ${e.level}${e.diluted ? ' · diluted' : ''}`); }
   else if (k === 'optimiser') step('opt', 'run', `<span class="who">Optimiser</span> <span class="sub2">${esc(e.text)}</span>`);
-  else if (k === 'options') { step('opt', 'ok', `<span class="who">Optimiser</span> ${e.options.length} verified burn options from ${e.feasible_points ?? '?'} feasible points, each re-screened against the catalog`); renderOptions(e.options); }
+  else if (k === 'options') { step('opt', 'ok', `<span class="who">Optimiser</span> ${e.options.length} verified burn options from ${e.feasible_points ?? '?'} feasible points, each re-screened against the catalog`); renderOptions(e.options); spotlight($('optSec')); }
   else if (k === 'satcat' || k === 'dossier_cached') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(e.name)}</span> ${k === 'satcat' ? `SATCAT: ${esc(e.type)}, ${esc(e.status)}` : 'from cache'}`);
   else if (k === 'search_start') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(nameOf(e.norad))}</span> Tavily search ${e.index + 1}/${e.total} <span class="sub2">${esc(e.query)}</span>`);
   else if (k === 'search_done') { inc.tavily.search++; inc.tavily.credits += e.credits || 0; incStats();
@@ -501,21 +537,28 @@ function handle(e) {
       `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span> can manoeuvre: <b>${cap}</b>
        <div class="sub2">${esc(d.capability.basis)}${d.web_capability ? ` · web research said: ${esc(d.web_capability.can_maneuver)}` : ''}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
        ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
+    spotlight(inc.rows['d' + d.norad_id]?.querySelector('.think') || inc.rows['d' + d.norad_id]);
   }
   else if (k === 'space_weather_start') step('sw', 'run', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> reading the Sun (SDO) and NOAA Kp…`);
   else if (k === 'space_weather') step('sw', e.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> Kp ${e.kp} used for covariance · drag risk <b>${esc(e.assessment.leo_drag_risk_72h)}</b>
       <div class="sub2">${esc(e.assessment.orbit_prediction_impact)}</div>`);
   else if (k === 'space_weather_error') step('sw', 'warn', `<span class="who">Space weather</span> unavailable, using Kp ${e.kp_used}: ${esc(e.message)}`);
-  else if (k === 'context') renderRisk(e.risk, e.conjunction, e.space_weather);
+  else if (k === 'context') {
+    if (!inc.rows.sw && e.space_weather?.note) {  // scenario weather (e.g. a real storm researched with Tavily)
+      step('sw', e.space_weather.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> scenario · Kp ${e.space_weather.kp}
+        <div class="sub2">${esc(e.space_weather.note)}</div>`);
+    }
+    renderRisk(e.risk, e.conjunction, e.space_weather); spotlight($('riskSec'));
+  }
   else if (k === 'decision_start') step('dec', 'run', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> weighing risk, options, dossiers, policy and mission notes…`);
   else if (k === 'decision') {
     step('dec', 'ok', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> <b>${e.decision.action.replace(/_/g, ' ')}</b>${e.decision.option_id ? ' · ' + esc(e.decision.option_id) : ''}`);
     if (e.reasoning) $('incBody').insertAdjacentHTML('beforeend', `<details class="think"><summary>model reasoning (excerpt)</summary>${esc(e.reasoning.slice(0, 900))}${e.reasoning.length > 900 ? '…' : ''}</details>`);
-    renderDecision(e.decision, e.model);
+    renderDecision(e.decision, e.model); spotlight($('decSec'));
   }
-  else if (k === 'validation') { step('val', e.accepted_as_is ? 'ok' : 'warn', `<span class="who">Safety validator</span> ${e.accepted_as_is ? 'accepted' : 'overrode'} → <b>${e.final_action.replace(/_/g, ' ')}</b>`); renderValidation(e); }
+  else if (k === 'validation') { step('val', e.accepted_as_is ? 'ok' : 'warn', `<span class="who">Safety validator</span> ${e.accepted_as_is ? 'accepted' : 'overrode'} → <b>${e.final_action.replace(/_/g, ' ')}</b>`); renderValidation(e); spotlight($('valSec')); }
   else if (k === 'report_start') step('rep', 'run', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> writing the ${e.for_action === 'COORDINATE' ? 'coordination message' : 'escalation brief'} (runs only when a person must act)`);
-  else if (k === 'report') { step('rep', 'ok', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> ${esc(e.report.subject)}`); renderReport(e.report); }
+  else if (k === 'report') { step('rep', 'ok', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> ${esc(e.report.subject)}`); renderReport(e.report); spotlight($('repSec')); }
   else if (k === 'report_error') step('rep', 'warn', `<span class="who">Report</span> failed: ${esc(e.message)}`);
   else if (k === 'done') incStats(` · <b>$${e.usage.cost_usd.toFixed(4)}</b> · ${e.usage.calls} model calls · ${e.seconds}s`);
   else if (k === 'result') {
@@ -528,10 +571,15 @@ function handle(e) {
   $('incBody').scrollTop = $('incBody').scrollHeight;
 }
 function pump() {
-  if (inc.timer || !inc.queue.length) return;
+  if (inc.timer || inc.paused || !inc.queue.length) return;
   handle(inc.queue.shift());
-  inc.timer = setTimeout(() => { inc.timer = null; pump(); }, inc.mode === 'live' ? 120 : 260);
+  inc.timer = setTimeout(() => { inc.timer = null; pump(); }, (inc.mode === 'live' ? 120 : 420) / inc.pace);
 }
+$('pauseBtn').onclick = () => {
+  inc.paused = !inc.paused;
+  $('pauseBtn').textContent = inc.paused ? '▶' : '⏸';
+  if (!inc.paused) pump();
+};
 async function staticReplay(ours, other, presetName) {
   const m = saved.find((x) => x.ours === ours && x.other === other && x.preset === presetName);
   if (!m) { inc.queue.push({ kind: 'error', message: 'No recording for this pair and situation in the static demo.' }); pump(); return; }
@@ -541,7 +589,7 @@ async function staticReplay(ours, other, presetName) {
 function runIncident(mode) {
   if (!sel || inc.running) return;
   const ours = Number($('oursSel').value), other = selSats.map((x) => Number(x.rec.satnum)).find((n) => n !== ours);
-  incReset(); trajClear(); inc.running = true; inc.mode = mode;
+  incReset(); trajClear(); inc.running = true; inc.mode = mode; inc.paused = false; $('pauseBtn').textContent = '⏸';
   $('runLive').disabled = $('runReplay').disabled = true;
   if (STATIC) { staticReplay(ours, other, $('presetSel').value); return; }
   const es = inc.es = new EventSource(`/api/incident?ours=${ours}&other=${other}&preset=${$('presetSel').value}&mode=${mode}`);
@@ -580,11 +628,8 @@ fetch(STATIC ? 'demo/eval.json' : '/api/eval').then((r) => (r.ok ? r.json() : nu
 
 // ---------- loop ----------
 let last = performance.now(), lastU = 0;
-function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.1); last = now;
-  simMs += dt * 1000 * speed;
-  const date = new Date(simMs);
-  if (now - lastU > (speed >= 60 ? 120 : 260)) { updateSats(date); lastU = now; }
+function stepScene(date, everyFrame = false) {
+  if (everyFrame) updateSats(date);
   sunU.value.copy(sunVector(date));
   ringGroup.rotation.y = -satellite.gstime(date);
   $('clock').textContent = date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
@@ -600,6 +645,14 @@ function frame(now) {
       $('rSub').textContent = `TCA ${secs >= 0 ? 'in' : 'passed'} ${Math.floor(a / 60)} min ${Math.floor(a % 60)} s · predicted miss ${(sel.miss_distance_km * 1000).toFixed(0)} m · ${sel.relative_speed_kms.toFixed(1)} km/s · TLE accuracy ~1 km`;
     }
   }
+}
+function frame(now) {
+  if (cinemaOn) return;  // cinema mode drives its own loop
+  const dt = Math.min((now - last) / 1000, 0.1); last = now;
+  simMs += dt * 1000 * speed;
+  const date = new Date(simMs);
+  if (now - lastU > (speed >= 60 ? 120 : 260)) { updateSats(date); lastU = now; }
+  stepScene(date);
   if (fly) {
     fly.t = Math.min(1, fly.t + dt / 1.8);
     const k = ease(fly.t), g = fly.goal();
@@ -617,12 +670,66 @@ addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; cam
 
 function placeLeftcol() { $('leftcol').style.top = ($('hud').getBoundingClientRect().bottom + 8) + 'px'; }
 addEventListener('resize', placeLeftcol); placeLeftcol();
-window.cric = { THREE, scene, camera, controls, traj, inc };  // debug hook
+window.cric = { THREE, scene, camera, controls, traj, inc, spotlight };  // debug hook
 updateSats(new Date(simMs));
 const evs = renderList();
 $('loading').classList.add('done'); setTimeout(() => $('loading').remove(), 800);
 const first = evs.find((e) => recorded.has(evKey(e))) || evs[0];
 if (first) select(first);
+
+// ---------- cinema mode ----------
+let cinemaOn = false;
+// Our satellite on the post-burn path, with the same exaggeration the drawn green line uses.
+function burnPathPosition(date) {
+  const s = traj.data; if (!s) return null;
+  const t0 = Date.parse(s.t0_utc), x = (date.getTime() - t0) / 1000 / s.step_s;
+  const i = Math.max(0, Math.min(s.maneuvering_nominal.length - 2, Math.floor(x))), f = Math.min(1, Math.max(0, x - i));
+  const lerp3 = (a, b) => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  const nom = lerp3(s.maneuvering_nominal[i], s.maneuvering_nominal[i + 1]);
+  const aft = lerp3(s.maneuvering_after[i], s.maneuvering_after[i + 1]);
+  const p = nom.map((v, k) => v + (aft[k] - v) * traj.k);              // TEME km
+  const gm = satellite.gstime(date), c = Math.cos(gm), sn = Math.sin(gm);
+  return new THREE.Vector3((p[0] * c + p[1] * sn) / 1000, p[2] / 1000, -(-p[0] * sn + p[1] * c) / 1000);
+}
+async function loadTrajectory(ours, other, presetName) {
+  try {
+    const man = await fetch('demo/manifest.json').then((r) => (r.ok ? r.json() : []));
+    const m = man.find((x) => x.ours === ours && x.other === other && x.preset === presetName);
+    if (!m) return null;
+    return (await fetch(`demo/incidents/${m.file}`).then((r) => r.json())).result?.trajectory || null;
+  } catch { return null; }
+}
+if (CINEMA && first) {
+  cinemaOn = true;
+  const [a, b] = [first.object_a.norad_id, first.object_b.norad_id];
+  const t = await loadTrajectory(a, b, QS.get('burn') || 'imaging');
+  if (t) { traj.data = t; trajDraw(); }
+  const { initCinema } = await import('./cinema.js');
+  initCinema({
+    THREE, camera, controls, renderer, scene, $,
+    pairMid, selected: () => sel, trajectory: () => traj.data,
+    ourPosition(date) {
+      const sat = selSats?.[0]; const p = sat && satellite.propagate(sat.rec, date).position; if (!p) return null;
+      const gm = satellite.gstime(date), c = Math.cos(gm), s = Math.sin(gm);
+      return new THREE.Vector3((p.x * c + p.y * s) / 1000, p.z / 1000, -(-p.x * s + p.y * c) / 1000);
+    },
+    setSim(ms) { simMs = ms; }, stepScene,
+    showTrajectory(on) { traj.group.visible = on; },
+    pairLineIfClose(km) {
+      const d = Math.hypot(pairPos[0] - pairPos[3], pairPos[1] - pairPos[4], pairPos[2] - pairPos[5]) * 1000;
+      pairLine.visible = d < km;
+    },
+    burnPosition(date) { return burnPathPosition(date); },
+    moveOurMarkerOnBurnPath(date) {
+      const p = burnPathPosition(date); if (!p) return;
+      pairPos[0] = p.x; pairPos[1] = p.y; pairPos[2] = p.z; pairGeo.attributes.position.needsUpdate = true;
+    },
+    scalePoints(k) { satPts.material.size = 3.2 * Math.max(1, k); pairPts.material.size = 16 * Math.max(1, k); },
+    setLineResolution(w, h) { traj.mats.forEach((m) => m.resolution.set(w, h)); },
+    cinemaActive: () => cinemaOn,
+    exitCinema() { cinemaOn = false; document.body.classList.remove('cinema', 'cinema-ui'); $('cine')?.remove(); last = performance.now(); requestAnimationFrame(frame); },
+  });
+}
 requestAnimationFrame(frame);
 </script>
 </body>

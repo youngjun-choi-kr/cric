@@ -20,6 +20,7 @@ import functools
 import http.server
 import json
 import pathlib
+import re
 import sys
 import threading
 from urllib.parse import parse_qs, urlparse
@@ -109,6 +110,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         super().do_HEAD()
 
+    def do_POST(self) -> None:
+        """POST /api/frame?shot=NAME&i=N with a PNG body: one cinema-mode frame, saved to data/frames/NAME/."""
+        url = urlparse(self.path)
+        if url.path != "/api/frame":
+            return self.send_error(404)
+        if not self._local_request():
+            return self.send_error(403, "local requests only")
+        q = parse_qs(url.query)
+        shot, i = q.get("shot", [""])[0], q.get("i", [""])[0]
+        if not re.fullmatch(r"[a-z0-9-]{1,40}", shot) or not i.isdigit():
+            return self.send_error(400, "need shot=[a-z0-9-] and i=<int>")
+        size = int(self.headers.get("Content-Length", 0))
+        if not 0 < size < 60_000_000:
+            return self.send_error(413)
+        body = self.rfile.read(size)
+        if body[:8] != b"\x89PNG\r\n\x1a\n":
+            return self.send_error(415, "PNG only")
+        out = DATA / "frames" / shot
+        out.mkdir(parents=True, exist_ok=True)
+        if int(i) == 0:  # a new take: drop frames left over from a longer earlier take
+            for old in out.glob("*.png"):
+                old.unlink()
+        (out / f"{int(i):05d}.png").write_bytes(body)
+        self._json(200, {"saved": f"data/frames/{shot}/{int(i):05d}.png"})
+
     def do_GET(self) -> None:
         url = urlparse(self.path)
         routes = {"/api/incident": self.api_incident, "/api/incidents": self.api_incidents, "/api/eval": self.api_eval}
@@ -177,8 +203,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 else:  # the encounter has passed or is too close: decide as if it were 3 h before TCA
                     now_utc, time_mode = default_now(tca, 3.0), "replayed at TCA - 3 h"
                 self._send({"kind": "time_mode", "mode": time_mode, "now_utc": now_utc})
-                d = run_incident(ours, other, tca, now_utc=now_utc, tag=name, live_space_weather=True,
-                                 emit=lambda kind, **data: self._send({"kind": kind, **data}), **preset(name, tca))
+                kwargs = {"live_space_weather": True} | preset(name, tca)  # a preset may pin its own weather
+                d = run_incident(ours, other, tca, now_utc=now_utc, tag=name,
+                                 emit=lambda kind, **data: self._send({"kind": kind, **data}), **kwargs)
                 self._send(_result_event(d))
             self._send({"kind": "end"})
         except (BrokenPipeError, ConnectionResetError):

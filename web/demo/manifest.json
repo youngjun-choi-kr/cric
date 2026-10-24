@@ -1,5 +1,33 @@
 [
  {
+  "file": "60454_61786_20261025T003427_1624_korean_note.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "korean_note",
+  "action": "MANEUVER",
+  "final": "MANEUVER",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_1624_storm_2024.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "storm_2024",
+  "action": "MANEUVER",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
   "file": "60454_61786_20261025T003427_1531_safe_mode.json",
   "ours": 60454,
   "other": 61786,

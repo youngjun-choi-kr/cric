@@ -103,9 +103,15 @@ def resolve_mission(mission: dict, opts: list[dict], now: datetime) -> dict:
         return {"notes": "No mission constraints today.", "blackouts": []}
     b = parse_utc(opt["burn_utc"])
     start, end = b - timedelta(minutes=12), b + timedelta(minutes=12)
-    return {"notes": (f"Priority disaster-response imaging pass {iso(start)[11:16]}-{iso(end)[11:16]} UTC. No thruster "
-                      "firing in that window; attitude must stay nadir-pointing."),
-            "blackouts": [{"label": "disaster-response imaging pass", "start_utc": iso(start), "end_utc": iso(end)}]}
+    window = {"label": "disaster-response imaging pass", "start_utc": iso(start), "end_utc": iso(end)}
+    if mission.get("lang") == "ko":
+        notes = (f"{iso(start)[11:16]}~{iso(end)[11:16]} UTC 재난 대응 긴급 촬영이 잡혀 있습니다. "
+                 "이 시간에는 추력기 분사가 금지됩니다.")
+    else:
+        notes = (f"Priority disaster-response imaging pass {iso(start)[11:16]}-{iso(end)[11:16]} UTC. No thruster "
+                 "firing in that window; attitude must stay nadir-pointing.")
+    # structured=False leaves the window only in the text, where only the model can find it
+    return {"notes": notes, "blackouts": [window] if mission.get("structured", True) else []}
 
 
 def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datetime, *, kp: float,
@@ -226,6 +232,17 @@ def preset(name: str, tca_utc: str) -> dict:
                                                     "blackouts": []}}
     if name == "imaging":
         return {"data_quality": "cdm", "mission": {"blackout_on": "min_dv"}}
+    if name == "korean_note":
+        return {"data_quality": "cdm", "mission": {"blackout_on": "min_dv", "lang": "ko", "structured": False}}
+    if name == "storm_2024":
+        # The May 2024 G5 storm, researched with Tavily (cric forge), replayed as tonight's weather on TLE data.
+        from .research.forge import FORGED, kp_from, weather_note
+
+        rec = next((json.loads(p.read_text())["record"] for p in sorted(FORGED.glob("*2024*.json"))), None)
+        if rec is None or kp_from(rec) is None:
+            raise RuntimeError("run `cric forge --event \"10-11 May 2024 G5 extreme geomagnetic storm NOAA SWPC\"` first")
+        return {"data_quality": "tle", "kp": kp_from(rec), "space_weather_note": weather_note(rec),
+                "live_space_weather": False, "mission": {"notes": "No mission constraints today.", "blackouts": []}}
     if name == "safe_mode":
         return {"data_quality": "cdm", "mission": {"notes": (
             "Spacecraft entered safe mode at {safe_since} UTC after a reaction-wheel fault. Thrusters are inhibited "
@@ -233,4 +250,4 @@ def preset(name: str, tca_utc: str) -> dict:
     raise ValueError(f"unknown preset {name!r}")
 
 
-PRESETS = ("quiet", "precise", "imaging", "safe_mode")
+PRESETS = ("quiet", "precise", "imaging", "safe_mode", "storm_2024", "korean_note")
