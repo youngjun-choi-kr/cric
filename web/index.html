@@ -357,7 +357,7 @@ function renderList() {
   $('list').innerHTML = evs.map(e => `
     <div class="ev" data-id="${evKey(e)}">
       <div class="n">${esc(e.object_a.name)} ↔ ${esc(e.object_b.name)}${recorded.has(evKey(e)) ? '<span class="rec">● recorded</span>' : ''}</div>
-      <div class="m"><span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · alt ${e.altitude_km.toFixed(0)} km · TCA ${fmtUTC(e.tca_utc)}</div>
+      <div class="m">${Date.parse(e.tca_utc) - Date.now() >= 2 * 3600e3 ? '<span class="tag ok">ahead</span>' : ''}<span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · alt ${e.altitude_km.toFixed(0)} km · TCA ${fmtUTC(e.tca_utc)}</div>
     </div>`).join('');
   document.querySelectorAll('.ev').forEach((el, i) => el.onclick = () => select(evs[i]));
   if (sel) document.querySelector(`.ev[data-id="${evKey(sel)}"]`)?.classList.add('sel');
@@ -472,6 +472,7 @@ function finish(ok, msg) {
 function handle(e) {
   const k = e.kind;
   if (k === 'start') { $('incState').textContent = e.mode === 'live' ? 'running live…' : 'replaying…'; return; }
+  if (k === 'time_mode') { step('time', 'ok', `<span class="who">Decision time</span> ${esc(e.mode)} · ${fmtUTC(e.now_utc)}`); return; }
   if (k === 'geometry') step('geo', 'ok', `<span class="who">Geometry</span> SGP4 on CelesTrak data · miss ${fmtDist(e.miss_km)} · ${e.rel_speed_kms.toFixed(1)} km/s`);
   else if (k === 'risk') { step('risk', e.level === 'red' ? 'warn' : 'ok', `<span class="who">Collision probability</span> Pc ${pcTxt(e.pc)} · ${e.level}${e.diluted ? ' · diluted' : ''}`); }
   else if (k === 'optimiser') step('opt', 'run', `<span class="who">Optimiser</span> <span class="sub2">${esc(e.text)}</span>`);

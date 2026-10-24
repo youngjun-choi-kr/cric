@@ -11,6 +11,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = Path(os.getenv("CRIC_DATA_DIR", ROOT / "data"))
 DATA.mkdir(parents=True, exist_ok=True)
 
+# Frozen orbit data for the eval and the demo. Live screening writes to DATA and never touches this,
+# so results stay reproducible after CelesTrak updates (a refresh once moved a 106 m encounter to 12 km).
+SNAPSHOT = Path(os.getenv("CRIC_SNAPSHOT", ROOT / "fixtures" / "snapshot_20261025"))
+
 load_dotenv(ROOT / ".env")
 
 TOKEN_FACTORY_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"

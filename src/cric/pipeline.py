@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from .agent.decision import decide
 from .agent.report import write_report
 from .config import DATA, MODEL_SUPER, MODEL_ULTRA, MODEL_VL
-from .ingest.celestrak import Catalog, load_catalog
+from .ingest.celestrak import Catalog, snapshot_catalog
 from .llm import Usage
 from .physics.maneuver import Encounter, trajectory_series
 from .physics.options import burn_options
@@ -63,6 +63,8 @@ def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
     if data_quality == "cdm":
         risk = collision_probability(enc, (0.0, 0.0), kp=kp, model=CDM_GRADE)
         risk["assumptions"]["covariance"] = "SIMULATED precise ephemeris (CDM-grade); not real CDM data"
+        # Dilution means "better data could change the answer"; with precise data in hand that no longer applies.
+        risk["diluted"] = False
     else:
         risk = collision_probability(enc, (cat.epoch_age_days(ours, jd), cat.epoch_age_days(other, jd)), kp=kp)
     emit("risk", pc=risk["pc"], level=risk["level"], diluted=risk["diluted"])
@@ -90,10 +92,27 @@ def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
     }
 
 
+def resolve_mission(mission: dict, opts: list[dict], now: datetime) -> dict:
+    """Turn a relative mission spec into concrete notes and blackouts once the burn options are known.
+    {"blackout_on": "min_dv"} puts a 24-minute imaging window around that option's burn."""
+    if "blackout_on" not in mission:
+        return {k: v.format(safe_since=iso(now - timedelta(hours=2))[11:16]) if isinstance(v, str) else v
+                for k, v in mission.items()}
+    opt = next((o for o in opts if mission["blackout_on"] in (o["kind"], *o["also"])), None)
+    if opt is None:
+        return {"notes": "No mission constraints today.", "blackouts": []}
+    b = parse_utc(opt["burn_utc"])
+    start, end = b - timedelta(minutes=12), b + timedelta(minutes=12)
+    return {"notes": (f"Priority disaster-response imaging pass {iso(start)[11:16]}-{iso(end)[11:16]} UTC. No thruster "
+                      "firing in that window; attitude must stay nadir-pointing."),
+            "blackouts": [{"label": "disaster-response imaging pass", "start_utc": iso(start), "end_utc": iso(end)}]}
+
+
 def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datetime, *, kp: float,
                   space_weather_note: str, mission: dict, policy: dict, use_tavily: bool,
                   usage: Usage, data_quality: str = "tle", emit=_noop) -> dict:
     ctx = physics_block(cat, ours, other, tca, now, kp=kp, policy=policy, data_quality=data_quality, emit=emit)
+    mission = resolve_mission(mission, ctx["burn_options"]["options"], now)
     dossiers = {}
     for n, role in ((ours, "ours"), (other, "other")):
         dossiers[n] = _cap_summary(build_dossier(n, use_tavily=use_tavily, usage=usage, emit=emit))
@@ -122,7 +141,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
 
     tca = parse_utc(tca_utc)
     now = parse_utc(now_utc) if now_utc else datetime.now(timezone.utc)
-    cat = cat or load_catalog(refresh=False)
+    cat = cat or snapshot_catalog()
     mission = mission or {"notes": "No mission constraints today.", "blackouts": []}
     policy = policy or DEFAULT_POLICY
 
@@ -186,24 +205,18 @@ def default_now(tca_utc: str, hours_before: float = 3.0) -> str:
 
 
 def preset(name: str, tca_utc: str) -> dict:
-    """Demo situations for one encounter, as run_incident keyword arguments.
-    Blackout windows are placed relative to TCA so they cover the cheapest burn of the demo pair."""
-    tca = parse_utc(tca_utc)
+    """Demo situations as run_incident keyword arguments; times are resolved against the burn options."""
     if name == "quiet":
         return {"data_quality": "tle", "mission": {"notes": "No mission constraints today.", "blackouts": []}}
     if name == "precise":
         return {"data_quality": "cdm", "mission": {"notes": "Precise ephemeris received from the screening provider.",
                                                     "blackouts": []}}
     if name == "imaging":
-        start, end = tca - timedelta(minutes=155), tca - timedelta(minutes=125)
-        return {"data_quality": "cdm", "mission": {
-            "notes": (f"Priority disaster-response imaging pass {iso(start)[11:16]}-{iso(end)[11:16]} UTC. No thruster "
-                      "firing in that window; attitude must stay nadir-pointing."),
-            "blackouts": [{"label": "disaster-response imaging pass", "start_utc": iso(start), "end_utc": iso(end)}]}}
+        return {"data_quality": "cdm", "mission": {"blackout_on": "min_dv"}}
     if name == "safe_mode":
         return {"data_quality": "cdm", "mission": {"notes": (
-            "Spacecraft entered safe mode at 06:12 UTC after a reaction-wheel fault. Thrusters are inhibited until "
-            "the anomaly board clears recovery, expected tomorrow."), "blackouts": []}}
+            "Spacecraft entered safe mode at {safe_since} UTC after a reaction-wheel fault. Thrusters are inhibited "
+            "until the anomaly board clears recovery, expected tomorrow."), "blackouts": []}}
     raise ValueError(f"unknown preset {name!r}")
 
 

@@ -19,7 +19,8 @@ from datetime import timedelta
 
 from ..agent.decision import decide
 from ..config import DATA, MODEL_NANO, MODEL_SUPER
-from ..ingest.celestrak import load_catalog
+from ..config import SNAPSHOT
+from ..ingest.celestrak import snapshot_catalog
 from ..llm import Usage
 from ..physics.timeutil import iso, parse_utc
 from ..pipeline import DEFAULT_POLICY, physics_block
@@ -57,22 +58,19 @@ def _tca(key: str) -> str:
     enc = ENCOUNTERS[key]
     if enc["tca_utc"]:
         return enc["tca_utc"]
-    events = json.loads((DATA / "conjunctions.json").read_text())["events"]
+    events = json.loads((SNAPSHOT / "conjunctions.json").read_text())["events"]
     ev = next(e for e in events if {e["object_a"]["norad_id"], e["object_b"]["norad_id"]} == {enc["ours"], enc["other"]})
     return ev["tca_utc"]
 
 
 def build_contexts(scenarios: list[Scenario], log=print) -> dict[str, tuple[dict, object]]:
-    cat = load_catalog(refresh=False)
+    cat = snapshot_catalog()
     physics_cache: dict[tuple, dict] = {}
     out = {}
     for s in scenarios:
         enc = ENCOUNTERS[s.encounter]
         tca = parse_utc(_tca(s.encounter))
         now = tca - timedelta(hours=s.hours_before)
-        policy = DEFAULT_POLICY | s.policy_overrides
-        if s.policy_overrides.get("max_dv_ms"):
-            policy = policy | {"text": DEFAULT_POLICY["text"].replace("Max 1.0 m/s per burn", f"Max {s.policy_overrides['max_dv_ms']} m/s per burn")}
         key = (s.encounter, s.data_quality, s.hours_before, s.kp)
         if key not in physics_cache:
             t0 = time.time()
@@ -83,7 +81,20 @@ def build_contexts(scenarios: list[Scenario], log=print) -> dict[str, tuple[dict
                 f"Pc {physics_cache[key]['risk']['pc']:.1e} {physics_cache[key]['risk']['level']}"
                 f"{' diluted' if physics_cache[key]['risk']['diluted'] else ''} ({time.time() - t0:.0f}s)")
         ctx = json.loads(json.dumps(physics_cache[key]))
-        notes, blackouts = s.mission_notes, []
+        policy = DEFAULT_POLICY | s.policy_overrides
+        if s.policy_overrides.get("max_dv_ms") == "below_cheapest":  # a cap that every verified option exceeds
+            cheapest = min((o["dv_ms"] for o in ctx["burn_options"]["options"]), default=1.0)
+            policy["max_dv_ms"] = round(cheapest * 0.8, 3)
+        if policy["max_dv_ms"] != DEFAULT_POLICY["max_dv_ms"]:
+            policy["text"] = DEFAULT_POLICY["text"].replace("Max 1.0 m/s per burn", f"Max {policy['max_dv_ms']} m/s per burn")
+        opts = {k: o for o in ctx["burn_options"]["options"] for k in (o["kind"], *o["also"])}
+        hm = lambda t: iso(t)[11:16]
+        fields = {"now": hm(now), "safe_since": hm(now - timedelta(hours=2)), "other_burn": hm(now + timedelta(minutes=90))}
+        if "min_dv" in opts:
+            b = parse_utc(opts["min_dv"]["burn_utc"])
+            fields |= {"img_start": hm(b - timedelta(minutes=12)), "img_end": hm(b + timedelta(minutes=12)),
+                       "contact_end": hm(b)}  # O1 uploads before this; later burns cannot be uploaded
+        notes, blackouts = s.mission_notes.format(**fields), []
         if s.blackout_on:
             opt = next((o for o in ctx["burn_options"]["options"] if s.blackout_on in [o["kind"], *o["also"]]), None)
             if opt:

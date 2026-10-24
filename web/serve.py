@@ -24,8 +24,13 @@ import sys
 import threading
 from urllib.parse import parse_qs, urlparse
 
-from cric.config import DATA
+from cric.config import DATA, SNAPSHOT
+from datetime import datetime, timedelta, timezone
+
+from cric.physics.timeutil import iso, parse_utc
 from cric.pipeline import INCIDENTS, PRESETS, default_now, preset, run_incident
+
+ACTIONABLE_H = 2.0  # a live decision needs at least this much time before TCA
 
 ROOT = pathlib.Path(__file__).resolve().parent
 DATA = DATA.resolve()
@@ -35,7 +40,7 @@ LIVE_LOCK = threading.Lock()  # one paid run at a time
 
 
 def _find_tca(ours: int, other: int) -> str:
-    events = json.loads((DATA / "conjunctions.json").read_text())["events"]
+    events = json.loads((SNAPSHOT / "conjunctions.json").read_text())["events"]
     ev = next((e for e in events if {e["object_a"]["norad_id"], e["object_b"]["norad_id"]} == {ours, other}), None)
     if ev is None:
         raise LookupError(f"pair {ours}/{other} is not in data/conjunctions.json")
@@ -68,8 +73,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path: str) -> str:
         clean = path.split("?", 1)[0].split("#", 1)[0]
         if clean.startswith("/data/"):
-            target = (DATA / clean[len("/data/"):]).resolve()
-            if target.parent == DATA and target.suffix in ALLOWED_SUFFIXES:
+            # Orbits and the close-approach list come from the frozen snapshot, so the globe matches the eval.
+            target = (SNAPSHOT.resolve() / clean[len("/data/"):]).resolve()
+            if target.parent == SNAPSHOT.resolve() and target.suffix in ALLOWED_SUFFIXES:
                 return str(target)
             return str(ROOT / "__forbidden__")
         return super().translate_path(path)
@@ -150,7 +156,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._send(_result_event(d))
             else:
                 tca = _find_tca(ours, other)
-                d = run_incident(ours, other, tca, now_utc=default_now(tca, 3.0), tag=name, live_space_weather=True,
+                real_now = datetime.now(timezone.utc)
+                if parse_utc(tca) - real_now >= timedelta(hours=ACTIONABLE_H):
+                    now_utc, time_mode = iso(real_now), "real time"
+                else:  # the encounter has passed or is too close: decide as if it were 3 h before TCA
+                    now_utc, time_mode = default_now(tca, 3.0), "replayed at TCA - 3 h"
+                self._send({"kind": "time_mode", "mode": time_mode, "now_utc": now_utc})
+                d = run_incident(ours, other, tca, now_utc=now_utc, tag=name, live_space_weather=True,
                                  emit=lambda kind, **data: self._send({"kind": kind, **data}), **preset(name, tca))
                 self._send(_result_event(d))
             self._send({"kind": "end"})

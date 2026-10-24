@@ -19,7 +19,9 @@ from .physics.timeutil import iso
 
 
 def _find_event(ours: int, other: int) -> dict:
-    events = json.loads((DATA / "conjunctions.json").read_text())["events"]
+    from .config import SNAPSHOT
+
+    events = json.loads((SNAPSHOT / "conjunctions.json").read_text())["events"]
     ev = next((e for e in events if {e["object_a"]["norad_id"], e["object_b"]["norad_id"]} == {ours, other}), None)
     if ev is None:
         raise SystemExit(f"pair {ours}/{other} not in data/conjunctions.json; pass --tca or run `cric screen`")
@@ -33,6 +35,9 @@ def cmd_screen(args) -> None:
     (DATA / "conjunctions.json").write_text(json.dumps(
         {"generated_utc": iso(start), "source": cat.source, "object_count": len(cat), "events": events}, indent=1))
     print(f"{len(cat)} objects, {len(events)} crossing encounters < {args.threshold} km in {args.hours} h")
+    ahead = [e for e in events if "STARLINK" not in e["object_a"]["name"] + e["object_b"]["name"]
+             and (datetime.fromisoformat(e["tca_utc"].replace("Z", "+00:00")) - start).total_seconds() >= 2 * 3600]
+    print(f"{len(ahead)} non-Starlink-internal encounters at least 2 h ahead (decidable in real time)")
     for e in events[:15]:
         print(f"{e['miss_distance_km']:7.3f} km  {e['tca_utc']}  {e['object_a']['name']} <-> {e['object_b']['name']}")
 
