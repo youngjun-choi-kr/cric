@@ -21,14 +21,20 @@ Orbit maths never goes through an LLM: screening uses SGP4 on CelesTrak data, an
 ## Quick start
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # add NEBIUS_API_KEY and TAVILY_API_KEY (see SETUP.md)
-cd spike
-../.venv/bin/python 00_list_models.py       # check Token Factory access
-../.venv/bin/python 01_conjunctions.py --hours 1
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+cp .env.example .env                          # add NEBIUS_API_KEY and TAVILY_API_KEY (see SETUP.md)
+.venv/bin/cric screen --hours 6               # real close approaches from CelesTrak
+.venv/bin/cric incident --ours 40536 --other 42845 --mission-notes "No burns 09:05-09:30 UTC"
+.venv/bin/python -m pytest -q                 # offline tests: physics and safety rules
 ```
 
-See [spike/README.md](spike/README.md) for all feasibility steps.
+An incident runs: SGP4 geometry -> Pc from an assumed covariance -> verified burn options from the optimiser
+-> cited dossiers for both objects (Tavily + Nemotron, with a verifier repair loop) -> Nemotron decision
+(MANEUVER / REQUEST_PRECISE_DATA / MONITOR / COORDINATE / ESCALATE) -> safety validator in code.
+
+The numeric search is done by the optimiser, not the model: Nemotron chooses among options that physics has
+already checked, using context the optimiser cannot read (policy and mission notes in plain language, evidence
+quality, time left for better data). `spike/` keeps the original feasibility scripts.
 
 ## Data sources
 

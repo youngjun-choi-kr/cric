@@ -88,7 +88,7 @@ flowchart TB
 | T0 | none (rules) | open an incident when miss distance or Kp crosses a threshold | every screening pass |
 | T1 | Nemotron 3 Nano | severity, incident type, which tools the planner needs | every incident |
 | T2 | Nemotron 3.5 Super VL | read Sun image + NOAA data, drag-risk assessment with observed/inferred/unknown | on space-weather incidents |
-| T3 | Nemotron 3 Super | plan with tools, produce a `ManeuverPlan` | incidents T1 marks actionable |
+| T3 | Nemotron 3 Super | choose among verified burn options or ask for data / coordinate / escalate (`cric.agent.decision`) | incidents T1 marks actionable |
 | T4 | Nemotron 3 Ultra | message to the other operator, incident report | high severity or both objects can manoeuvre |
 | Dossier | Super + Tavily | who can manoeuvre, every fact with URL + verbatim quote | once per object, cached |
 | Forge | Super + Tavily, Ultra review | scenario JSON from real events | offline |
@@ -96,7 +96,14 @@ flowchart TB
 
 All calls use `response_format: json_schema` and a large `max_tokens`, because Nemotron spends a large share of output tokens on reasoning. `reasoning_content` is stored and shown in the UI as the decision trace.
 
-## 4. Agent tools (T3)
+## 4. Division of labour (updated)
+
+The spike version let Nemotron search burn parameters with tools. It reached a valid burn but used 45% more
+delta-v than the exhaustive optimiser, in 116 s instead of under a second. Numeric search now belongs to
+`cric.physics.options` (min_dv, latest, out_of_plane options, each re-screened). Nemotron decides *whether,
+who, which option and who to tell*, and `cric.safety.validator` enforces the hard rules in code.
+
+## 4b. Agent tools (T3, spike version)
 
 | Tool | Effect | Backed by |
 |---|---|---|

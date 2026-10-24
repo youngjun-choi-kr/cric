@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cric"
+version = "0.1.0"
+description = "CRIC - Cosmic Response & Intelligence Console: AI mission control for satellite conjunctions"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "sgp4>=2.24",
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "requests>=2.32",
+    "openai>=1.50",
+    "tavily-python>=0.5",
+    "python-dotenv>=1.0",
+    "pydantic>=2.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+cric = "cric.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
