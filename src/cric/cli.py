@@ -3,6 +3,7 @@
   cric screen   --hours 6                      screen the active catalog for close approaches
   cric incident --ours 40536 --other 42845     assess one conjunction and let Nemotron decide
   cric eval     --models super,nano            decision scenarios vs rule baselines
+  cric forge    --event "May 2024 G5 storm"    real event -> cited record (Tavily + Nemotron)
 """
 
 from __future__ import annotations
@@ -62,6 +63,15 @@ def cmd_incident(args) -> None:
     print(f"usage {res['usage']}  {res['seconds']}s  saved {res['saved_to']}")
 
 
+def cmd_forge(args) -> None:
+    from .research.forge import forge, kp_from, weather_note
+
+    out = forge(args.event, refresh=args.refresh)
+    rec = out["record"]
+    print(f"{rec['title']}  facts {out['fact_counts']}  issues {len(out['issues'])}  Kp {kp_from(rec)}")
+    print(weather_note(rec))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="cric", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -89,7 +99,12 @@ def main() -> None:
     e.add_argument("--repeats", type=int, default=3)
     e.add_argument("--scenarios", help="comma list of scenario ids, e.g. S01,S07")
     e.add_argument("--workers", type=int, default=4)
-    e.add_argument("--set", choices=["tuning", "heldout"], default="tuning")
+    e.add_argument("--set", choices=["tuning", "heldout", "forged"], default="tuning")
+
+    f = sub.add_parser("forge", help="research a real space-weather event with Tavily into a cited record")
+    f.add_argument("--event", required=True)
+    f.add_argument("--refresh", action="store_true")
+    f.set_defaults(func=cmd_forge)
     e.set_defaults(func=lambda a: __import__("cric.eval.runner", fromlist=["main_cli"]).main_cli(a))
 
     args = ap.parse_args()

@@ -24,7 +24,7 @@ from ..llm import Usage
 from ..physics.timeutil import iso, parse_utc
 from ..pipeline import DEFAULT_POLICY, physics_block
 from ..safety.validator import validate
-from .scenarios import ENCOUNTERS, HELDOUT, SCENARIOS, Scenario
+from .scenarios import ENCOUNTERS, HELDOUT, SCENARIOS, Scenario, forged_scenarios
 
 RESULTS = DATA / "eval"
 
@@ -176,7 +176,7 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
 
 def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = None, workers: int = 4,
         scenario_set: str = "tuning", log=print) -> dict:
-    pool_ = HELDOUT if scenario_set == "heldout" else SCENARIOS
+    pool_ = {"heldout": HELDOUT, "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
     chosen = [s for s in pool_ if not scenario_ids or s.id in scenario_ids]
     contexts = build_contexts(chosen, log=log)
     rows = []

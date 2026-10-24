@@ -75,6 +75,30 @@ def extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
+def shape_of(schema_model) -> str:
+    """Compact JSON skeleton of a pydantic model: field names with type hints, nested models expanded."""
+    schema = schema_model.model_json_schema()
+    defs = schema.get("$defs", {})
+
+    def walk(node, depth=0):
+        if "$ref" in node:
+            return walk(defs[node["$ref"].split("/")[-1]], depth)
+        for key in ("anyOf", "oneOf"):
+            if key in node:
+                opts = [o for o in node[key] if o.get("type") != "null"]
+                return walk(opts[0], depth) if opts else None
+        if "enum" in node:
+            return "|".join(map(str, node["enum"]))
+        t = node.get("type")
+        if t == "object" and "properties" in node and depth < 6:
+            return {k: walk(v, depth + 1) for k, v in node["properties"].items()}
+        if t == "array":
+            return [walk(node.get("items", {}), depth + 1)]
+        return {"string": "<text>", "number": 0.0, "integer": 0, "boolean": False}.get(t, "<value>")
+
+    return json.dumps(walk(schema), ensure_ascii=False)
+
+
 def structured_call(model: str, messages: list, schema_model, *, usage: Usage | None = None,
                     max_tokens: int = 16000, temperature: float = 0.2):
     """Reply constrained to a pydantic schema. Returns (parsed, reasoning_text).
@@ -82,6 +106,14 @@ def structured_call(model: str, messages: list, schema_model, *, usage: Usage | 
     Nemotron reasons first and returns that as reasoning_content, so max_tokens must
     cover reasoning plus JSON. A runaway or malformed reply is retried once.
     """
+    # Nemotron plans its JSON while reasoning; if that plan differs from the schema, guided decoding fills
+    # empty defaults (seen as "Placeholder Title" / all-unknown records). Showing the exact shape prevents it.
+    hint = "\n\nReply with JSON of exactly this shape (types shown as placeholders):\n" + shape_of(schema_model)
+    messages = [dict(m) for m in messages]
+    if messages and messages[0]["role"] == "system":
+        messages[0]["content"] = messages[0]["content"] + hint
+    else:
+        messages.insert(0, {"role": "system", "content": hint.strip()})
     last_error: Exception | None = None
     for _ in range(2):
         resp = chat(

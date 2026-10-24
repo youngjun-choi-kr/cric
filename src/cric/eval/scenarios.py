@@ -133,3 +133,25 @@ HELDOUT = [
              mission_notes="09:00~09:40 UTC 재난 대응 긴급 촬영이 잡혀 있습니다. 이 시간에는 추력기 분사가 금지됩니다.",
              avoid_option_kind="min_dv"),
 ]
+
+
+def forged_scenarios() -> list[Scenario]:
+    """Real space-weather events researched with Tavily (cric forge), replayed against the KOMPSAT-3A encounter
+    on TLE data. Expected answers follow one rule fixed before running: storm-degraded predictions plus a diluted
+    red Pc with hours of margin -> get precise data first (escalating is also accepted); never burn on them."""
+    import json
+
+    from ..config import DATA
+    from ..research.forge import kp_from, weather_note
+
+    out = []
+    for i, path in enumerate(sorted((DATA / "forged").glob("*.json")), 1):
+        rec = json.loads(path.read_text())["record"]
+        kp = kp_from(rec)
+        if kp is None:
+            continue
+        out.append(Scenario(f"F{i:02d}", f"Real event replayed: {rec['title']}", "kompsat",
+                            {"REQUEST_PRECISE_DATA", "ESCALATE"}, "text",
+                            "Storm-time drag degrades TLE predictions; do not burn on a diluted Pc while there is time.",
+                            data_quality="tle", kp=round(kp, 2), space_weather_note=weather_note(rec)))
+    return out
