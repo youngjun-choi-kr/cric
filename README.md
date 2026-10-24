@@ -4,17 +4,19 @@ AI mission control for small satellite operators. CRIC watches real orbits and s
 
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/) (Physical AI track).
 
-> Status: early development. The `spike/` folder holds the feasibility checks; the full architecture is in [ARCHITECTURE.md](ARCHITECTURE.md).
+**Live demo (no install, replays recorded runs): https://youngjun-choi-kr.github.io/cric/web/**
+Pick a situation in the left panel and press *Replay recorded run*. Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## How it uses Nebius and NVIDIA
 
 | Piece | Model / service | Role |
 |---|---|---|
-| Triage | NVIDIA Nemotron 3 Nano on Nebius Token Factory | classify every incident cheaply |
-| Space-weather perception | NVIDIA Nemotron 3.5 Super VL | read Sun images + NOAA data, drag risk with observed / inferred / unknown |
-| Planning and dossiers | NVIDIA Nemotron 3 Super | tool-using planner; satellite capability facts with citations |
-| Coordination reports | NVIDIA Nemotron 3 Ultra | rare, high-severity incidents only |
-| Web grounding | Tavily Search + Extract | real-event scenarios and satellite facts, every fact cited with a verbatim quote |
+| Space-weather perception | NVIDIA Nemotron 3.5 Super VL on Nebius Token Factory | read the latest SDO image with NOAA Kp and alerts; observed / inferred / unknown |
+| Decisions | NVIDIA Nemotron 3 Super | choose among physics-verified burn options, ask for data, coordinate or escalate |
+| Satellite dossiers, real-event records | NVIDIA Nemotron 3 Super + Tavily | capability facts and storm records, every fact cited with a verbatim quote |
+| Human-facing documents | NVIDIA Nemotron 3 Ultra | coordination message or escalation brief, only when a person must act |
+| (evaluated, not routed) | NVIDIA Nemotron 3 Nano | slower and less accurate than Super for these decisions; see Results |
+| Web grounding | Tavily Search + Extract | satellite facts and real space-weather events for the eval |
 
 Orbit maths never goes through an LLM: screening uses SGP4 on CelesTrak data, and safety rules are enforced in code.
 

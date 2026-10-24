@@ -1,191 +1,142 @@
-# CRIC architecture (draft)
+# CRIC architecture
 
-CRIC (Cosmic Response & Intelligence Console, working title) is an AI mission-control console for small satellite operators. It watches real orbits and space weather, decides who should manoeuvre and how, checks every plan in physics before a human approves it, and is evaluated on scenarios built from real events.
+CRIC (Cosmic Response & Intelligence Console) is decision support for small satellite operators facing a predicted
+close approach. Deterministic code does everything that can be computed; NVIDIA Nemotron does the judgement that
+needs reading; hard rules are enforced in code; a person approves anything that moves a satellite.
 
 ## 1. Closed loop
 
 ```mermaid
 flowchart LR
-    S[Sense<br/>orbits, SATCAT, NOAA, Sun images, web facts] --> R[Reason<br/>Nemotron tiers]
-    R --> A[Act<br/>manoeuvre plan / attitude mode / escalate]
-    A --> P[Physical outcome<br/>physics re-propagation]
+    S[Sense<br/>real orbits, SATCAT, NOAA Kp, Sun images,<br/>web facts via Tavily] --> R[Reason<br/>Nemotron Super decides over verified options]
+    R --> V[Validate<br/>rules in code]
+    V --> A[Act<br/>burn option / request data / notify / escalate]
+    A --> P[Physical outcome<br/>SGP4 + CW re-propagation,<br/>catalog re-screen]
     P --> S
 ```
-
-The agent never moves anything directly. It proposes; the physics core simulates the result; a validator and a human gate decide.
 
 ## 2. Components
 
 ```mermaid
 flowchart TB
-    subgraph Ingest
-        CT[CelesTrak GP<br/>orbits, 2h cache]
-        SC[CelesTrak SATCAT<br/>object type, owner, status]
-        SW[NOAA SWPC<br/>Kp, alerts]
-        SI[SDO / Helioviewer<br/>Sun images]
-        TV[Tavily Search + Extract<br/>cached]
+    subgraph Ingest["Ingest (real data)"]
+        GP[CelesTrak GP<br/>frozen snapshot for eval/demo,<br/>live cache for screening]
+        SC[CelesTrak SATCAT]
+        NOAA[NOAA SWPC<br/>Kp observed + forecast, alerts]
+        SDO[NASA SDO image]
+        TV[Tavily Search + Extract<br/>cached, social media excluded]
+        FL[Fleet registry<br/>our own satellites]
     end
 
-    subgraph Physics["Physics core (deterministic, no LLM)"]
-        PR[Propagator<br/>SGP4 batch]
-        SCR[Screening<br/>KD-tree + linear TCA]
-        DR[Drag model<br/>density factor from Kp]
-        MV[Manoeuvre model<br/>CW offset on SGP4 nominal]
-        CL[Sim clock<br/>live or replay, seeded]
+    subgraph Physics["Physics (deterministic, no LLM)"]
+        SCR[Screening<br/>SGP4 batch, KD-tree, linear TCA]
+        RISK[Pc from assumed covariance<br/>Kp inflates along-track, dilution check]
+        OPT[Optimiser<br/>min_dv / latest / out_of_plane burns,<br/>each re-screened, CW checked vs 2-body]
     end
 
-    subgraph Agent["Agent (Nemotron on Token Factory)"]
-        T0[T0 rules<br/>thresholds open incidents]
-        T1[T1 triage<br/>Nano]
-        T2[T2 perception<br/>Super-VL]
-        T3[T3 planner + tools<br/>Super]
-        T4[T4 coordination + report<br/>Ultra, rare]
-        DOS[Dossier builder<br/>Super + Tavily]
+    subgraph Models["NVIDIA Nemotron on Nebius Token Factory"]
+        VL[Super VL<br/>space-weather read]
+        DOS[Super<br/>satellite dossier]
+        DEC[Super<br/>decision]
+        ULT[Ultra<br/>message or brief]
+        FOR[Super<br/>real-event record]
     end
 
-    subgraph Safety
-        CC[Claim checker<br/>URL + verbatim quote]
-        VAL[Plan validator<br/>schema, delta-v budget, re-screen]
-        HG[Human approval gate]
+    subgraph Checks["Checks in code"]
+        CC[Claim checker<br/>URL returned by Tavily, verbatim quote,<br/>unit vs fleet scope, one repair round]
+        VAL[Safety validator]
     end
 
-    subgraph Eval
-        FG[Scenario forge<br/>Tavily + Super, Ultra review]
-        RUN[Runner<br/>Serverless Jobs or local]
-        BL[Baselines<br/>rule-only, no-web, agent]
-    end
-
-    DB[(SQLite<br/>objects, incidents, evidence, decisions, replay log)]
-    API[FastAPI + SSE]
-    UI[Web console<br/>globe.gl + panels]
-
-    CT --> PR --> SCR --> T0
-    SW --> T0
+    GP --> SCR --> RISK --> OPT
+    NOAA --> RISK
+    NOAA --> VL
+    SDO --> VL
     SC --> DOS
-    TV --> DOS
-    TV --> FG
-    T0 --> T1 --> T3
-    SI --> T2 --> T3
-    SW --> T2
-    DOS --> CC --> T3
-    T3 <-->|tool calls| PR
-    T3 <-->|tool calls| MV
-    T3 <-->|tool calls| DR
-    T3 --> VAL --> HG
-    VAL -->|re-screen| SCR
-    T3 -.high severity / multi-operator.-> T4
-    HG --> DB
-    FG --> RUN --> BL
-    RUN --> DB
-    DB --> API --> UI
-    CL --- PR
+    TV --> DOS --> CC
+    TV --> FOR --> CC
+    FL --> DEC
+    CC --> DEC
+    RISK --> DEC
+    OPT --> DEC
+    VL --> DEC
+    DEC --> VAL --> ULT
+    VAL --> UI[Console<br/>live stream or replay]
+    ULT --> UI
 ```
 
-## 3. Model routing
+## 3. Who does what
 
-| Tier | Model | Job | Called |
-|---|---|---|---|
-| T0 | none (rules) | open an incident when miss distance or Kp crosses a threshold | every screening pass |
-| T1 | Nemotron 3 Nano | severity, incident type, which tools the planner needs | every incident |
-| T2 | Nemotron 3.5 Super VL | read Sun image + NOAA data, drag-risk assessment with observed/inferred/unknown | on space-weather incidents |
-| T3 | Nemotron 3 Super | choose among verified burn options or ask for data / coordinate / escalate (`cric.agent.decision`) | incidents T1 marks actionable |
-| T4 | Nemotron 3 Ultra | message to the other operator, incident report | high severity or both objects can manoeuvre |
-| Dossier | Super + Tavily | who can manoeuvre, every fact with URL + verbatim quote | once per object, cached |
-| Forge | Super + Tavily, Ultra review | scenario JSON from real events | offline |
-| (option) | Nemotron 3.5 Lightning | summarise long replay logs (1M context) | report time |
-
-All calls use `response_format: json_schema` and a large `max_tokens`, because Nemotron spends a large share of output tokens on reasoning. `reasoning_content` is stored and shown in the UI as the decision trace.
-
-## 4. Division of labour (updated)
-
-The spike version let Nemotron search burn parameters with tools. It reached a valid burn but used 45% more
-delta-v than the exhaustive optimiser, in 116 s instead of under a second. Numeric search now belongs to
-`cric.physics.options` (min_dv, latest, out_of_plane options, each re-screened). Nemotron decides *whether,
-who, which option and who to tell*, and `cric.safety.validator` enforces the hard rules in code.
-
-## 4b. Agent tools (T3, spike version)
-
-| Tool | Effect | Backed by |
+| Work | Done by | Why |
 |---|---|---|
-| `get_incident(id)` | read | DB |
-| `get_conjunction(id)` | read: TCA, miss distance, relative speed, altitude | screening |
-| `get_dossier(norad)` | read: capability facts with citations | dossier builder |
-| `get_space_weather()` | read: latest T2 assessment + Kp | T2, SWPC |
-| `propagate(norad, t0, t1)` | read: positions | SGP4 |
-| `simulate_maneuver(norad, dv_rtn, t_burn)` | read: new miss distance for this pair | manoeuvre model |
-| `rescreen(norad, plan, window_h)` | read: new conjunctions the plan would create | screening |
-| `propose_plan(plan)` | proposal: goes to validator | validator |
+| Orbit propagation, screening, burn effect, re-screen | Code (SGP4, Clohessy-Wiltshire) | Exact and fast; never sent through a model |
+| Choosing the burn parameters | Optimiser | The first spike let Nemotron search with tools: valid burn, 45% more delta-v, 116 s |
+| Collision probability | Code, assumed covariance | No CDMs in public data; labelled "assumed" or "simulated" everywhere |
+| Kp used for the covariance | NOAA numbers | The VL model's read is context, not an input to physics |
+| Sun image + NOAA read | Nemotron 3.5 Super VL | Qualitative read with observed / inferred / unknown |
+| Who can manoeuvre (other object) | Nemotron Super + Tavily, claim-checked | Facts are scattered across operator pages and papers |
+| Who can manoeuvre (our satellite) | Fleet registry | An operator knows this from telemetry, not the web |
+| Act, wait for data, notify or escalate; which option | Nemotron Super | Needs policy and mission notes written in plain language |
+| Hard rules | Safety validator (code) | Checkable on structured fields; a prompt can be ignored |
+| Message to the other operator / brief for the on-call engineer | Nemotron Ultra | Runs only when a person must act |
 
-The planner cannot execute anything. `propose_plan` is the only exit.
+Every call uses `response_format: json_schema` plus an explicit JSON skeleton in the prompt, a 16k token budget
+(reasoning counts against it) and retries with backoff for 503s.
 
-## 5. Data contracts
+## 4. Safety validator rules
+
+The validator never makes a decision riskier; it accepts, or overrides to a safer action and records why.
+
+1. A burn must use an option the optimiser verified.
+2. Our propulsion must be verified ("yes"); otherwise escalate.
+3. The burn must leave the command-upload window from now and stay under the policy delta-v cap.
+4. The burn must not fall in a structured mission blackout.
+5. On a diluted or yellow Pc with time before the latest burn, get precise data first.
+6. If the other object can manoeuvre, or is an operational satellite with unknown propulsion, notify before burning.
+7. Monitoring a red, non-diluted Pc is escalated.
+8. Coordinating with an intended burn drops the burn when our propulsion is unverified.
+
+Constraints that exist only in free text are not enforced by the validator; that is where the model must read.
+
+## 5. Data
+
+| Data | Where | Notes |
+|---|---|---|
+| Frozen orbits + 24 h screening | `fixtures/snapshot_20261025/` | Eval and demo read only this; reproducible |
+| Fleet registry | `fixtures/fleet.json` | Demo assumption: we operate EOS-08 |
+| Live orbits, caches, recordings, eval runs | `data/` (git-ignored) | `cric screen` writes here only |
+| Static demo recordings | `web/demo/` | `scripts/export_demo.py` |
+
+## 6. Evaluation
+
+Three sets on real encounters: tuning (13), held-out (9, answers committed before running), and real storms
+researched with Tavily (1989, 2003, 2022, 2024) replayed as current conditions. Arms: rule of thumb, coded policy
+over structured fields, Nemotron Super, Nemotron Nano; each answer graded raw and after the validator.
+`cric eval --regrade FILE` re-applies the current validator to saved decisions without model calls.
+Results in README.
+
+## 7. Runtime modes
+
+| Mode | Model calls | Use |
+|---|---|---|
+| Live (`web/serve.py`, Run live) | yes | real time when TCA is at least 2 h ahead, otherwise as if 3 h before TCA |
+| Replay (server) | no | recorded trace of a live run |
+| Static (GitHub Pages) | no | same replays without a server; judging fallback |
+| Eval (`cric eval`) | yes | results table |
+
+## 8. Repository layout
 
 ```text
-Fact          { value, status: sourced|inferred|unknown, source_url, quote, note }
-Incident      { id, kind: conjunction|space_weather, objects[], opened_at, severity, state }
-Dossier       { norad, operator, has_propulsion: Fact, can_maneuver_now: Fact, ... }
-ManeuverPlan  { incident_id, actor_norad, action: BURN|ATTITUDE_MODE|DELAY|NO_ACTION|ESCALATE,
-                dv_rtn_mps?, burn_time?, expected_miss_km, new_conjunctions[], rationale, evidence[] }
-Decision      { plan_id, validator_result, human: approved|rejected|pending, executed_in_sim_at }
+src/cric/
+  config.py llm.py pipeline.py cli.py
+  ingest/    celestrak.py (GP, SATCAT, snapshot) swpc.py (NOAA)
+  physics/   screen.py maneuver.py options.py risk.py timeutil.py
+  research/  dossier.py (satellite facts) forge.py (real events)
+  agent/     decision.py perception.py report.py
+  safety/    validator.py
+  eval/      scenarios.py runner.py
+web/         index.html serve.py demo/
+fixtures/    snapshot_20261025/ fleet.json
+scripts/     export_demo.py
+tests/       offline tests (physics, validator, grader)
+spike/       original feasibility scripts, kept for the record
 ```
-
-## 6. Safety rules (code, not prompts)
-
-1. Debris, rocket bodies and decayed objects cannot manoeuvre (SATCAT overrides the web).
-2. A capability fact counts only if it is `sourced`, passes the claim check, and is not from a social-media domain. Otherwise it is `unknown`.
-3. Unknown capability on either side means `ESCALATE`, never a guess.
-4. A plan is rejected if it exceeds the delta-v budget or creates a closer conjunction within the re-screen window.
-5. Nothing is applied to the simulation without the human gate (auto-approve only in eval runs).
-
-## 7. Physics notes and limits
-
-- Screening: SGP4 on CelesTrak GP data, KD-tree coarse pass, linear closest-approach refinement. Accuracy about 1 km; no covariance or Pc.
-- Manoeuvre: small burns modelled as a Clohessy-Wiltshire offset added to the SGP4 nominal path of the manoeuvring object. Good for hours to a day after the burn; not a precise orbit-determination tool.
-- Drag: simple exponential atmosphere with a density factor driven by Kp, used for the storm scenarios (orbit decay of low deployment orbits). Calibrated only roughly; stated in LIMITATIONS.
-
-## 8. Evaluation
-
-| Arm | What it gets |
-|---|---|
-| Rule-only | manoeuvre if miss < threshold; no capability check, no weather |
-| Agent, no web | full agent, Tavily disabled (dossiers from SATCAT only) |
-| Agent | full agent |
-
-Metrics: unsafe outcomes (collision or loss in sim), unnecessary manoeuvres, wrong-actor manoeuvres (asked a non-manoeuvrable object to move), escalation rate, delta-v used, cost and latency per incident, citation pass rate.
-
-Scenarios: real current conjunctions from screening, plus forged scenarios from real events (Feb 2022 storm, Iridium 33 / Cosmos 2251, 2021 ASAT debris) with parameter variations.
-
-## 9. Repository layout
-
-```text
-cric/
-  src/cric/
-    ingest/      celestrak.py satcat.py swpc.py sun_images.py tavily_cache.py
-    physics/     propagate.py screen.py maneuver.py drag.py clock.py
-    agent/       llm.py (structured_call, routing) triage.py perception.py planner.py
-                 coordinator.py dossier.py tools.py schemas.py
-    safety/      claims.py validator.py approval.py
-    scenarios/   forge.py library/*.json
-    eval/        runner.py baselines.py metrics.py
-    store/       db.py
-    api/         app.py (FastAPI, SSE)
-  web/           index.html globe.js panels/
-  jobs/          eval_job.py (Serverless Jobs entry)
-  spike/         feasibility scripts 00-04
-  README.md ARCHITECTURE.md LIMITATIONS.md FEEDBACK.md LICENSE .env.example
-```
-
-## 10. Runtime modes
-
-| Mode | Data | Token Factory calls | Use |
-|---|---|---|---|
-| Live | current CelesTrak + NOAA | yes | demo, development |
-| Replay | recorded run from DB | no | judging fallback, credit-safe |
-| Eval | scenario library | yes, batched | results table |
-
-## 11. Open technical questions
-
-- Whether Serverless Jobs can run CPU-only workloads; if not, run eval locally and say so.
-- Where to host the API for judges (Serverless Endpoint vs. a small VM); replay mode keeps the UI working if credits run out.
-- Drag model calibration against the Feb 2022 numbers (38 of 49 lost, ~210 km deployment perigee).
-- Fleet-level vs unit-level facts in dossiers (e.g. LEMUR-2 constellation vs one satellite).
