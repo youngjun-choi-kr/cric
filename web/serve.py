@@ -32,6 +32,10 @@ ALLOWED_SUFFIXES = {".json", ".tle"}
 PORT = 8765
 LIVE_LOCK = threading.Lock()  # one paid run at a time
 _module = None
+_avoid = None
+_agent = None
+AGENT_LOCK = threading.Lock()  # one live agent run at a time (it calls the model API)
+AVOID_LOCK = threading.Lock()  # planning is CPU-heavy; run one at a time
 
 
 def dossier_module():
@@ -43,6 +47,29 @@ def dossier_module():
         sys.modules["dossier04"] = _module  # pydantic resolves postponed annotations through sys.modules
         spec.loader.exec_module(_module)
     return _module
+
+
+def avoidance_module():
+    global _avoid
+    if _avoid is None:
+        sys.path.insert(0, str(SPIKE))
+        spec = importlib.util.spec_from_file_location("avoid05", SPIKE / "05_avoidance.py")
+        _avoid = importlib.util.module_from_spec(spec)
+        sys.modules["avoid05"] = _avoid
+        spec.loader.exec_module(_avoid)
+    return _avoid
+
+
+def agent_module():
+    global _agent
+    if _agent is None:
+        sys.path.insert(0, str(SPIKE))
+        avoidance_module()  # share one copy of the physics module with /api/avoidance
+        spec = importlib.util.spec_from_file_location("agent06", SPIKE / "06_agent.py")
+        _agent = importlib.util.module_from_spec(spec)
+        sys.modules["agent06"] = _agent
+        spec.loader.exec_module(_agent)
+    return _agent
 
 
 def replay_events(norad: int):
@@ -86,6 +113,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path == "/api/dossier":
             return self.api_dossier(parse_qs(url.query))
+        if url.path == "/api/avoidance":
+            return self.api_avoidance(parse_qs(url.query))
+        if url.path == "/api/agent":
+            return self.api_agent(parse_qs(url.query))
         super().do_GET()
 
     # --- API -------------------------------------------------------------
@@ -139,6 +170,79 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         finally:
             if mode == "live":
                 LIVE_LOCK.release()
+
+    def _json(self, code: int, payload: bytes) -> None:
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def api_avoidance(self, q: dict) -> None:
+        """GET /api/avoidance?norad=A&norad=B&who=W[&refresh=1] -> manoeuvre plan JSON (cached on disk)."""
+        if not self._local_request():
+            return self.send_error(403, "local requests only")
+        try:
+            norads = [int(x) for x in q.get("norad", [])]
+            who = int(q["who"][0])
+            assert len(norads) == 2 and who in norads and all(0 < n < 10_000_000 for n in norads)
+        except (KeyError, ValueError, AssertionError):
+            return self.send_error(400, "need norad=A&norad=B&who=<one of them>")
+        path = DATA / f"avoidance_{norads[0]}_{norads[1]}_{who}.json"
+        try:
+            if not path.exists() or q.get("refresh", ["0"])[0] == "1":
+                with AVOID_LOCK:
+                    mod = avoidance_module()
+                    res = mod.plan(norads[0], norads[1], who, log=lambda *a, **k: None)
+                    mod.save_json(path.name, res)
+            self._json(200, path.read_bytes())
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception as exc:
+            self._json(500, json.dumps({"error": str(exc) or exc.__class__.__name__}).encode())
+
+    def api_agent(self, q: dict) -> None:
+        """GET /api/agent?norad=A&norad=B&who=W&mode=live|replay -> SSE stream of the Nemotron burn-planning agent."""
+        if not self._local_request():
+            return self.send_error(403, "local requests only")
+        try:
+            norads = [int(x) for x in q.get("norad", [])]
+            who = int(q["who"][0])
+            assert len(norads) == 2 and who in norads and all(0 < n < 10_000_000 for n in norads)
+        except (KeyError, ValueError, AssertionError):
+            return self.send_error(400, "need norad=A&norad=B&who=<one of them>")
+        mode = q.get("mode", ["live"])[0]
+        if mode not in ("live", "replay"):
+            return self.send_error(400, "mode must be live or replay")
+        if mode == "live" and not AGENT_LOCK.acquire(blocking=False):
+            return self.send_error(429, "an agent run is already in progress")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.end_headers()
+        try:
+            self._send({"kind": "start", "mode": mode})
+            if mode == "replay":
+                path = DATA / f"agent_{norads[0]}_{norads[1]}_{who}.json"
+                if not path.exists():
+                    raise FileNotFoundError("no saved agent run for this pair; run it live once first")
+                for e in json.loads(path.read_text())["trace"]:
+                    self._send(e)
+            else:
+                mod = agent_module()
+                mod.run_agent(norads[0], norads[1], who, emit=lambda kind, **data: self._send({"kind": kind, **data}),
+                              log=lambda *a, **k: None)
+            self._send({"kind": "done"})
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except (Exception, SystemExit) as exc:
+            try:
+                self._send({"kind": "error", "message": str(exc) or exc.__class__.__name__})
+            except OSError:
+                pass
+        finally:
+            if mode == "live":
+                AGENT_LOCK.release()
 
     def run_live(self, norads: list[int]) -> None:
         mod = dossier_module()
