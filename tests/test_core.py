@@ -93,3 +93,9 @@ def test_manoeuvre_on_diluted_pc_with_time_is_sent_for_data():
 def test_manoeuvre_on_diluted_pc_without_time_is_kept():
     ctx, now = _ctx(diluted=True)  # latest burn 09:18 leaves 48 min after upload: not enough for new data
     assert validate(_decision(), ctx, now)["final_action"] == "MANEUVER"
+
+
+def test_monitor_on_red_pc_is_escalated():
+    ctx, now = _ctx()
+    out = validate(_decision(action="MONITOR", option_id=None), ctx, now)
+    assert out["final_action"] == "ESCALATE"

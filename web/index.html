@@ -1,94 +1,92 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRIC · Orbit Prototype</title>
+<title>CRIC Console</title>
 <style>
-  :root { --bg:#02040a; --panel:rgba(8,14,28,.72); --line:rgba(120,160,255,.18); --text:#dbe6ff; --dim:#8196c4; --accent:#5ab0ff; --warn:#ff6b57; --ok:#4fe3a1; }
+  :root { --bg:#02040a; --panel:rgba(8,14,28,.78); --line:rgba(120,160,255,.18); --text:#dbe6ff; --dim:#8196c4; --accent:#5ab0ff; --warn:#ff6b57; --ok:#4fe3a1; --mid:#ffc857; }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:13px/1.45 -apple-system,"Apple SD Gothic Neo","Segoe UI",sans-serif; overflow:hidden; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:13px/1.45 -apple-system,"Segoe UI",Inter,sans-serif; overflow:hidden; }
   canvas { display:block; position:fixed; inset:0; }
   .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:12px 14px; }
-  #hud { top:16px; left:16px; min-width:250px; }
-  #hud h1 { margin:0 0 2px; font-size:15px; letter-spacing:.06em; }
-  #hud .sub { color:var(--dim); font-size:11px; margin-bottom:8px; }
-  #hud .row { display:flex; justify-content:space-between; gap:16px; }
-  #hud .row b { font-variant-numeric:tabular-nums; }
-  #clock { font-size:17px; font-variant-numeric:tabular-nums; margin:6px 0 2px; }
-  #controls { left:16px; bottom:16px; display:flex; gap:6px; flex-wrap:wrap; max-width:420px; }
-  button { background:rgba(90,176,255,.1); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; cursor:pointer; }
-  button:hover { background:rgba(90,176,255,.25); }
-  button.on { background:var(--accent); color:#001224; border-color:var(--accent); font-weight:600; }
-  #events { top:16px; right:16px; width:330px; max-height:calc(100% - 32px); display:flex; flex-direction:column; }
-  #events h2 { margin:0 0 6px; font-size:13px; }
-  #events label { color:var(--dim); font-size:11px; display:block; margin-bottom:8px; cursor:pointer; }
-  #list { overflow:auto; margin:0 -6px; padding:0 6px; }
-  .ev { padding:8px 9px; border:1px solid transparent; border-radius:8px; cursor:pointer; }
-  .ev:hover { background:rgba(90,176,255,.1); }
-  .ev.sel { border-color:var(--warn); background:rgba(255,107,87,.1); }
-  .ev .n { font-weight:600; }
-  .ev .m { color:var(--dim); font-size:11px; font-variant-numeric:tabular-nums; }
-  .ev .d { color:var(--warn); font-weight:700; }
-  #readout { left:50%; bottom:16px; transform:translateX(-50%); text-align:center; min-width:380px; display:none; border-color:rgba(255,107,87,.5); }
-  #readout .big { font-size:26px; font-weight:700; color:var(--warn); font-variant-numeric:tabular-nums; }
-  #readout .names { font-weight:600; margin-bottom:2px; }
-  #readout .dim { color:var(--dim); font-size:11px; }
-  #verdict { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12px; text-align:left; }
-  .tag { display:inline-block; padding:1px 7px; border-radius:99px; font-size:10px; margin-right:6px; background:rgba(255,255,255,.1); }
-  .tag.web { background:rgba(79,227,161,.2); color:var(--ok); }
-  #foot { right:16px; bottom:16px; max-width:330px; font-size:10.5px; color:var(--dim); }
-  #loading { position:fixed; inset:0; display:grid; place-items:center; background:var(--bg); z-index:9; transition:opacity .6s; }
-  #loading.done { opacity:0; pointer-events:none; }
-  #leftcol { position:fixed; top:136px; left:16px; width:340px; max-height:calc(100% - 285px); overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
-  #leftcol .panel { position:static; padding:0; }
-  #tav header, #ag header { padding:10px 12px; }
-  #tav h2, #ag h2 { margin:0; font-size:13px; letter-spacing:.04em; display:flex; justify-content:space-between; align-items:center; }
-  #tavBtns, #agBtns { display:flex; gap:6px; margin-top:8px; }
-  #tavStats, #agStats { color:var(--dim); font-size:11px; margin-top:8px; font-variant-numeric:tabular-nums; }
-  #tavStats b, #agStats b { color:var(--text); }
-  #tavBody, #agBody { display:none; overflow:auto; max-height:340px; padding:10px 12px 12px; border-top:1px solid var(--line); }
-  #tav.open #tavBody, #ag.open #agBody { display:block; }
   .dim { color:var(--dim); }
-  .card { border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-bottom:8px; }
-  .card h3 { margin:0 0 6px; font-size:12px; }
-  .step { display:flex; gap:8px; font-size:11.5px; margin:5px 0; }
+  button, select { background:rgba(90,176,255,.1); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; cursor:pointer; }
+  button:hover:not(:disabled) { background:rgba(90,176,255,.25); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.on { background:var(--accent); color:#001224; border-color:var(--accent); font-weight:600; }
+  button.primary { background:rgba(79,227,161,.18); border-color:rgba(79,227,161,.5); }
+  .tag { display:inline-block; padding:1px 7px; border-radius:99px; font-size:10px; margin-right:4px; background:rgba(255,255,255,.1); vertical-align:1px; }
+  .tag.ok { background:rgba(79,227,161,.2); color:var(--ok); } .tag.mid { background:rgba(255,200,87,.18); color:var(--mid); }
+  .tag.bad { background:rgba(255,107,87,.2); color:var(--warn); } .tag.blue { background:rgba(90,176,255,.2); color:var(--accent); }
+
+  #hud { top:16px; left:16px; width:340px; }
+  #hud h1 { margin:0; font-size:15px; letter-spacing:.08em; }
+  #hud .sub { color:var(--dim); font-size:11px; margin:2px 0 6px; }
+  #hud .row { display:flex; justify-content:space-between; gap:16px; } #hud b { font-variant-numeric:tabular-nums; }
+  #clock { font-size:16px; font-variant-numeric:tabular-nums; margin:2px 0; }
+  #controls { left:16px; bottom:16px; display:flex; gap:6px; flex-wrap:wrap; max-width:340px; }
+
+  #leftcol { position:fixed; top:142px; left:16px; width:340px; bottom:74px; display:flex; flex-direction:column; }
+  #inc { position:static; padding:0; display:flex; flex-direction:column; min-height:0; flex:1; }
+  #inc header { padding:10px 12px; border-bottom:1px solid var(--line); }
+  #inc h2 { margin:0 0 8px; font-size:12px; letter-spacing:.08em; display:flex; justify-content:space-between; }
+  .ctl { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+  .ctl select { flex:1; min-width:0; }
+  #incStats { color:var(--dim); font-size:11px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  #incStats b { color:var(--text); }
+  #incBody { overflow:auto; padding:8px 12px 12px; flex:1; min-height:0; }
+  .step { display:flex; gap:8px; font-size:11.5px; margin:6px 0; }
   .step .ic { width:14px; flex:none; text-align:center; color:var(--dim); }
-  .step.ok .ic { color:var(--ok); } .step.warn .ic { color:#ffc857; }
+  .step.ok .ic { color:var(--ok); } .step.warn .ic { color:var(--mid); } .step.bad .ic { color:var(--warn); }
   .step.run .ic { color:var(--accent); animation:pulse .9s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity:.25; } }
-  .step i { color:var(--dim); font-style:normal; }
+  .step .who { font-weight:600; } .step .model { color:var(--accent); font-size:10px; margin-left:4px; }
+  .sub2 { color:var(--dim); font-size:10.5px; margin-top:2px; }
   .chips { margin-top:3px; display:flex; gap:4px; flex-wrap:wrap; }
   .chip { background:rgba(255,255,255,.08); border-radius:99px; padding:1px 7px; font-size:10px; }
-  .prob { margin:4px 0 0; padding-left:16px; color:#ffc857; font-size:10.5px; }
-  .facts { margin-top:8px; border-top:1px solid var(--line); padding-top:6px; }
-  .fact { margin:6px 0; font-size:11.5px; }
-  .fh { display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; }
-  .fk { color:var(--dim); min-width:78px; } .fv { font-weight:600; flex:1; }
-  .fq { color:var(--dim); font-size:10.5px; margin:2px 0 1px; border-left:2px solid var(--line); padding-left:6px; }
-  .fact a { font-size:10.5px; color:var(--accent); text-decoration:none; }
-  .tag.ok { background:rgba(79,227,161,.2); color:var(--ok); } .tag.mid { background:rgba(255,200,87,.18); color:#ffc857; }
-  .tag.bad { background:rgba(255,107,87,.2); color:var(--warn); } .tag.dim { color:var(--dim); }
-  .abl { margin-top:8px; font-size:11px; } .abl .bar { margin:3px 0; background:rgba(255,255,255,.07); border-radius:4px; position:relative; height:16px; }
-  .abl .bar span { display:block; height:100%; border-radius:4px; background:rgba(129,150,196,.55); }
-  .abl .bar.on span { background:rgba(79,227,161,.6); }
-  .abl .bar em { position:absolute; left:6px; top:0; line-height:16px; font-style:normal; font-size:10.5px; }
-  .verdict { border-color:rgba(255,107,87,.5); } .verdict .rec { margin-top:4px; font-weight:600; }
-  #avoid { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); text-align:left; font-size:12px; }
-  #avoid .arow { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-  #avoid select { background:rgba(90,176,255,.1); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:5px 8px; font:inherit; }
-  #avoidOut { margin-top:8px; } #avoidOut .ln { margin:3px 0; } #avoidOut .big { font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
-  #avoidOut .bad { color:var(--warn); } #avoidOut .good { color:var(--ok); } #avoidOut .btns { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-  #avoidOut .lim { color:var(--dim); font-size:10.5px; margin-top:6px; }
-    .th { color:var(--dim); font-size:10.5px; font-style:italic; margin:4px 0 4px 22px; }
-  .tc { display:flex; gap:8px; font-size:11.5px; margin:5px 0; } .tc .ic { width:14px; flex:none; text-align:center; }
-  .tc.ok .ic { color:var(--ok); } .tc.bad .ic { color:var(--warn); } .tc.run .ic { color:var(--accent); animation:pulse .9s ease-in-out infinite; }
-  table.cmp { width:100%; border-collapse:collapse; font-size:11px; margin-top:6px; font-variant-numeric:tabular-nums; }
-  table.cmp th { text-align:left; color:var(--dim); font-weight:400; border-bottom:1px solid var(--line); padding:3px 4px; }
-  table.cmp td { padding:4px; border-bottom:1px solid rgba(120,160,255,.08); } table.cmp tr.me td { background:rgba(79,227,161,.1); font-weight:600; }
-  @media (max-width:1100px) { body.avoidOpen #events { max-height:calc(100% - 520px); } }
-  @media (max-width:1100px) { #foot { display:none; } #leftcol { width:300px; } #events { max-height:calc(100% - 250px); } #readout { left:auto; right:16px; transform:none; width:330px; min-width:0; } }
-  @media (max-width:820px) { #leftcol { display:none; } #events { display:none; } #foot { display:none; } #readout { min-width:0; width:calc(100% - 32px); } #controls { bottom:auto; top:130px; } }
+  details.think summary { cursor:pointer; font-style:normal; color:var(--accent); }
+  details.think:not([open]) { max-height:none; }
+  .think { color:var(--dim); font-size:10.5px; font-style:italic; border-left:2px solid var(--line); padding-left:6px; margin:4px 0 4px 22px; max-height:90px; overflow:auto; }
+
+  #events { top:16px; right:16px; width:340px; max-height:42%; display:flex; flex-direction:column; }
+  #events h2, #evalp h2 { margin:0 0 6px; font-size:12px; letter-spacing:.08em; }
+  #events label { color:var(--dim); font-size:11px; display:block; margin-bottom:6px; cursor:pointer; }
+  #list { overflow:auto; margin:0 -6px; padding:0 6px; }
+  .ev { padding:7px 9px; border:1px solid transparent; border-radius:8px; cursor:pointer; }
+  .ev:hover { background:rgba(90,176,255,.1); } .ev.sel { border-color:var(--warn); background:rgba(255,107,87,.1); }
+  .ev .n { font-weight:600; font-size:12px; } .ev .m { color:var(--dim); font-size:11px; font-variant-numeric:tabular-nums; }
+  .ev .d { color:var(--warn); font-weight:700; } .ev .rec { color:var(--ok); font-size:10px; margin-left:4px; }
+
+  #evalp { right:16px; bottom:16px; width:340px; font-size:11px; }
+  table.t { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:11px; }
+  table.t th { text-align:right; color:var(--dim); font-weight:400; border-bottom:1px solid var(--line); padding:3px 4px; }
+  table.t th:first-child, table.t td:first-child { text-align:left; }
+  table.t td { padding:4px; border-bottom:1px solid rgba(120,160,255,.08); text-align:right; }
+  table.t tr.me td { background:rgba(79,227,161,.1); font-weight:600; }
+
+  #readout { left:50%; bottom:16px; transform:translateX(-50%); width:min(560px, calc(100% - 760px)); min-width:420px; max-height:calc(100% - 32px); overflow:auto; display:none; }
+  #readout .head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  #rNames { font-weight:600; } #rDist { font-size:24px; font-weight:700; color:var(--warn); font-variant-numeric:tabular-nums; }
+  #rSub { color:var(--dim); font-size:11px; font-variant-numeric:tabular-nums; }
+  .sec { border-top:1px solid var(--line); margin-top:8px; padding-top:8px; }
+  .sec h3 { margin:0 0 4px; font-size:11px; letter-spacing:.08em; color:var(--dim); font-weight:600; }
+  .riskline { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .pc { font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .pc.red { color:var(--warn); } .pc.yellow { color:var(--mid); } .pc.green { color:var(--ok); }
+  .action { font-size:18px; font-weight:800; letter-spacing:.04em; }
+  .action.MANEUVER { color:var(--ok); } .action.REQUEST_PRECISE_DATA, .action.MONITOR { color:var(--accent); }
+  .action.COORDINATE { color:var(--mid); } .action.ESCALATE { color:var(--warn); }
+  .factor { font-size:11.5px; margin:3px 0; } .factor .ev2 { color:var(--dim); font-size:10.5px; }
+  .msg { border-left:2px solid var(--mid); padding-left:8px; margin-top:6px; font-size:11.5px; }
+  .ovr { color:var(--warn); font-size:11.5px; margin-top:4px; }
+  .btns { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .lim { color:var(--dim); font-size:10.5px; margin-top:6px; }
+
+  #loading { position:fixed; inset:0; display:grid; place-items:center; background:var(--bg); z-index:9; transition:opacity .6s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  @media (max-width:1200px) { #readout { left:auto; right:16px; transform:none; width:340px; min-width:0; max-height:45%; } #evalp { display:none; } }
+  @media (max-width:820px) { #leftcol, #events { display:none; } #readout { width:calc(100% - 32px); } }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
 <script type="importmap">
@@ -96,63 +94,65 @@
 </script>
 </head>
 <body>
-<div id="loading"><div id="loadmsg">궤도 데이터와 지구 텍스처를 불러오는 중…</div></div>
+<div id="loading"><div>Loading real orbits and Earth textures…</div></div>
 
 <div class="panel" id="hud">
-  <h1>CRIC · ORBIT PROTOTYPE</h1>
-  <div class="sub">CelesTrak 실제 궤도 · SGP4 전파 · 1 단위 = 1,000 km</div>
+  <h1>CRIC</h1>
+  <div class="sub">Cosmic Response &amp; Intelligence Console · CelesTrak orbits · SGP4 · NVIDIA Nemotron on Nebius Token Factory</div>
   <div id="clock">--</div>
-  <div class="row"><span>추적 중인 위성</span><b id="cnt">-</b></div>
-  <div class="row"><span>시간 배속</span><b id="spd">10×</b></div>
-</div>
-
-<div class="panel" id="controls">
-  <button data-speed="0">⏸</button>
-  <button data-speed="1">1×</button>
-  <button data-speed="10" class="on">10×</button>
-  <button data-speed="60">60×</button>
-  <button data-speed="300">300×</button>
-  <button id="btnTca">TCA 2분 전으로</button>
-  <button id="btnOverview">전체 보기</button>
+  <div class="row"><span>Objects tracked</span><b id="cnt">-</b></div>
+  <div class="row"><span>Time rate</span><b id="spd">10×</b></div>
 </div>
 
 <div id="leftcol">
-<div class="panel" id="tav">
-  <header>
-    <h2><span>TAVILY 조사 <span class="dim" id="tavState">대기 중</span></span><button id="tavToggle" title="접기/펼치기">▾</button></h2>
-    <div id="tavBtns"><button id="tavLive">▶ 실시간 조사</button><button id="tavReplay">⟲ 기록 재생</button></div>
-    <div id="tavStats"></div>
-  </header>
-  <div id="tavBody"></div>
-</div>
-<div class="panel" id="ag">
-  <header>
-    <h2><span>NEMOTRON 계획 에이전트 <span class="dim" id="agState">대기 중</span></span><button id="agToggle" title="접기/펼치기">▾</button></h2>
-    <div id="agBtns"><button id="agLive">▶ 실시간 계획</button><button id="agReplay">⟲ 기록 재생</button></div>
-    <div id="agStats"></div>
-  </header>
-  <div id="agBody"></div>
-</div>
-</div>
-
-<div class="panel" id="events">
-  <h2>근접 접근 (다음 6시간 스크리닝)</h2>
-  <label><input type="checkbox" id="incStarlink"> Starlink끼리의 접근도 포함</label>
-  <div id="list"></div>
-</div>
-
-<div class="panel" id="readout">
-  <div class="names" id="rNames"></div>
-  <div class="big" id="rDist">-</div>
-  <div class="dim" id="rSub"></div>
-  <div id="verdict"></div>
-  <div id="avoid">
-    <div class="arow"><label>기동 위성 <select id="avoidWho"></select></label><button id="avoidRun">▶ 회피 기동 계산</button></div>
-    <div id="avoidOut"></div>
+  <div class="panel" id="inc">
+    <header>
+      <h2><span>INCIDENT PIPELINE</span><span class="dim" id="incState">idle</span></h2>
+      <div class="ctl">
+        <span class="dim">Our satellite</span><select id="oursSel"></select>
+      </div>
+      <div class="ctl">
+        <select id="presetSel">
+          <option value="quiet">Quiet day · TLE data only</option>
+          <option value="precise">Precise ephemeris received</option>
+          <option value="imaging">Imaging pass blocks a burn</option>
+          <option value="safe_mode">Satellite in safe mode</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <button id="runReplay" class="primary">⟲ Replay recorded run</button>
+        <button id="runLive">▶ Run live</button>
+      </div>
+      <div id="incStats"></div>
+    </header>
+    <div id="incBody"><div class="dim">Pick a close approach, a situation, then replay a recorded run (no API calls) or run it live (Token Factory + Tavily).</div></div>
   </div>
 </div>
 
-<div class="panel" id="foot">시각화 프로토타입입니다. 궤도는 TLE 정확도(약 1 km)의 스크리닝 수준이고, 충돌 확률은 계산하지 않습니다. 위성 마커는 화면상 고정 크기입니다.</div>
+<div class="panel" id="controls">
+  <button data-speed="0">⏸</button><button data-speed="1">1×</button><button data-speed="10" class="on">10×</button>
+  <button data-speed="60">60×</button><button data-speed="300">300×</button>
+  <button id="btnTca">TCA −2 min</button><button id="btnOverview">Overview</button>
+</div>
+
+<div class="panel" id="events">
+  <h2>CLOSE APPROACHES · NEXT 6 H</h2>
+  <label><input type="checkbox" id="incStarlink"> include Starlink-to-Starlink</label>
+  <div id="list"></div>
+</div>
+
+<div class="panel" id="evalp"><h2>DECISION EVAL</h2><div id="evalBody" class="dim">loading…</div></div>
+
+<div class="panel" id="readout">
+  <div class="head"><div id="rNames"></div><div id="rDist">-</div></div>
+  <div id="rSub"></div>
+  <div class="sec" id="riskSec" hidden><h3>RISK</h3><div id="riskBody"></div></div>
+  <div class="sec" id="optSec" hidden><h3>VERIFIED BURN OPTIONS · OPTIMISER, NOT THE MODEL</h3><div id="optBody"></div></div>
+  <div class="sec" id="decSec" hidden><h3>DECISION · NEMOTRON SUPER</h3><div id="decBody"></div></div>
+  <div class="sec" id="valSec" hidden><h3>SAFETY VALIDATOR · RULES IN CODE</h3><div id="valBody"></div></div>
+  <div class="sec" id="trajSec" hidden><div class="btns"><button id="goBurn">Go to burn</button><button id="kBtn">Path difference ×200</button></div>
+    <div class="lim">Green = path after the burn, red = before, yellow dot = burn point. The km-scale difference is exaggerated so it is visible.</div></div>
+</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -164,22 +164,27 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 const D2R = Math.PI / 180;
 const RE = 6.378137;                      // Earth radius, 1 unit = 1000 km
 const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return String(u || ''); } };
+const fmtDist = (km) => (km < 1 ? `${(km * 1000).toFixed(0)} m` : `${km.toFixed(2)} km`);
+const fmtUTC = (iso) => String(iso).slice(11, 19) + ' UTC';
+const pcTxt = (p) => (p > 0 ? p.toExponential(1) : '< 1e-300');
 
 // ---------- data ----------
-const [tleText, conj] = await Promise.all([
+const [tleText, conj, saved] = await Promise.all([
   fetch('/data/celestrak_active.tle').then(r => r.text()),
   fetch('/data/conjunctions.json').then(r => r.json()),
+  fetch('/api/incidents').then(r => (r.ok ? r.json() : [])).catch(() => []),
 ]);
 const lines = tleText.split('\n').map(l => l.trimEnd()).filter(Boolean);
-const sats = [];
-const bySat = new Map();
+const sats = [], bySat = new Map();
 for (let i = 0; i + 2 < lines.length; i += 3) {
   const rec = satellite.twoline2satrec(lines[i + 1], lines[i + 2]);
   const s = { name: lines[i].trim(), rec, starlink: lines[i].startsWith('STARLINK') };
-  sats.push(s);
-  bySat.set(String(Number(rec.satnum)), s);
+  sats.push(s); bySat.set(String(Number(rec.satnum)), s);
 }
 $('cnt').textContent = sats.length.toLocaleString();
+const recorded = new Set(saved.filter(s => s.has_trace).map(s => `${s.ours}-${s.other}`));
 
 // ---------- renderer ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -188,16 +193,14 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 document.body.prepend(renderer.domElement);
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 3000);
 camera.position.set(0, 7, 19);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.06;
-controls.minDistance = 0.05; controls.maxDistance = 400;
-controls.zoomSpeed = 0.8;
+controls.minDistance = 0.05; controls.maxDistance = 400; controls.zoomSpeed = 0.8;
 
-// ---------- textures ----------
+// ---------- textures, sky, earth, atmosphere ----------
 const loader = new THREE.TextureLoader();
 const IMG = 'https://unpkg.com/three-globe@2.31.0/example/img/';
 const load = (f, srgb = true) => loader.loadAsync(IMG + f).then(t => {
@@ -205,15 +208,10 @@ const load = (f, srgb = true) => loader.loadAsync(IMG + f).then(t => {
   t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
 });
 const [dayTex, nightTex, skyTex] = await Promise.all([load('earth-blue-marble.jpg'), load('earth-night.jpg'), load('night-sky.png')]);
-
-// ---------- sky ----------
-const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 32),
-  new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, depthWrite: false, color: 0x9aa6c8 }));
-scene.add(sky);
-
-// ---------- earth ----------
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 32),
+  new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, depthWrite: false, color: 0x9aa6c8 })));
 const sunU = { value: new THREE.Vector3(1, 0, 0) };
-const earth = new THREE.Mesh(new THREE.SphereGeometry(RE, 128, 96), new THREE.ShaderMaterial({
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(RE, 128, 96), new THREE.ShaderMaterial({
   uniforms: { dayT: { value: dayTex }, nightT: { value: nightTex }, sunDir: sunU },
   vertexShader: `
     varying vec2 vUv; varying vec3 vN; varying vec3 vW;
@@ -238,10 +236,8 @@ const earth = new THREE.Mesh(new THREE.SphereGeometry(RE, 128, 96), new THREE.Sh
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`,
-}));
-scene.add(earth);
-
-const atmos = new THREE.Mesh(new THREE.SphereGeometry(RE * 1.035, 96, 64), new THREE.ShaderMaterial({
+})));
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(RE * 1.035, 96, 64), new THREE.ShaderMaterial({
   uniforms: { sunDir: sunU }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
   vertexShader: `varying vec3 vN; varying vec3 vWN; void main(){ vN=normalize(normalMatrix*normal); vWN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
   fragmentShader: `
@@ -252,8 +248,7 @@ const atmos = new THREE.Mesh(new THREE.SphereGeometry(RE * 1.035, 96, 64), new T
       vec3 c=mix(vec3(0.35,0.55,1.0),vec3(1.0,0.55,0.3),smoothstep(0.35,0.0,abs(dot(normalize(vWN),normalize(sunDir)))));
       gl_FragColor=vec4(c*i*2.4*(0.12+lit),1.0);
     }`,
-}));
-scene.add(atmos);
+})));
 
 // ---------- satellites ----------
 function dotTexture() {
@@ -265,41 +260,32 @@ function dotTexture() {
 const dot = dotTexture();
 const N = sats.length;
 const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
-sats.forEach((s, i) => { const c = s.starlink ? [0.38, 0.62, 1.0] : [1.0, 0.82, 0.45]; col.set(c, i * 3); });
+sats.forEach((s, i) => col.set(s.starlink ? [0.38, 0.62, 1.0] : [1.0, 0.82, 0.45], i * 3));
 const satGeo = new THREE.BufferGeometry();
 satGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 satGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-const satPts = new THREE.Points(satGeo, new THREE.PointsMaterial({
-  size: 3.2, sizeAttenuation: false, vertexColors: true, map: dot, transparent: true, depthWrite: false, alphaTest: 0.02,
-}));
-satPts.frustumCulled = false;
-scene.add(satPts);
+const satPts = new THREE.Points(satGeo, new THREE.PointsMaterial({ size: 3.2, sizeAttenuation: false, vertexColors: true, map: dot, transparent: true, depthWrite: false, alphaTest: 0.02 }));
+satPts.frustumCulled = false; scene.add(satPts);
 
-const pairPos = new Float32Array(6);
-const pairGeo = new THREE.BufferGeometry();
+const pairPos = new Float32Array(6), pairGeo = new THREE.BufferGeometry();
 pairGeo.setAttribute('position', new THREE.BufferAttribute(pairPos, 3));
 pairGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array([1, .42, .34, .35, 1, .75]), 3));
-const pairPts = new THREE.Points(pairGeo, new THREE.PointsMaterial({
-  size: 16, sizeAttenuation: false, vertexColors: true, map: dot, transparent: true, depthTest: false, depthWrite: false,
-}));
-pairPts.frustumCulled = false; pairPts.visible = false; pairPts.renderOrder = 10;
-scene.add(pairPts);
+const pairPts = new THREE.Points(pairGeo, new THREE.PointsMaterial({ size: 16, sizeAttenuation: false, vertexColors: true, map: dot, transparent: true, depthTest: false, depthWrite: false }));
+pairPts.frustumCulled = false; pairPts.visible = false; pairPts.renderOrder = 10; scene.add(pairPts);
 const pairLine = new THREE.Line(pairGeo, new THREE.LineBasicMaterial({ color: 0xff6b57, transparent: true, opacity: .9, depthTest: false }));
-pairLine.frustumCulled = false; pairLine.visible = false; pairLine.renderOrder = 9;
-scene.add(pairLine);
+pairLine.frustumCulled = false; pairLine.visible = false; pairLine.renderOrder = 9; scene.add(pairLine);
 
-const ringGroup = new THREE.Group(); scene.add(ringGroup);   // inertial frame: rotated by -GMST each frame
+const ringGroup = new THREE.Group(); scene.add(ringGroup);   // inertial frame, rotated by -GMST each frame
 function ringFor(rec, date, color) {
   const period = 2 * Math.PI / rec.no, pts = [];
   for (let k = 0; k <= 160; k++) {
     const p = satellite.propagate(rec, new Date(date.getTime() + k / 160 * period * 60000)).position;
     if (p) pts.push(new THREE.Vector3(p.x / 1000, p.z / 1000, -p.y / 1000));
   }
-  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
-    new THREE.LineBasicMaterial({ color, transparent: true, opacity: .55 }));
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity: .55 }));
 }
 
-// ---------- time & geometry helpers ----------
+// ---------- time & geometry ----------
 let simMs = Date.now(), speed = 10;
 function sunVector(date) {
   const n = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
@@ -314,9 +300,7 @@ function updateSats(date) {
   for (let i = 0; i < N; i++) {
     const p = satellite.propagate(sats[i].rec, date).position;
     if (!p) { pos[3 * i] = pos[3 * i + 1] = pos[3 * i + 2] = 0; continue; }
-    pos[3 * i] = (p.x * c + p.y * s) / 1000;
-    pos[3 * i + 1] = p.z / 1000;
-    pos[3 * i + 2] = -(-p.x * s + p.y * c) / 1000;
+    pos[3 * i] = (p.x * c + p.y * s) / 1000; pos[3 * i + 1] = p.z / 1000; pos[3 * i + 2] = -(-p.x * s + p.y * c) / 1000;
   }
   satGeo.attributes.position.needsUpdate = true;
 }
@@ -342,38 +326,37 @@ function flyToPair() {
   offset = u.clone().multiplyScalar(1.6).add(side.multiplyScalar(3.4)).add(new THREE.Vector3(0, 0.9, 0));
   startFly(() => { const m = pairMid(new Date(simMs)); return { cam: m.clone().add(offset), tgt: m }; });
 }
+const evKey = (e) => `${e.object_a.norad_id}-${e.object_b.norad_id}`;
 function select(ev, jump = true) {
   const a = bySat.get(String(ev.object_a.norad_id)), b = bySat.get(String(ev.object_b.norad_id));
   if (!a || !b) return;
   sel = ev; selSats = [a, b];
-  tavReset(); agReset(); avoidClear(); avoidFillSelect();
-  if (jump) { simMs = Date.parse(ev.tca_utc) - 120000; }
+  incReset(); trajClear();
+  $('oursSel').innerHTML = selSats.map((x) => `<option value="${Number(x.rec.satnum)}">${esc(x.name)}</option>`).join('');
+  if (jump) simMs = Date.parse(ev.tca_utc) - 120000;
   ringGroup.clear();
   ringGroup.add(ringFor(a.rec, new Date(simMs), 0xff6b57), ringFor(b.rec, new Date(simMs), 0x59ffbd));
   pairPts.visible = pairLine.visible = true;
   $('readout').style.display = 'block';
   $('rNames').textContent = `${a.name}  ↔  ${b.name}`;
-  loadVerdict(ev);
   document.querySelectorAll('.ev').forEach(el => el.classList.toggle('sel', el.dataset.id === evKey(ev)));
   flyToPair();
 }
 function overview() {
-  sel = null; selSats = null; pairPts.visible = pairLine.visible = false; ringGroup.clear(); tavReset(); agReset(); avoidClear();
+  sel = null; selSats = null; pairPts.visible = pairLine.visible = false; ringGroup.clear(); incReset(); trajClear();
   $('readout').style.display = 'none';
   document.querySelectorAll('.ev').forEach(el => el.classList.remove('sel'));
   startFly(() => ({ cam: new THREE.Vector3(0, 8, 21), tgt: new THREE.Vector3(0, 0, 0) }));
 }
 
-// ---------- UI ----------
-const evKey = (e) => `${e.object_a.norad_id}-${e.object_b.norad_id}`;
-const fmtKST = (iso) => new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+// ---------- conjunction list ----------
 function renderList() {
   const inc = $('incStarlink').checked;
   const evs = conj.events.filter(e => inc || !(e.object_a.name.startsWith('STARLINK') && e.object_b.name.startsWith('STARLINK'))).slice(0, 25);
   $('list').innerHTML = evs.map(e => `
     <div class="ev" data-id="${evKey(e)}">
-      <div class="n">${e.object_a.name} ↔ ${e.object_b.name}</div>
-      <div class="m"><span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · 고도 ${e.altitude_km.toFixed(0)} km · ${fmtKST(e.tca_utc)} KST</div>
+      <div class="n">${esc(e.object_a.name)} ↔ ${esc(e.object_b.name)}${recorded.has(evKey(e)) ? '<span class="rec">● recorded</span>' : ''}</div>
+      <div class="m"><span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · alt ${e.altitude_km.toFixed(0)} km · TCA ${fmtUTC(e.tca_utc)}</div>
     </div>`).join('');
   document.querySelectorAll('.ev').forEach((el, i) => el.onclick = () => select(evs[i]));
   if (sel) document.querySelector(`.ev[data-id="${evKey(sel)}"]`)?.classList.add('sel');
@@ -381,286 +364,175 @@ function renderList() {
 }
 $('incStarlink').onchange = renderList;
 document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
-  speed = +b.dataset.speed; $('spd').textContent = speed ? speed + '×' : '정지';
+  speed = +b.dataset.speed; $('spd').textContent = speed ? speed + '×' : 'paused';
   document.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
 });
 $('btnTca').onclick = () => { if (sel) select(sel, true); };
 $('btnOverview').onclick = overview;
 
-async function loadVerdict(ev) {
-  const el = $('verdict'); el.innerHTML = '';
-  const ids = `${ev.object_a.norad_id}_${ev.object_b.norad_id}`;
-  for (const [suffix, web] of [['', true], ['_notavily', false]]) {
-    try {
-      const r = await fetch(`/data/dossier_pair_${ids}${suffix}.json`); if (!r.ok) continue;
-      const d = (await r.json()).decision;
-      el.innerHTML = `<span class="tag ${web ? 'web' : ''}">${web ? 'Tavily 근거 사용' : 'Tavily 없음 (SATCAT만)'}</span>${d.recommendation}`;
-      const yes = (k) => d[k].can_maneuver === 'yes', idx = yes('a') && !yes('b') ? 0 : yes('b') && !yes('a') ? 1 : null;
-      if (idx !== null && sel === ev) $('avoidWho').value = String(Number(selSats[idx].rec.satnum));
-      return;
-    } catch {}
-  }
-  el.innerHTML = '<span class="tag">신상 조회 없음</span>04_satellite_dossier.py 로 이 쌍의 회피 주체를 조회할 수 있습니다.';
-}
-
-// ---------- Tavily research panel ----------
-const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return String(u); } };
-const safeUrl = (u) => (/^https?:\/\//.test(u) ? u : '#');
-const STATUS = { sourced: ['출처 확인', 'ok'], inferred: ['추론', 'mid'], unknown: ['모름', 'dim'] };
-const FIELD_KO = { operator: '운영사', country: '국가', mission_type: '임무', launch_mass_kg: '발사 질량(kg)', has_propulsion: '추진계 보유',
-  propulsion_type: '추진 방식', can_maneuver_now: '지금 기동 가능', mission_status: '임무 상태', contact_channel: '연락 경로' };
-const tav = { es: null, queue: [], timer: null, cards: new Map(), stats: null, running: false, mode: 'live', streamDone: false };
-
-function tavStats() {
-  const s = tav.stats;
-  $('tavStats').innerHTML = `검색 <b>${s.search}</b> · 추출 <b>${s.extract}</b> · 크레딧 <b>${s.credits}</b> · 캐시 적중 <b>${s.cached}</b>`;
-}
-function tavReset() {
-  tav.es?.close(); tav.es = null; clearTimeout(tav.timer); tav.timer = null; tav.queue = []; tav.cards.clear();
-  tav.stats = { search: 0, extract: 0, credits: 0, cached: 0 }; tav.running = false; tav.streamDone = false;
-  $('tavBody').innerHTML = ''; $('tavState').textContent = '대기 중'; tavStats();
-  $('tavLive').disabled = $('tavReplay').disabled = !sel;
-}
-function tavCard(norad) {
-  if (tav.cards.has(norad)) return tav.cards.get(norad);
-  const sat = selSats?.find((x) => Number(x.rec.satnum) === Number(norad));
-  const el = document.createElement('div'); el.className = 'card';
-  el.innerHTML = `<h3>${esc(sat?.name || norad)} <span class="dim">NORAD ${esc(norad)}</span></h3><div class="steps"></div><div class="facts"></div>`;
-  $('tavBody').appendChild(el);
-  const c = { el, steps: el.querySelector('.steps'), facts: el.querySelector('.facts'), rows: {} };
-  tav.cards.set(norad, c); return c;
-}
-function tavStep(c, key, state, html) {
-  let r = c.rows[key];
-  if (!r) { r = document.createElement('div'); r.innerHTML = '<span class="ic"></span><div class="tx"></div>'; c.steps.appendChild(r); c.rows[key] = r; }
-  r.className = 'step ' + state;
-  r.querySelector('.ic').textContent = { run: '◐', ok: '✓', warn: '!' }[state];
-  r.querySelector('.tx').innerHTML = html;
-}
-const credTxt = (e) => (tav.mode === 'replay' ? '기록' : e.cached ? '캐시' : `${e.credits} 크레딧`);
-function tavFinish(ok, msg) {
-  tav.running = false; tav.es?.close(); tav.es = null;
-  $('tavState').textContent = ok ? '완료' : '오류';
-  $('tavLive').disabled = $('tavReplay').disabled = !sel;
-  if (!ok) $('tavBody').insertAdjacentHTML('beforeend', `<div class="card verdict"><h3>오류</h3><div>${esc(msg)}</div><div class="dim" style="margin-top:4px">⟲ 기록 재생으로 저장된 조사 과정을 볼 수 있습니다.</div></div>`);
-}
-function tavHandle(e) {
-  const c = e.norad != null ? tavCard(e.norad) : null;
-  switch (e.kind) {
-    case 'satcat':
-      tavStep(c, 'satcat', 'ok', `<b>CelesTrak SATCAT</b> · ${esc(e.type)} · ${esc(e.status)} · 소유 ${esc(e.owner)} · 발사 ${esc(e.launch)}`); break;
-    case 'search_skipped': tavStep(c, 's0', 'warn', '웹 검색 없음 (Tavily 꺼짐)'); break;
-    case 'search_start':
-      c.total = e.total; tavStep(c, 's' + e.index, 'run', `<b>Tavily Search ${e.index + 1}/${e.total}</b> <i>${esc(e.query)}</i>`); break;
-    case 'search_done': {
-      tav.stats.search++; e.cached ? tav.stats.cached++ : (tav.stats.credits += e.credits); tavStats();
-      const hosts = [...new Set(e.results.map((r) => hostOf(r.url)))].slice(0, 5);
-      tavStep(c, 's' + e.index, 'ok', `<b>Search ${e.index + 1}/${e.total ?? c.total ?? '?'}</b> <i>${esc(e.query)}</i><div class="chips">${hosts.map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div><div class="dim">${e.results.length}건 · ${credTxt(e)}</div>`);
-      break; }
-    case 'extract_start': tavStep(c, 'ex', 'run', `<b>Tavily Extract</b> 상위 ${e.urls.length}개 페이지 본문 추출`); break;
-    case 'extract_done':
-      tav.stats.extract++; e.cached ? tav.stats.cached++ : (tav.stats.credits += e.credits); tavStats();
-      tavStep(c, 'ex', 'ok', `<b>Extract</b> ${e.pages.length}개 페이지 본문<div class="chips">${e.pages.map((x) => `<span class="chip">${esc(hostOf(x.url))} ${(x.chars / 1000).toFixed(1)}k자</span>`).join('')}</div><div class="dim">${credTxt(e)}</div>`);
-      break;
-    case 'llm_start': tavStep(c, 'llm', 'run', `<b>Nemotron Super</b>가 출처 ${e.sources}개로 신상 정리 중`); break;
-    case 'llm_done': tavStep(c, 'llm', 'ok', `<b>Nemotron Super</b> · 입력 ${e.usage.prompt} / 출력 ${e.usage.completion} 토큰`); break;
-    case 'claims':
-      tavStep(c, 'claims', e.passed ? 'ok' : 'warn', `<b>인용 검증</b> ${e.passed ? '통과: 모든 인용이 원문에 존재' : `${e.problems.length}건을 걸러냄`}` +
-        (e.problems.length ? `<ul class="prob">${e.problems.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '')); break;
-    case 'facts':
-      c.facts.innerHTML = e.facts.map((f) => {
-        const [label, cls] = f.flagged ? ['검증 실패', 'bad'] : STATUS[f.status] || ['?', 'dim'];
-        const src = f.source_url === 'celestrak:satcat' ? '<span class="dim">CelesTrak SATCAT</span>'
-          : f.source_url ? `<a href="${esc(safeUrl(f.source_url))}" target="_blank" rel="noopener noreferrer">${esc(hostOf(f.source_url))}</a>` : '';
-        return `<div class="fact"><div class="fh"><span class="fk">${esc(FIELD_KO[f.field] || f.field)}</span><span class="fv">${esc(f.value ?? '—')}</span><span class="tag ${cls}">${label}</span></div>${f.quote ? `<div class="fq">“${esc(f.quote)}”</div>` : ''}${src}</div>`;
-      }).join(''); break;
-    case 'result': {
-      const w = e.metrics;
-      fetch(`/data/dossier_${e.norad}_notavily.json`).then((r) => (r.ok ? r.json() : null)).then((nt) => {
-        if (!nt) return;
-        const wo = nt.metrics, pct = (n) => Math.round((n / w.facts) * 100);
-        c.el.insertAdjacentHTML('beforeend', `<div class="abl"><div class="dim">출처가 확인된 사실 (총 ${w.facts}개)</div>
-          <div class="bar"><span style="width:${pct(wo.sourced)}%"></span><em>Tavily 없음 ${wo.sourced}</em></div>
-          <div class="bar on"><span style="width:${pct(w.sourced)}%"></span><em>Tavily 사용 ${w.sourced}</em></div></div>`);
-      }).catch(() => {});
-      break; }
-    case 'decision': {
-      const d = e.decision, chip = (x) => ({ yes: '기동 가능', no: '기동 불가', unknown: '알 수 없음' }[x.can_maneuver]);
-      $('tavBody').insertAdjacentHTML('beforeend', `<div class="card verdict"><h3>회피 주체 판단 (LLM이 아닌 규칙 코드)</h3><div>${esc(d.a.name)}: <b>${chip(d.a)}</b><br>${esc(d.b.name)}: <b>${chip(d.b)}</b></div><div class="rec">${esc(d.recommendation)}</div></div>`);
-      $('verdict').innerHTML = `<span class="tag ok">Tavily 근거 사용</span>${esc(d.recommendation)}`; break; }
-    case 'error': tavFinish(false, e.message); break;
-    case 'done': tavFinish(true); break;
-  }
-  $('tavBody').scrollTop = $('tavBody').scrollHeight;
-}
-function tavPump() {
-  if (tav.timer || !tav.queue.length) return;
-  tavHandle(tav.queue.shift());
-  tav.timer = setTimeout(() => { tav.timer = null; tavPump(); }, tav.mode === 'live' ? 280 : 420);  // paced so each step is readable
-}
-function tavStart(mode) {
-  if (!sel || tav.running) return;
-  const ids = selSats.map((x) => Number(x.rec.satnum));
-  tavReset(); tav.running = true; tav.mode = mode;
-  $('tavLive').disabled = $('tavReplay').disabled = true;
-  $('tav').classList.add('open'); $('tavState').textContent = mode === 'live' ? '실시간 조사 중…' : '기록 재생 중…';
-  const es = tav.es = new EventSource(`/api/dossier?${ids.map((n) => 'norad=' + n).join('&')}&mode=${mode}`);
-  es.onmessage = (m) => {
-    const e = JSON.parse(m.data);
-    if (e.kind === 'done' || e.kind === 'error') { tav.streamDone = true; es.close(); }
-    tav.queue.push(e); tavPump();
-  };
-  es.onerror = () => { es.close(); if (!tav.streamDone) { tav.queue.push({ kind: 'error', message: '서버와의 연결이 끊겼거나 요청이 거부되었습니다 (이미 다른 실행 중이거나 서버 미실행).' }); tavPump(); } };
-}
-$('tavLive').onclick = () => tavStart('live');
-$('tavReplay').onclick = () => tavStart('replay');
-$('tavToggle').onclick = () => $('tav').classList.toggle('open');
-
-// ---------- avoidance manoeuvre ----------
-const avoid = { data: null, k: 200, token: null, group: new THREE.Group() };
-scene.add(avoid.group);
-const AVOID_K = [1, 200, 1000];
-const avoidMats = [];  // fat-line materials need the canvas size
-const DIR_KO = { prograde: '진행 방향', retrograde: '반대 방향', radial_out: '바깥쪽(고도 상승)', radial_in: '안쪽(고도 하강)', normal: '궤도면 수직', anti_normal: '궤도면 수직(반대)' };
-const fmtDist = (km) => (km < 1 ? `${(km * 1000).toFixed(0)} m` : `${km.toFixed(2)} km`);
-function avoidClear() { avoid.group.clear(); avoid.data = null; avoid.token = null; $('avoidOut').innerHTML = ''; document.body.classList.remove('avoidOpen'); }
-function avoidFillSelect() {
-  $('avoidWho').innerHTML = selSats.map((x) => `<option value="${Number(x.rec.satnum)}">${esc(x.name)}</option>`).join('');
-}
-function avoidDraw() {
-  avoid.group.clear();
-  const d = avoid.data; if (!d?.series) return;
-  const s = d.series, t0 = Date.parse(s.t0_utc), nom = [], aft = [];
+// ---------- trajectory (before / after the chosen burn) ----------
+const traj = { data: null, k: 200, group: new THREE.Group(), mats: [] };
+scene.add(traj.group);
+const K_STEPS = [1, 200, 1000];
+function trajClear() { traj.group.clear(); traj.data = null; $('trajSec').hidden = true; }
+function trajDraw() {
+  traj.group.clear(); traj.mats.length = 0;
+  const s = traj.data; if (!s) return;
+  const t0 = Date.parse(s.t0_utc), nom = [], aft = [];
   for (let i = 0; i < s.maneuvering_nominal.length; i++) {
     const gm = satellite.gstime(new Date(t0 + i * s.step_s * 1000)), c = Math.cos(gm), si = Math.sin(gm);
     const f = (p) => new THREE.Vector3((p[0] * c + p[1] * si) / 1000, p[2] / 1000, -(-p[0] * si + p[1] * c) / 1000);
     const a = f(s.maneuvering_nominal[i]), b = f(s.maneuvering_after[i]);
-    nom.push(a); aft.push(a.clone().add(b.sub(a).multiplyScalar(avoid.k)));  // k exaggerates the (km-scale) difference so it is visible
+    nom.push(a); aft.push(a.clone().add(b.sub(a).multiplyScalar(traj.k)));
   }
   const line = (pts, color, op, width) => {
     const geo = new LineGeometry(); geo.setPositions(pts.flatMap((v) => [v.x, v.y, v.z]));
     const mat = new LineMaterial({ color, linewidth: width, transparent: true, opacity: op });
-    mat.resolution.set(innerWidth, innerHeight); avoidMats.push(mat);
+    mat.resolution.set(innerWidth, innerHeight); traj.mats.push(mat);
     const l = new Line2(geo, mat); l.frustumCulled = false; return l;
   };
-  avoidMats.length = 0;
-  avoid.group.add(line(nom, 0xff6b57, 0.7, 2.5), line(aft, 0x4fe3a1, 0.95, 3));
-  const bi = Math.min(Math.max(Math.round((Date.parse(d.burn.t_burn_utc) - t0) / 1000 / s.step_s), 0), nom.length - 1);
-  const g = new THREE.BufferGeometry().setFromPoints([nom[bi]]);
-  const m = new THREE.Points(g, new THREE.PointsMaterial({ size: 15, sizeAttenuation: false, color: 0xffd34d, map: dot, transparent: true, depthTest: false, depthWrite: false }));
-  m.renderOrder = 11; m.frustumCulled = false; avoid.group.add(m);
+  traj.group.add(line(nom, 0xff6b57, 0.7, 2.5), line(aft, 0x4fe3a1, 0.95, 3));
+  const bi = Math.min(Math.max(Math.round((Date.parse(s.burn_utc) - t0) / 1000 / s.step_s), 0), nom.length - 1);
+  const m = new THREE.Points(new THREE.BufferGeometry().setFromPoints([nom[bi]]),
+    new THREE.PointsMaterial({ size: 15, sizeAttenuation: false, color: 0xffd34d, map: dot, transparent: true, depthTest: false, depthWrite: false }));
+  m.renderOrder = 11; m.frustumCulled = false; traj.group.add(m);
 }
-function avoidShow() {
-  const d = avoid.data, o = $('avoidOut');
-  document.body.classList.add('avoidOpen');
-  if (!d.burn) { avoidDraw(); o.innerHTML = `<span class="tag bad">계획 없음</span>${esc(d.note || '')}`; return; }
-  const b = d.burn, a = d.after, r = d.rescreen, v = d.validation;
-  o.innerHTML = `
-    <div class="ln"><b>${esc(d.maneuvering_name)}</b>가 <b>${DIR_KO[b.direction] || esc(b.direction)}</b>으로 <b>${b.dv_ms.toFixed(3)} m/s</b> 분사</div>
-    <div class="ln dim">TCA ${b.lead_min}분(${b.lead_orbits}궤도) 전 · ${fmtKST(b.t_burn_utc)} KST${b.propellant_kg ? ` · 추진제 약 ${b.propellant_kg} kg` : ''}</div>
-    <div class="ln">최근접 거리 <span class="big bad">${fmtDist(d.nominal.miss_km)}</span> → <span class="big good">${fmtDist(a.miss_km)}</span></div>
-    <div class="ln">재스크리닝: 카탈로그 ${r.objects_checked.toLocaleString()}개 확인, 새 근접(&lt;${r.threshold_km} km) <b class="${r.new_conjunctions.length ? 'bad' : 'good'}">${r.new_conjunctions.length}건</b>${d.rejected?.length ? ` · 새 근접 때문에 탈락한 후보 ${d.rejected.length}개` : ''}</div>
-    <div class="ln dim">선형 근사 오차 ${v.error_pct}% (2체 수치 적분과 비교)</div>
-    ${d.source === 'nemotron' ? `<div class="ln"><span class="tag ok">Nemotron이 수립</span><span class="dim">${esc(d.rationale || '')}</span></div>` : '<div class="ln dim">탐색기(전수 탐색)가 수립한 기준 계획</div>'}
-    <div class="btns"><button id="avoidGo">기동 시점으로</button><button id="avoidK">궤적 차이 ×${avoid.k} 확대</button></div>
-    <div class="lim">초록 = 기동 후 궤적, 빨강 = 기동 전, 노랑 점 = 분사 지점. 순간 분사·TLE 정확도(약 1 km) 수준의 스크리닝이며 충돌 확률은 계산하지 않습니다.</div>`;
-  $('avoidGo').onclick = () => { simMs = Date.parse(b.t_burn_utc) - 60000; flyToPair(); };
-  $('avoidK').onclick = () => { avoid.k = AVOID_K[(AVOID_K.indexOf(avoid.k) + 1) % AVOID_K.length]; $('avoidK').textContent = `궤적 차이 ×${avoid.k} 확대`; avoidDraw(); };
-  avoidDraw();
-}
-async function avoidRun() {
-  if (!sel) return;
-  const who = Number($('avoidWho').value), ids = selSats.map((x) => Number(x.rec.satnum)), token = avoid.token = evKey(sel);
-  $('avoidRun').disabled = true; $('avoidOut').innerHTML = '<span class="dim">계산 중… 처음 계산은 10~40초 걸립니다.</span>';
-  try {
-    const r = await fetch(`/api/avoidance?norad=${ids[0]}&norad=${ids[1]}&who=${who}`);
-    const d = r.headers.get('content-type')?.includes('json') ? await r.json() : { error: `HTTP ${r.status}` };
-    if (!r.ok) throw new Error(d.error || r.status);
-    if (avoid.token !== token) return;  // selection changed while waiting
-    avoid.data = d; avoidShow();
-  } catch (e) { if (avoid.token === token) $('avoidOut').innerHTML = `<span class="tag bad">오류</span>${esc(e.message)}`; }
-  finally { $('avoidRun').disabled = false; }
-}
-$('avoidRun').onclick = avoidRun;
+$('goBurn').onclick = () => { if (traj.data) { simMs = Date.parse(traj.data.burn_utc) - 60000; flyToPair(); } };
+$('kBtn').onclick = () => { traj.k = K_STEPS[(K_STEPS.indexOf(traj.k) + 1) % K_STEPS.length]; $('kBtn').textContent = `Path difference ×${traj.k}`; trajDraw(); };
 
-// ---------- Nemotron planning agent ----------
-const ag = { es: null, queue: [], timer: null, rows: new Map(), running: false, mode: 'live', streamDone: false, n: { sim: 0, rescreen: 0, submit: 0 } };
-function agStats() { $('agStats').innerHTML = `시뮬레이션 <b>${ag.n.sim}</b>/30 · 재스크리닝 <b>${ag.n.rescreen}</b>/4 · 제출 <b>${ag.n.submit}</b>/3`; }
-function agReset() {
-  ag.es?.close(); ag.es = null; clearTimeout(ag.timer); ag.timer = null; ag.queue = []; ag.rows.clear();
-  ag.running = false; ag.streamDone = false; ag.n = { sim: 0, rescreen: 0, submit: 0 };
-  $('agBody').innerHTML = ''; $('agState').textContent = '대기 중'; agStats();
-  $('agLive').disabled = $('agReplay').disabled = !sel;
+// ---------- incident pipeline panel ----------
+const MODEL_SHORT = (m) => String(m || '').split('/').pop().replace('nemotron-3-super-120b-a12b', 'Nemotron 3 Super');
+const inc = { es: null, queue: [], timer: null, rows: {}, running: false, mode: 'replay', streamDone: false, dossierStep: {}, tavily: { search: 0, extract: 0, credits: 0 } };
+function incStats(extra = '') {
+  const t = inc.tavily;
+  $('incStats').innerHTML = `Tavily search <b>${t.search}</b> · extract <b>${t.extract}</b> · new credits <b>${t.credits}</b>${extra}`;
 }
-function agFinish(ok, msg) {
-  ag.running = false; ag.es?.close(); ag.es = null;
-  $('agState').textContent = ok ? '완료' : '오류'; $('agLive').disabled = $('agReplay').disabled = !sel;
-  if (!ok) $('agBody').insertAdjacentHTML('beforeend', `<div class="card verdict"><h3>오류</h3><div>${esc(msg)}</div><div class="dim" style="margin-top:4px">⟲ 기록 재생으로 저장된 실행을 볼 수 있습니다.</div></div>`);
+function incReset() {
+  inc.es?.close(); inc.es = null; clearTimeout(inc.timer); inc.timer = null; inc.queue = []; inc.rows = {}; inc.dossierStep = {};
+  inc.running = false; inc.streamDone = false; inc.tavily = { search: 0, extract: 0, credits: 0 };
+  $('incBody').innerHTML = ''; $('incState').textContent = 'idle'; incStats();
+  ['riskSec', 'optSec', 'decSec', 'valSec'].forEach((id) => ($(id).hidden = true));
+  $('runLive').disabled = $('runReplay').disabled = !sel;
 }
-const agRow = (cls, ic, html) => { const r = document.createElement('div'); r.className = 'tc ' + cls; r.innerHTML = `<span class="ic">${ic}</span><div>${html}</div>`; $('agBody').appendChild(r); return r; };
-const burnTxt = (a) => `${DIR_KO[a.direction] || esc(a.direction)} · ${Number(a.lead_min).toFixed(0)}분 전 · ${Number(a.dv_ms).toFixed(3)} m/s`;
-function agHandle(e) {
-  switch (e.kind) {
-    case 'agent_start': {
-      const c = e.context;
-      $('agBody').insertAdjacentHTML('beforeend', `<div class="card"><h3>문제 (에이전트에게 준 정보)</h3>
-        <div class="ln"><b>${esc(c.manoeuvring_satellite)}</b> ↔ ${esc(c.other_object)}: 최근접 <b>${fmtDist(c.current_miss_distance_km)}</b>, 목표 ${c.target_miss_distance_km} km 이상</div>
-        <div class="dim" style="font-size:10.5px">한도: Δv ≤ ${c.limits.max_dv_m_s} m/s · 분사 시점 ${c.limits.lead_min_range[0]}~${c.limits.lead_min_range[1]}분 전 · 모델 ${esc(e.model.split('/').pop())}</div>
-        <div class="dim" style="font-size:10.5px;margin-top:4px">${esc(c.satellite_info)}</div></div>`);
-      break; }
-    case 'thought': $('agBody').insertAdjacentHTML('beforeend', `<div class="th">추론: ${esc(e.text.slice(0, 220))}${e.text.length > 220 ? '…' : ''}</div>`); break;
-    case 'tool_call': {
-      const a = e.args || {}, label = { simulate_burn: ['🔧', '시뮬레이션'], rescreen_burn: ['🔎', '재스크리닝'], submit_plan: ['📤', '제출'] }[e.name] || ['•', e.name];
-      if (e.name === 'simulate_burn') ag.n.sim++; else if (e.name === 'rescreen_burn') ag.n.rescreen++; else if (e.name === 'submit_plan') ag.n.submit++;
-      agStats();
-      ag.rows.set(e.id, { el: agRow('run', '◐', `<b>${label[1]}</b> ${a.direction ? burnTxt(a) : ''}`), label, args: a }); break; }
-    case 'tool_result': {
-      const row = ag.rows.get(e.id); if (!row) break;
-      const r = e.result || {}, head = `<b>${row.label[1]}</b> ${row.args.direction ? burnTxt(row.args) : ''}`;
-      let cls = 'ok', ic = '✓', tail = '';
-      if (r.error) { cls = 'bad'; ic = '⚠'; tail = ` → ${esc(r.error)}`; }
-      else if (e.name === 'simulate_burn') { cls = r.meets_target ? 'ok' : 'bad'; ic = r.meets_target ? '✓' : '✗'; tail = ` → 최근접 <b>${fmtDist(r.miss_after_km)}</b>`; }
-      else if (e.name === 'rescreen_burn') { cls = r.ok ? 'ok' : 'bad'; ic = r.ok ? '✓' : '✗'; tail = ` → ${r.objects_checked.toLocaleString()}개 확인, 새 근접 ${r.new_close_approaches.length}건`; }
-      else if (e.name === 'submit_plan') { cls = r.accepted ? 'ok' : 'bad'; ic = r.accepted ? '✓' : '✗';
-        tail = r.accepted ? ` → <b>승인</b> (독립 검증 최근접 ${fmtDist(r.verified_miss_km)})` : ` → <b>거절</b>: ${esc(r.reason)}`; }
-      row.el.className = 'tc ' + cls; row.el.querySelector('.ic').textContent = ic; row.el.lastChild.innerHTML = head + tail; break; }
-    case 'summary': $('agBody').insertAdjacentHTML('beforeend', `<div class="card"><h3>에이전트 요약</h3><div style="font-size:11.5px">${esc(e.text)}</div></div>`); break;
-    case 'baselines_start': ag.baseRow = agRow('run', '◐', '<b>비교군 계산 중…</b> 전수 탐색, 무작위, 고정 규칙'); break;
-    case 'result': {
-      if (ag.baseRow) { ag.baseRow.className = 'tc ok'; ag.baseRow.querySelector('.ic').textContent = '✓'; ag.baseRow.lastChild.innerHTML = '<b>비교군 계산 완료</b>'; }
-      const c = e.comparison, a = c.agent, g = c.grid, r = c.random, u = c.rule, m = e.metrics, n = (x) => (x == null ? '—' : Number(x).toLocaleString());
-      $('agBody').insertAdjacentHTML('beforeend', `<div class="card"><h3>비교: 누가 얼마나 적은 연료로 안전한 계획을 찾았나</h3>
-        <table class="cmp"><tr><th>방법</th><th>시뮬</th><th>Δv (m/s)</th><th>결과</th></tr>
-        <tr class="me"><td>Nemotron 에이전트</td><td>${n(a.sims)}</td><td>${a.valid ? a.dv_ms.toFixed(3) : '—'}</td><td>${a.valid ? '✓ 검증 통과' : '✗ 유효한 계획 없음'}</td></tr>
-        <tr><td>전수 탐색 (기준)</td><td>${n(g.sims)}</td><td>${g.found ? g.dv_ms.toFixed(3) : '—'}</td><td>최적</td></tr>
-        <tr><td>무작위, 같은 횟수</td><td>${n(r.budget)}</td><td>${r.median_dv_ms ?? '—'} <span class="dim">중앙값</span></td><td>성공 ${Math.round(r.success_rate * 100)}%</td></tr>
-        <tr><td>고정 규칙 0.5 m/s</td><td>1</td><td>${u.dv_ms.toFixed(3)}</td><td>${u.valid ? '✓' : '✗ 목표 미달'}</td></tr></table>
-        <div class="dim" style="font-size:10.5px;margin-top:6px">${a.valid && a.dv_vs_grid ? `기준 대비 연료 ${a.dv_vs_grid}배 · ` : ''}${m.turns}턴 · 토큰 ${n(m.tokens_in)}/${n(m.tokens_out)} · $${m.cost_usd} · ${m.seconds}초 · 에이전트 자체 보고가 아니라 하네스의 독립 검증 결과</div></div>`);
-      if (e.plan) { avoid.data = e.plan; avoid.token = evKey(sel); avoidShow(); }
-      break; }
-    case 'error': agFinish(false, e.message); break;
-    case 'done': agFinish(true); break;
+function step(key, state, html) {
+  let r = inc.rows[key];
+  if (!r) { r = document.createElement('div'); r.innerHTML = '<span class="ic"></span><div class="tx"></div>'; $('incBody').appendChild(r); inc.rows[key] = r; }
+  r.className = 'step ' + state;
+  r.querySelector('.ic').textContent = { run: '◐', ok: '✓', warn: '!', bad: '✗' }[state];
+  r.querySelector('.tx').innerHTML = html;
+}
+const nameOf = (norad) => bySat.get(String(norad))?.name || `NORAD ${norad}`;
+function renderRisk(r, c) {
+  $('riskSec').hidden = false;
+  const assumed = /SIMULATED/.test(r.assumption) ? '<span class="tag blue">simulated precise data</span>' : '<span class="tag mid">assumed covariance</span>';
+  $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${r.level}">Pc ${pcTxt(r.pc)}</span>
+    <span class="tag ${r.level === 'red' ? 'bad' : r.level === 'yellow' ? 'mid' : 'ok'}">${r.level.toUpperCase()}</span>${assumed}
+    ${r.diluted ? `<span class="tag mid">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}</div>
+    <div class="lim">${c ? `${esc(c.data)} · miss ${fmtDist(c.miss_km)} · ${c.hours_to_tca} h to TCA · ` : ''}thresholds: red ≥ 1e-4, yellow ≥ 1e-5</div>`;
+}
+function renderOptions(opts, chosen) {
+  $('optSec').hidden = false;
+  if (!opts.length) { $('optBody').innerHTML = '<div class="dim">No verified option within limits.</div>'; return; }
+  $('optBody').innerHTML = `<table class="t"><tr><th>id</th><th>kind</th><th>direction</th><th>Δv m/s</th><th>burn</th><th>re-screen</th></tr>
+    ${opts.map((o) => `<tr class="${o.id === chosen ? 'me' : ''}"><td>${o.id}</td><td>${esc([o.kind, ...(o.also || [])].join(', '))}</td><td>${esc(o.direction)}</td>
+      <td>${o.dv_ms.toFixed(3)}</td><td>${fmtUTC(o.burn_utc)}</td><td>${o.rescreen.objects_checked.toLocaleString()} ok</td></tr>`).join('')}</table>`;
+}
+function renderDecision(d, model) {
+  $('decSec').hidden = false;
+  $('decSec').querySelector('h3').textContent = `DECISION · ${MODEL_SHORT(model).toUpperCase()}`;
+  $('decBody').innerHTML = `<div><span class="action ${d.action}">${d.action.replace(/_/g, ' ')}</span>${d.option_id ? ` <span class="tag ok">option ${esc(d.option_id)}</span>` : ''}
+      <span class="tag">confidence ${Math.round(d.confidence * 100)}%</span></div>
+    <div style="margin-top:4px">${esc(d.rationale)}</div>
+    ${d.key_factors.map((f) => `<div class="factor">• <b>${esc(f.factor)}</b>: ${esc(f.effect)} <div class="ev2">${esc(f.evidence)}</div></div>`).join('')}
+    ${d.message_to_other_operator ? `<div class="msg"><b>To the other operator:</b> ${esc(d.message_to_other_operator)}</div>` : ''}
+    ${d.unknowns?.length ? `<div class="lim">Unknowns: ${esc(d.unknowns.join(' · '))}</div>` : ''}`;
+}
+function renderValidation(v) {
+  $('valSec').hidden = false;
+  $('valBody').innerHTML = (v.accepted_as_is ? `<span class="tag ok">accepted as is</span>` : `<span class="tag bad">overridden</span>`) +
+    ` Final: <b class="action ${v.final_action}" style="font-size:13px">${v.final_action.replace(/_/g, ' ')}</b>${v.final_option_id ? ` · option ${esc(v.final_option_id)}` : ''}` +
+    v.overrides.map((o) => `<div class="ovr">${esc(o.from)} → ${esc(o.to)}: ${esc(o.reason)}</div>`).join('') +
+    v.warnings.map((w) => `<div class="lim">warning: ${esc(w)}</div>`).join('');
+}
+function finish(ok, msg) {
+  inc.running = false; inc.es?.close(); inc.es = null;
+  $('incState').textContent = ok ? 'done' : 'error';
+  $('runLive').disabled = $('runReplay').disabled = !sel;
+  if (!ok) step('err', 'bad', `<b>Error</b> ${esc(msg)}`);
+}
+function handle(e) {
+  const k = e.kind;
+  if (k === 'start') { $('incState').textContent = e.mode === 'live' ? 'running live…' : 'replaying…'; return; }
+  if (k === 'geometry') step('geo', 'ok', `<span class="who">Geometry</span> SGP4 on CelesTrak data · miss ${fmtDist(e.miss_km)} · ${e.rel_speed_kms.toFixed(1)} km/s`);
+  else if (k === 'risk') { step('risk', e.level === 'red' ? 'warn' : 'ok', `<span class="who">Collision probability</span> Pc ${pcTxt(e.pc)} · ${e.level}${e.diluted ? ' · diluted' : ''}`); }
+  else if (k === 'optimiser') step('opt', 'run', `<span class="who">Optimiser</span> <span class="sub2">${esc(e.text)}</span>`);
+  else if (k === 'options') { step('opt', 'ok', `<span class="who">Optimiser</span> ${e.options.length} verified burn options from ${e.feasible_points ?? '?'} feasible points, each re-screened against the catalog`); renderOptions(e.options); }
+  else if (k === 'satcat' || k === 'dossier_cached') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(e.name)}</span> ${k === 'satcat' ? `SATCAT: ${esc(e.type)}, ${esc(e.status)}` : 'from cache'}`);
+  else if (k === 'search_start') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(nameOf(e.norad))}</span> Tavily search ${e.index + 1}/${e.total} <span class="sub2">${esc(e.query)}</span>`);
+  else if (k === 'search_done') { inc.tavily.search++; inc.tavily.credits += e.credits || 0; incStats();
+    inc.dossierStep[e.norad] = [...new Set([...(inc.dossierStep[e.norad] || []), ...(e.results || []).map((r) => hostOf(r.url))])].slice(0, 8); }
+  else if (k === 'extract_start') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(nameOf(e.norad))}</span> Tavily extract · ${e.urls.length} pages`);
+  else if (k === 'extract_done') { inc.tavily.extract++; inc.tavily.credits += e.credits || 0; incStats(); }
+  else if (k === 'llm_start') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(nameOf(e.norad))}</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> reading ${e.sources} sources`);
+  else if (k === 'dossier_repair') step('rep' + e.norad, 'warn', `<span class="who">Verifier</span> sent ${e.issues.length} issue(s) back for repair <span class="sub2">${esc(e.issues[0])}</span>`);
+  else if (k === 'dossier') {
+    const rs = e.dossier.research;
+    if (rs && !inc.dossierStep[e.dossier.norad_id]) {  // dossier came from cache: show the research it was built from
+      inc.tavily.search += rs.search_calls; inc.tavily.extract += rs.extract_calls; incStats();
+      inc.dossierStep[e.dossier.norad_id] = [...new Set(rs.sources.map(hostOf))].slice(0, 8);
+    }
+    const d = e.dossier, cap = d.capability.can_maneuver, f = d.facts?.can_maneuver_now?.status === 'sourced' ? d.facts.can_maneuver_now : d.facts?.has_propulsion;
+    step('d' + d.norad_id, cap === 'yes' ? 'ok' : cap === 'no' ? 'ok' : 'warn',
+      `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span> can manoeuvre: <b>${cap}</b>
+       <div class="sub2">${esc(d.capability.basis)}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
+       ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
   }
-  $('agBody').scrollTop = $('agBody').scrollHeight;
+  else if (k === 'context') renderRisk(e.risk, e.conjunction);
+  else if (k === 'decision_start') step('dec', 'run', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> weighing risk, options, dossiers, policy and mission notes…`);
+  else if (k === 'decision') {
+    step('dec', 'ok', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> <b>${e.decision.action.replace(/_/g, ' ')}</b>${e.decision.option_id ? ' · ' + esc(e.decision.option_id) : ''}`);
+    if (e.reasoning) $('incBody').insertAdjacentHTML('beforeend', `<details class="think"><summary>model reasoning (excerpt)</summary>${esc(e.reasoning.slice(0, 900))}${e.reasoning.length > 900 ? '…' : ''}</details>`);
+    renderDecision(e.decision, e.model);
+  }
+  else if (k === 'validation') { step('val', e.accepted_as_is ? 'ok' : 'warn', `<span class="who">Safety validator</span> ${e.accepted_as_is ? 'accepted' : 'overrode'} → <b>${e.final_action.replace(/_/g, ' ')}</b>`); renderValidation(e); }
+  else if (k === 'done') incStats(` · <b>$${e.usage.cost_usd.toFixed(4)}</b> · ${e.usage.calls} model calls · ${e.seconds}s`);
+  else if (k === 'result') {
+    renderRisk(e.risk, e.conjunction); renderOptions(e.options, e.validation.final_option_id);
+    renderDecision(e.decision, e.model); renderValidation(e.validation);
+    if (e.trajectory) { traj.data = e.trajectory; $('trajSec').hidden = false; trajDraw(); }
+  }
+  else if (k === 'error') finish(false, e.message);
+  else if (k === 'end') finish(true);
+  $('incBody').scrollTop = $('incBody').scrollHeight;
 }
-function agPump() {
-  if (ag.timer || !ag.queue.length) return;
-  agHandle(ag.queue.shift());
-  ag.timer = setTimeout(() => { ag.timer = null; agPump(); }, ag.mode === 'live' ? 220 : 320);
+function pump() {
+  if (inc.timer || !inc.queue.length) return;
+  handle(inc.queue.shift());
+  inc.timer = setTimeout(() => { inc.timer = null; pump(); }, inc.mode === 'live' ? 120 : 260);
 }
-function agStart(mode) {
-  if (!sel || ag.running) return;
-  const ids = selSats.map((x) => Number(x.rec.satnum)), who = Number($('avoidWho').value);
-  agReset(); ag.running = true; ag.mode = mode; $('agLive').disabled = $('agReplay').disabled = true;
-  $('ag').classList.add('open'); $('agState').textContent = mode === 'live' ? '계획 중…' : '기록 재생 중…';
-  const es = ag.es = new EventSource(`/api/agent?norad=${ids[0]}&norad=${ids[1]}&who=${who}&mode=${mode}`);
-  es.onmessage = (m) => { const e = JSON.parse(m.data); if (e.kind === 'done' || e.kind === 'error') { ag.streamDone = true; es.close(); } ag.queue.push(e); agPump(); };
-  es.onerror = () => { es.close(); if (!ag.streamDone) { ag.queue.push({ kind: 'error', message: '서버와의 연결이 끊겼거나 요청이 거부되었습니다 (다른 실행 중이거나 서버 미실행).' }); agPump(); } };
+function runIncident(mode) {
+  if (!sel || inc.running) return;
+  const ours = Number($('oursSel').value), other = selSats.map((x) => Number(x.rec.satnum)).find((n) => n !== ours);
+  incReset(); trajClear(); inc.running = true; inc.mode = mode;
+  $('runLive').disabled = $('runReplay').disabled = true;
+  const es = inc.es = new EventSource(`/api/incident?ours=${ours}&other=${other}&preset=${$('presetSel').value}&mode=${mode}`);
+  es.onmessage = (m) => { const e = JSON.parse(m.data); if (e.kind === 'end' || e.kind === 'error') { inc.streamDone = true; es.close(); } inc.queue.push(e); pump(); };
+  es.onerror = () => { es.close(); if (!inc.streamDone) { inc.queue.push({ kind: 'error', message: 'Connection closed or refused (another live run in progress, or the server is not running).' }); pump(); } };
 }
-$('agLive').onclick = () => agStart('live');
-$('agReplay').onclick = () => agStart('replay');
-$('agToggle').onclick = () => $('ag').classList.toggle('open');
+$('runLive').onclick = () => runIncident('live');
+$('runReplay').onclick = () => runIncident('replay');
+
+// ---------- eval panel ----------
+const ARM = { naive_rule: 'Rule of thumb (miss < 1 km)', policy_rule: 'Coded policy, fields only' };
+fetch('/api/eval').then((r) => (r.ok ? r.json() : null)).then((d) => {
+  if (!d) { $('evalBody').textContent = 'No eval run yet.'; return; }
+  const rows = Object.entries(d.summary).filter(([k]) => k !== 'saved_to');
+  const name = (k) => ARM[k] || 'Nemotron ' + (k.includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k);
+  $('evalBody').innerHTML = `<table class="t"><tr><th>arm</th><th>correct</th><th>+validator</th><th>unsafe</th><th>text-only</th></tr>
+    ${rows.map(([k, m]) => `<tr class="${k.includes('super') ? 'me' : ''}"><td>${esc(name(k))}</td><td>${Math.round(m.accuracy_raw * 100)}%</td>
+      <td>${Math.round(m.accuracy_after_validator * 100)}%</td><td>${m.unsafe_after_validator}</td><td>${m.accuracy_text_signal == null ? '—' : Math.round(m.accuracy_text_signal * 100) + '%'}</td></tr>`).join('')}</table>
+    <div class="lim">${d.scenarios.length} scenarios on real encounters, ${rows[2] ? rows[2][1].n / d.scenarios.length : 3} runs each per model. "unsafe" = a burn the scenario does not allow, after the validator. Text-only = the deciding fact is only in plain-language notes.</div>`;
+}).catch(() => ($('evalBody').textContent = 'Eval unavailable.'));
 
 // ---------- loop ----------
 let last = performance.now(), lastU = 0;
@@ -672,26 +544,22 @@ function frame(now) {
   sunU.value.copy(sunVector(date));
   ringGroup.rotation.y = -satellite.gstime(date);
   $('clock').textContent = date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-
   if (sel) {
     const gm = satellite.gstime(date), c = Math.cos(gm), s = Math.sin(gm);
     const ps = selSats.map(x => eci(x.rec, date).position);
     if (ps[0] && ps[1]) {
-      ps.forEach((p, k) => {
-        pairPos[3 * k] = (p.x * c + p.y * s) / 1000; pairPos[3 * k + 1] = p.z / 1000; pairPos[3 * k + 2] = -(-p.x * s + p.y * c) / 1000;
-      });
+      ps.forEach((p, k) => { pairPos[3 * k] = (p.x * c + p.y * s) / 1000; pairPos[3 * k + 1] = p.z / 1000; pairPos[3 * k + 2] = -(-p.x * s + p.y * c) / 1000; });
       pairGeo.attributes.position.needsUpdate = true;
       const km = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y, ps[0].z - ps[1].z);
       $('rDist').textContent = km < 10 ? `${(km * 1000).toFixed(0)} m` : `${km.toFixed(1)} km`;
       const secs = (Date.parse(sel.tca_utc) - simMs) / 1000, a = Math.abs(secs);
-      $('rSub').textContent = `TCA ${secs >= 0 ? '까지' : '지남'} ${Math.floor(a / 60)}분 ${Math.floor(a % 60)}초 · 최근접 예상 ${(sel.miss_distance_km * 1000).toFixed(0)} m · 상대속도 ${sel.relative_speed_kms.toFixed(1)} km/s`;
+      $('rSub').textContent = `TCA ${secs >= 0 ? 'in' : 'passed'} ${Math.floor(a / 60)} min ${Math.floor(a % 60)} s · predicted miss ${(sel.miss_distance_km * 1000).toFixed(0)} m · ${sel.relative_speed_kms.toFixed(1)} km/s · TLE accuracy ~1 km`;
     }
   }
   if (fly) {
     fly.t = Math.min(1, fly.t + dt / 1.8);
     const k = ease(fly.t), g = fly.goal();
-    camera.position.lerpVectors(fly.camFrom, g.cam, k);
-    controls.target.lerpVectors(fly.tgtFrom, g.tgt, k);
+    camera.position.lerpVectors(fly.camFrom, g.cam, k); controls.target.lerpVectors(fly.tgtFrom, g.tgt, k);
     if (fly.t >= 1) { prevMid = sel ? pairMid(date) : new THREE.Vector3(); fly = null; }
   } else if (sel) {
     const mid = pairMid(date), delta = mid.clone().sub(prevMid);
@@ -701,14 +569,16 @@ function frame(now) {
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); avoidMats.forEach((m) => m.resolution.set(innerWidth, innerHeight)); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); traj.mats.forEach((m) => m.resolution.set(innerWidth, innerHeight)); });
 
-window.cric = { THREE, scene, camera, controls, avoid, ringGroup, pairPts };  // debug hook for the browser console
+function placeLeftcol() { $('leftcol').style.top = ($('hud').getBoundingClientRect().bottom + 8) + 'px'; }
+addEventListener('resize', placeLeftcol); placeLeftcol();
+window.cric = { THREE, scene, camera, controls, traj, inc };  // debug hook
 updateSats(new Date(simMs));
 const evs = renderList();
-$('loading').classList.add('done');
-setTimeout(() => $('loading').remove(), 800);
-if (evs.length) select(evs[0]);
+$('loading').classList.add('done'); setTimeout(() => $('loading').remove(), 800);
+const first = evs.find((e) => recorded.has(evKey(e))) || evs[0];
+if (first) select(first);
 requestAnimationFrame(frame);
 </script>
 </body>

@@ -58,7 +58,9 @@ Outputs go to `data/` (git-ignored).
 - One EUV image cannot confirm an Earth-directed CME; Step 3 tests reasoning discipline, not forecasting skill.
 - Step 5 treats burns as impulsive and uses a linear (Clohessy-Wiltshire) model on top of SGP4; the planner picks the *smallest* burn that just reaches the safe distance, so add margin (`--safe-km`) for real use.
 
-## Web prototype
+## Web prototype (superseded)
+
+The console in `web/` now uses the `cric` package; the endpoints below belonged to the spike version.
 
 ```bash
 /Users/yj-choi/Desktop/nebius/.venv/bin/python /Users/yj-choi/Desktop/nebius/web/serve.py 8765   # http://localhost:8765

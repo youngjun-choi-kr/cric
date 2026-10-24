@@ -12,14 +12,14 @@ Ported from spike/05_avoidance.py.
 from __future__ import annotations
 
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 from scipy.integrate import solve_ivp
 from sgp4.api import Satrec, SatrecArray
 
 from ..ingest.celestrak import Catalog
-from .timeutil import jdfr
+from .timeutil import iso, jdfr
 
 MU = 398600.4418  # km^3/s^2
 RE = 6378.137     # km
@@ -225,3 +225,18 @@ def validate_linear_model(enc: Encounter, burn: dict) -> dict:
     err = float(np.linalg.norm(true_lvlh - cw_lvlh))
     return {"error_km": round(err, 4),
             "error_pct": round(100 * err / max(float(np.linalg.norm(true_lvlh)), 1e-9), 2)}
+
+
+def trajectory_series(enc: Encounter, burn: dict, step_s=10.0) -> dict:
+    """Manoeuvring satellite before and after the burn, and the other object, TEME km, for drawing."""
+    lead = burn["lead_s"]
+    axis = np.array(AXES[burn["direction"]]) * burn["dv_ms"]
+    n, _ = enc.burn_frame(lead)
+    t = np.arange(-lead - 300.0, 600.0 + step_s, step_s)
+    rM, vM = propagate(enc.rec_m, enc.tca, t)
+    rO, _ = propagate(enc.rec_o, enc.tca, t)
+    rM2 = rM + to_eci(cw_displacement(t + lead, n, axis), lvlh(rM, vM))
+    rd = lambda a: np.round(a, 3).tolist()
+    return {"t0_utc": iso(enc.tca + timedelta(seconds=float(t[0]))), "step_s": step_s, "frame": "TEME km",
+            "burn_utc": iso(enc.tca - timedelta(seconds=lead)),
+            "maneuvering_nominal": rd(rM), "maneuvering_after": rd(rM2), "other": rd(rO)}

@@ -36,6 +36,18 @@ The numeric search is done by the optimiser, not the model: Nemotron chooses amo
 already checked, using context the optimiser cannot read (policy and mission notes in plain language, evidence
 quality, time left for better data). `spike/` keeps the original feasibility scripts.
 
+## Console
+
+```bash
+.venv/bin/python web/serve.py 8765        # http://localhost:8765
+```
+
+Globe of every tracked object, the close-approach list, and the incident pipeline step by step: geometry, Pc,
+verified burn options, cited dossiers, the Nemotron decision with its evidence, and the safety validator.
+**Replay** streams a recorded run with no API calls (works when credits run out); **Run live** calls
+Token Factory and Tavily. Four demo situations are recorded for KOMPSAT-3A / LEMUR-2: quiet day (TLE only),
+precise ephemeris, imaging pass blocking the cheapest burn, and safe mode.
+
 ## Data sources
 
 CelesTrak GP and SATCAT, NOAA SWPC, NASA SDO via Helioviewer, and web pages found through Tavily. Orbit data is screening-grade (about 1 km); CRIC is a research prototype, not an operational collision-avoidance service.
