@@ -50,6 +50,11 @@ class CovarianceModel:
         ])
 
 
+# Precise ephemeris / CDM-grade knowledge, used when the scenario says better data has arrived.
+# Not real CDM data: ~100 m along-track, ~25 m radial and cross-track, no growth (fresh solution).
+CDM_GRADE = CovarianceModel(0.025, 0.1, 0.025, 0.0, 0.0, 0.0, 0.3)
+
+
 def _rtn_cov_eci(r: np.ndarray, v: np.ndarray, sig: np.ndarray) -> np.ndarray:
     bx, by, bz = lvlh(r[None, :], v[None, :])
     rot = np.vstack([bx[0], by[0], bz[0]])  # rows: R, T, N in ECI

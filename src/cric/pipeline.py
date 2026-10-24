@@ -12,7 +12,7 @@ from .ingest.celestrak import Catalog, load_catalog
 from .llm import Usage
 from .physics.maneuver import Encounter
 from .physics.options import burn_options
-from .physics.risk import collision_probability
+from .physics.risk import CDM_GRADE, collision_probability
 from .physics.timeutil import iso, julian, parse_utc
 from .research.dossier import build_dossier
 from .safety.validator import validate
@@ -21,7 +21,8 @@ DEFAULT_POLICY = {
     "text": ("Manoeuvre when Pc >= 1e-4 and a verified option exists. Between 1e-5 and 1e-4, or when Pc is diluted, "
              "prefer getting precise data if there is time before the latest safe burn. Never manoeuvre if our "
              "propulsion status is unverified. If the other object is an active satellite that can manoeuvre, "
-             "contact its operator before moving. Keep at least 30 minutes for command upload. Max 1.0 m/s per burn."),
+             "contact its operator before moving; if it is an operational satellite whose capability is unknown, notify "
+             "its operator. Keep at least 30 minutes for command upload. Max 1.0 m/s per burn."),
     "pc_red": 1e-4,
     "pc_yellow": 1e-5,
     "min_command_upload_min": 30,
@@ -29,6 +30,7 @@ DEFAULT_POLICY = {
 }
 
 INCIDENTS = DATA / "incidents"
+MIN_LEAD_BEFORE_TCA_MIN = 10.0
 
 
 def _noop(kind: str, **data) -> None:
@@ -47,48 +49,55 @@ def _cap_summary(d: dict) -> dict:
             "capability": d["capability"], "facts": facts, "claim_problems": d["claim_problems"]}
 
 
-def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datetime, *, kp: float,
-                  space_weather_note: str, mission: dict, policy: dict, use_tavily: bool,
-                  usage: Usage, emit=_noop) -> dict:
+def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datetime, *, kp: float, policy: dict,
+                  data_quality: str = "tle", emit=_noop) -> dict:
+    """Geometry, Pc and verified burn options: everything deterministic about one encounter."""
     enc = Encounter(cat.sats[ours], cat.sats[other], tca)
     emit("geometry", miss_km=enc.nominal[0], rel_speed_kms=enc.rel_speed)
     jd = sum(julian(tca))
-    risk = collision_probability(enc, (cat.epoch_age_days(ours, jd), cat.epoch_age_days(other, jd)), kp=kp)
+    if data_quality == "cdm":
+        risk = collision_probability(enc, (0.0, 0.0), kp=kp, model=CDM_GRADE)
+        risk["assumptions"]["covariance"] = "SIMULATED precise ephemeris (CDM-grade); not real CDM data"
+    else:
+        risk = collision_probability(enc, (cat.epoch_age_days(ours, jd), cat.epoch_age_days(other, jd)), kp=kp)
     emit("risk", pc=risk["pc"], level=risk["level"], diluted=risk["diluted"])
 
-    min_lead = max(policy["min_command_upload_min"], 0)
+    # Upload time limits how EARLY relative to now a burn can be; the lead before TCA has its own floor
+    # (search() also enforces 0.2 orbit, below which a burn barely moves the satellite).
+    upload_s = policy["min_command_upload_min"] * 60
     hours_left = (tca - now).total_seconds() / 3600
-    max_lead_orbits = min(2.0, max((tca - now).total_seconds() - min_lead * 60, 0) / enc.period)
-    opts = (burn_options(enc, cat, safe_km=2.0, max_dv=policy["max_dv_ms"], min_lead_min=min_lead,
+    max_lead_orbits = min(2.0, max((tca - now).total_seconds() - upload_s, 0) / enc.period)
+    opts = (burn_options(enc, cat, safe_km=2.0, max_dv=policy["max_dv_ms"], min_lead_min=MIN_LEAD_BEFORE_TCA_MIN,
                          max_lead_orbits=max_lead_orbits, log=lambda m: emit("optimiser", text=m))
             if max_lead_orbits > 0.2 else {"options": [], "rejected": [], "search": {"note": "not enough time before TCA"}})
     emit("options", count=len(opts["options"]))
-
-    dossiers = {}
-    for n in (ours, other):
-        dossiers[n] = _cap_summary(build_dossier(n, use_tavily=use_tavily, usage=usage, emit=emit))
-
     return {
         "now_utc": iso(now),
         "conjunction": {"tca_utc": iso(tca), "hours_to_tca": round(hours_left, 2),
-                        "miss_km_tle": round(enc.nominal[0], 4), "relative_speed_kms": round(enc.rel_speed, 2),
+                        "miss_km": round(enc.nominal[0], 4), "relative_speed_kms": round(enc.rel_speed, 2),
                         "orbital_period_min": round(enc.period / 60, 1),
-                        "data": "public GP/TLE, accuracy about 1 km"},
+                        "data": ("precise ephemeris (simulated CDM)" if data_quality == "cdm"
+                                 else "public GP/TLE, accuracy about 1 km")},
         "risk": {k: risk[k] for k in ("pc", "pc_max_if_better_data", "diluted", "level", "sigma_rtn_km")}
                 | {"assumption": risk["assumptions"]["covariance"], "tle_age_days": risk["assumptions"]["tle_age_days"]},
-        "our_satellite": dossiers[ours],
-        "other_object": dossiers[other],
         "burn_options": opts,
-        "space_weather": {"kp": kp, "note": space_weather_note},
-        "operator_policy": policy,
-        "mission": mission,
     }
+
+
+def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datetime, *, kp: float,
+                  space_weather_note: str, mission: dict, policy: dict, use_tavily: bool,
+                  usage: Usage, data_quality: str = "tle", emit=_noop) -> dict:
+    ctx = physics_block(cat, ours, other, tca, now, kp=kp, policy=policy, data_quality=data_quality, emit=emit)
+    dossiers = {n: _cap_summary(build_dossier(n, use_tavily=use_tavily, usage=usage, emit=emit)) for n in (ours, other)}
+    ctx |= {"our_satellite": dossiers[ours], "other_object": dossiers[other],
+            "space_weather": {"kp": kp, "note": space_weather_note}, "operator_policy": policy, "mission": mission}
+    return ctx
 
 
 def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = None, kp: float = 2.0,
                  space_weather_note: str = "Quiet geomagnetic conditions.", mission: dict | None = None,
                  policy: dict | None = None, use_tavily: bool = True, cat: Catalog | None = None,
-                 model: str = MODEL_SUPER, emit=_noop) -> dict:
+                 data_quality: str = "tle", model: str = MODEL_SUPER, emit=_noop) -> dict:
     """Assess one conjunction from OUR satellite's point of view. now_utc lets a recorded
     encounter be replayed as if the decision were made at that moment."""
     t0 = time.time()
@@ -100,7 +109,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     policy = policy or DEFAULT_POLICY
 
     ctx = build_context(cat, ours, other, tca, now, kp=kp, space_weather_note=space_weather_note, mission=mission,
-                        policy=policy, use_tavily=use_tavily, usage=usage, emit=emit)
+                        policy=policy, use_tavily=use_tavily, usage=usage, data_quality=data_quality, emit=emit)
     emit("decision_start", model=model)
     decision, reasoning = decide(ctx, model=model, usage=usage)
     check = validate(decision.model_dump(), ctx, now)

@@ -81,3 +81,15 @@ def test_both_can_move_with_message_is_allowed():
 def test_green_manoeuvre_warns():
     ctx, now = _ctx(level="green")
     assert validate(_decision(), ctx, now)["warnings"]
+
+
+def test_manoeuvre_on_diluted_pc_with_time_is_sent_for_data():
+    ctx, now = _ctx(diluted=True)
+    ctx["burn_options"]["options"].append({"id": "O3", "burn_utc": "2026-01-01T11:00:00Z", "dv_ms": 0.8})
+    out = validate(_decision(), ctx, now)
+    assert out["final_action"] == "REQUEST_PRECISE_DATA"
+
+
+def test_manoeuvre_on_diluted_pc_without_time_is_kept():
+    ctx, now = _ctx(diluted=True)  # latest burn 09:18 leaves 48 min after upload: not enough for new data
+    assert validate(_decision(), ctx, now)["final_action"] == "MANEUVER"

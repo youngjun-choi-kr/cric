@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 
 from ..physics.timeutil import parse_utc
 
+DATA_REQUEST_SLACK_MIN = 60  # time needed to request and receive precise ephemeris, beyond the upload window
+
 
 def validate(decision: dict, ctx: dict, now: datetime) -> dict:
     """Returns {"final_action", "final_option_id", "overrides": [...], "warnings": [...]}."""
@@ -46,13 +48,22 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
             if action == "MANEUVER" and opt["dv_ms"] > policy["max_dv_ms"]:
                 override("ESCALATE", f"dv {opt['dv_ms']} m/s exceeds policy limit {policy['max_dv_ms']} m/s")
 
+    risk = ctx["risk"]
+    if action == "MANEUVER" and (risk["diluted"] or risk["level"] == "yellow"):
+        # Policy: on weak data, get precise data first when there is time before the latest allowed burn.
+        upload = timedelta(minutes=policy["min_command_upload_min"])
+        allowed = [parse_utc(o["burn_utc"]) for o in options.values() if parse_utc(o["burn_utc"]) >= now + upload]
+        slack = (max(allowed) - now - upload) if allowed else timedelta(0)
+        if slack > timedelta(minutes=DATA_REQUEST_SLACK_MIN):
+            override("REQUEST_PRECISE_DATA", f"Pc is {'diluted' if risk['diluted'] else 'yellow'} and the latest allowed "
+                                             f"burn leaves {int(slack.total_seconds() // 60)} min to get precise data")
+
     if action == "MANEUVER" and other["capability"]["can_maneuver"] == "yes" and not decision.get("message_to_other_operator"):
         override("COORDINATE", "the other object can manoeuvre too; coordinate before moving")
 
     if action == "COORDINATE" and not decision.get("message_to_other_operator"):
         warnings.append("COORDINATE without a message to the other operator")
 
-    risk = ctx["risk"]
     if action == "MANEUVER" and risk["level"] == "green" and not risk["diluted"]:
         warnings.append("manoeuvre on a green, non-diluted Pc: likely unnecessary")
     if action == "MONITOR" and risk["level"] == "red":
