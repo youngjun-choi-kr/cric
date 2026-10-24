@@ -225,6 +225,26 @@ def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = No
     return summary
 
 
+def regrade(path) -> dict:
+    """Re-apply the current safety validator to saved decisions (no model calls) and store the new summary."""
+    d = json.loads(path.read_text())
+    sc = {x["id"]: x for x in d["scenarios"]}
+    pool = {s.id: s for s in SCENARIOS + HELDOUT + forged_scenarios()}
+    chosen = [pool[i] for i in sc if i in pool]
+    contexts = build_contexts(chosen, log=lambda *_: None)
+    for r in d["rows"]:
+        if r["decision"]["action"] == "ERROR" or r["scenario"] not in contexts:
+            continue
+        ctx, now = contexts[r["scenario"]]
+        v = validate(r["decision"], ctx, now)
+        r["validation"] = v
+        r["final"] = grade({**r["decision"], "action": v["final_action"], "option_id": v["final_option_id"]},
+                           ctx, pool[r["scenario"]])
+    d["summary_revalidated"] = summarize(d["rows"], chosen)
+    path.write_text(json.dumps(d, indent=1, default=str))
+    return d["summary_revalidated"]
+
+
 def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
     arms = sorted({r["arm"] for r in rows}, key=lambda a: (a not in ("naive_rule", "policy_rule"), a))
     text_ids = {s.id for s in scenarios if s.signal == "text"}
@@ -248,10 +268,20 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
 
 
 def main_cli(args) -> None:
+    if args.regrade:
+        from pathlib import Path
+
+        summary = regrade(Path(args.regrade)) | {"saved_to": args.regrade}
+        _print(summary)
+        return
     models = {"super": MODEL_SUPER, "nano": MODEL_NANO}
     summary = run([models[m] for m in args.models.split(",")], repeats=args.repeats,
                   scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers,
-                  scenario_set=args.set)
+                  scenario_set=args.set, log=lambda *a: print(*a, flush=True))
+    _print(summary)
+
+
+def _print(summary: dict) -> None:
     print()
     hdr = f"{'arm':38} {'acc':>5} {'acc+val':>7} {'unsafe':>6} {'unsafe+val':>10} {'text':>5} {'sec':>5} {'$':>7}"
     print(hdr)

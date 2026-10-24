@@ -172,10 +172,13 @@ const fmtUTC = (iso) => String(iso).slice(11, 19) + ' UTC';
 const pcTxt = (p) => (p > 0 ? p.toExponential(1) : '< 1e-300');
 
 // ---------- data ----------
+// Static mode (e.g. GitHub Pages): no API; replay recordings from demo/ and read orbits from the committed snapshot.
+const STATIC = !(await fetch('/api/incidents', { method: 'HEAD' }).then((r) => r.ok).catch(() => false));
+const DATA_BASE = STATIC ? '../fixtures/snapshot_20261025/' : '/data/';
 const [tleText, conj, saved] = await Promise.all([
-  fetch('/data/celestrak_active.tle').then(r => r.text()),
-  fetch('/data/conjunctions.json').then(r => r.json()),
-  fetch('/api/incidents').then(r => (r.ok ? r.json() : [])).catch(() => []),
+  fetch(DATA_BASE + 'celestrak_active.tle').then(r => r.text()),
+  fetch(DATA_BASE + 'conjunctions.json').then(r => r.json()),
+  fetch(STATIC ? 'demo/manifest.json' : '/api/incidents').then(r => (r.ok ? r.json() : [])).catch(() => []),
 ]);
 const lines = tleText.split('\n').map(l => l.trimEnd()).filter(Boolean);
 const sats = [], bySat = new Map();
@@ -414,6 +417,7 @@ function incReset() {
   $('incBody').innerHTML = ''; $('incState').textContent = 'idle'; incStats();
   ['riskSec', 'optSec', 'decSec', 'valSec', 'repSec'].forEach((id) => ($(id).hidden = true));
   $('runLive').disabled = $('runReplay').disabled = !sel;
+  if (STATIC) { $('runLive').disabled = true; $('runLive').title = 'Live runs need the local server (web/serve.py) and API keys'; }
 }
 function step(key, state, html) {
   let r = inc.rows[key];
@@ -467,6 +471,7 @@ function finish(ok, msg) {
   inc.running = false; inc.es?.close(); inc.es = null;
   $('incState').textContent = ok ? 'done' : 'error';
   $('runLive').disabled = $('runReplay').disabled = !sel;
+  if (STATIC) $('runLive').disabled = true;
   if (!ok) step('err', 'bad', `<b>Error</b> ${esc(msg)}`);
 }
 function handle(e) {
@@ -494,7 +499,7 @@ function handle(e) {
     const d = e.dossier, cap = d.capability.can_maneuver, f = d.facts?.can_maneuver_now?.status === 'sourced' ? d.facts.can_maneuver_now : d.facts?.has_propulsion;
     step('d' + d.norad_id, cap === 'yes' ? 'ok' : cap === 'no' ? 'ok' : 'warn',
       `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span> can manoeuvre: <b>${cap}</b>
-       <div class="sub2">${esc(d.capability.basis)}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
+       <div class="sub2">${esc(d.capability.basis)}${d.web_capability ? ` · web research said: ${esc(d.web_capability.can_maneuver)}` : ''}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
        ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
   }
   else if (k === 'space_weather_start') step('sw', 'run', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> reading the Sun (SDO) and NOAA Kp…`);
@@ -527,11 +532,18 @@ function pump() {
   handle(inc.queue.shift());
   inc.timer = setTimeout(() => { inc.timer = null; pump(); }, inc.mode === 'live' ? 120 : 260);
 }
+async function staticReplay(ours, other, presetName) {
+  const m = saved.find((x) => x.ours === ours && x.other === other && x.preset === presetName);
+  if (!m) { inc.queue.push({ kind: 'error', message: 'No recording for this pair and situation in the static demo.' }); pump(); return; }
+  const d = await fetch(`demo/incidents/${m.file}`).then((r) => r.json());
+  inc.queue.push({ kind: 'start', mode: 'replay' }, ...d.trace, d.result, { kind: 'end' }); pump();
+}
 function runIncident(mode) {
   if (!sel || inc.running) return;
   const ours = Number($('oursSel').value), other = selSats.map((x) => Number(x.rec.satnum)).find((n) => n !== ours);
   incReset(); trajClear(); inc.running = true; inc.mode = mode;
   $('runLive').disabled = $('runReplay').disabled = true;
+  if (STATIC) { staticReplay(ours, other, $('presetSel').value); return; }
   const es = inc.es = new EventSource(`/api/incident?ours=${ours}&other=${other}&preset=${$('presetSel').value}&mode=${mode}`);
   es.onmessage = (m) => { const e = JSON.parse(m.data); if (e.kind === 'end' || e.kind === 'error') { inc.streamDone = true; es.close(); } inc.queue.push(e); pump(); };
   es.onerror = () => { es.close(); if (!inc.streamDone) { inc.queue.push({ kind: 'error', message: 'Connection closed or refused (another live run in progress, or the server is not running).' }); pump(); } };
@@ -541,14 +553,29 @@ $('runReplay').onclick = () => runIncident('replay');
 
 // ---------- eval panel ----------
 const ARM = { naive_rule: 'Rule of thumb (miss < 1 km)', policy_rule: 'Coded policy, fields only' };
-fetch('/api/eval').then((r) => (r.ok ? r.json() : null)).then((d) => {
-  if (!d) { $('evalBody').textContent = 'No eval run yet.'; return; }
+const SET_LABEL = { heldout: 'Held-out', tuning: 'Tuning', forged: 'Real events (Tavily)' };
+const SET_NOTE = {
+  heldout: 'Expected answers committed before any model ran on them.',
+  tuning: 'Used while designing the validator rules; optimistic.',
+  forged: 'Real storms researched with Tavily, replayed as current conditions.',
+};
+function renderEval(sets, name) {
+  const d = sets[name]; if (!d) return;
   const rows = Object.entries(d.summary).filter(([k]) => k !== 'saved_to');
-  const name = (k) => ARM[k] || 'Nemotron ' + (k.includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k);
-  $('evalBody').innerHTML = `<table class="t"><tr><th>arm</th><th>correct</th><th>+validator</th><th>unsafe</th><th>text-only</th></tr>
-    ${rows.map(([k, m]) => `<tr class="${k.includes('super') ? 'me' : ''}"><td>${esc(name(k))}</td><td>${Math.round(m.accuracy_raw * 100)}%</td>
-      <td>${Math.round(m.accuracy_after_validator * 100)}%</td><td>${m.unsafe_after_validator}</td><td>${m.accuracy_text_signal == null ? '—' : Math.round(m.accuracy_text_signal * 100) + '%'}</td></tr>`).join('')}</table>
-    <div class="lim">${d.scenarios.length} scenarios on real encounters, ${rows[2] ? rows[2][1].n / d.scenarios.length : 3} runs each per model. "unsafe" = a burn the scenario does not allow, after the validator. Text-only = the deciding fact is only in plain-language notes.</div>`;
+  const label = (k) => ARM[k] || 'Nemotron ' + (k.toLowerCase().includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k);
+  const reps = rows.find(([k]) => !ARM[k])?.[1].n / d.scenarios.length;
+  $('evalBody').innerHTML = `<div class="ctl" style="margin:0 0 6px">${Object.keys(sets).map((k) => `<button class="${k === name ? 'on' : ''}" data-set="${k}">${SET_LABEL[k] || k}</button>`).join('')}</div>
+    <table class="t"><tr><th>arm</th><th>correct</th><th>+validator</th><th>policy-violating burns</th><th>text-only</th></tr>
+    ${rows.map(([k, m]) => `<tr class="${k.toLowerCase().includes('super') ? 'me' : ''}"><td>${esc(label(k))}</td><td>${Math.round(m.accuracy_raw * 100)}%</td>
+      <td>${Math.round(m.accuracy_after_validator * 100)}%</td><td>${m.unsafe_raw} → ${m.unsafe_after_validator}</td><td>${m.accuracy_text_signal == null ? '—' : Math.round(m.accuracy_text_signal * 100) + '%'}</td></tr>`).join('')}</table>
+    <div class="lim">${d.scenarios.length} scenarios on real encounters${reps ? `, ${reps} runs each per model` : ''}. ${SET_NOTE[name] || ''} Burn counts are before → after the safety validator.</div>`;
+  document.querySelectorAll('[data-set]').forEach((b) => (b.onclick = () => renderEval(sets, b.dataset.set)));
+}
+fetch(STATIC ? 'demo/eval.json' : '/api/eval').then((r) => (r.ok ? r.json() : null)).then((d) => {
+  const sets = d?.sets || {};
+  const first = ['heldout', 'tuning', 'forged'].find((k) => sets[k]);
+  if (!first) { $('evalBody').textContent = 'No eval run yet.'; return; }
+  renderEval(sets, first);
 }).catch(() => ($('evalBody').textContent = 'Eval unavailable.'));
 
 // ---------- loop ----------

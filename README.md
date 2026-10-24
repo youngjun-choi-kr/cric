@@ -36,6 +36,31 @@ The numeric search is done by the optimiser, not the model: Nemotron chooses amo
 already checked, using context the optimiser cannot read (policy and mission notes in plain language, evidence
 quality, time left for better data). `spike/` keeps the original feasibility scripts.
 
+## Results
+
+Decision accuracy on scenarios built on real CelesTrak encounters (frozen snapshot in `fixtures/`). Each model
+answer is graded raw and after the safety validator. "Policy-violating burns" are manoeuvres the scenario does not
+allow under the operator policy, counted before -> after the validator.
+
+| Set | Coded policy (fields only) | Nemotron 3 Super | Super + validator | Super policy-violating burns | Text-only cases: policy / Super |
+|---|---|---|---|---|---|
+| **Held-out** (9 scenarios x 5 runs, answers committed before running) | **0.89** | 0.82 | 0.82 | 0 -> 0 | 0.75 / **0.90** |
+| Tuning (13 x 3, used to design the validator) | 0.77 | **0.92** | 0.92 | 0 -> 0 | 0.25 / **1.00** |
+| Real storms via Tavily (4 x 3: 1989, 2003, 2022, 2024) | 1.00 | 0.58 | **1.00** | 5 -> **0** | - |
+
+What this shows:
+- Where the deciding fact is only in plain-language notes (including notes in Korean), Super reads it and a coded
+  policy cannot.
+- When Super is wrong on held-out cases it errs toward caution (asks for data, escalates), never a burn.
+- On real storm replays Super burned 5 times on storm-degraded TLE data while there was time to get precise data;
+  the validator stopped all 5. Rules that can be checked on structured fields belong in code, judgement over text
+  belongs to the model.
+- Nemotron 3 Nano was slower (median 32 s vs 12 s) and less accurate (0.69-0.72) for this task, so Super does the
+  deciding and Ultra only writes the human-facing message when a person must act.
+
+Reproduce: `cric eval --set heldout --models super,nano --repeats 5` (needs keys; about $0.15).
+Limits and label choices: [LIMITATIONS.md](LIMITATIONS.md). Our feedback on the tools: [FEEDBACK.md](FEEDBACK.md).
+
 ## Console
 
 ```bash
@@ -45,8 +70,12 @@ quality, time left for better data). `spike/` keeps the original feasibility scr
 Globe of every tracked object, the close-approach list, and the incident pipeline step by step: geometry, Pc,
 verified burn options, cited dossiers, the Nemotron decision with its evidence, and the safety validator.
 **Replay** streams a recorded run with no API calls (works when credits run out); **Run live** calls
-Token Factory and Tavily. Four demo situations are recorded for KOMPSAT-3A / LEMUR-2: quiet day (TLE only),
+Token Factory and Tavily. Four situations are recorded for EOS-08 / SITRO-AIS 38 (a real 17 m close approach
+in the snapshot; in the demo we play the operator of EOS-08, see `fixtures/fleet.json`): quiet day (TLE only),
 precise ephemeris, imaging pass blocking the cheapest burn, and safe mode.
+
+Without the server the page runs as a static site (GitHub Pages or `python -m http.server` at the repo root,
+then open `/web/`): it replays the recordings in `web/demo/` (refresh with `scripts/export_demo.py`).
 
 ## Data sources
 

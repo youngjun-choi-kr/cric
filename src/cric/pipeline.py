@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from .agent.decision import decide
 from .agent.report import write_report
-from .config import DATA, MODEL_SUPER, MODEL_ULTRA, MODEL_VL
+from .config import DATA, FLEET, MODEL_SUPER, MODEL_ULTRA, MODEL_VL
 from .ingest.celestrak import Catalog, snapshot_catalog
 from .llm import Usage
 from .physics.maneuver import Encounter, trajectory_series
@@ -113,9 +113,22 @@ def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
                   usage: Usage, data_quality: str = "tle", emit=_noop) -> dict:
     ctx = physics_block(cat, ours, other, tca, now, kp=kp, policy=policy, data_quality=data_quality, emit=emit)
     mission = resolve_mission(mission, ctx["burn_options"]["options"], now)
+    fleet = json.loads(FLEET.read_text()) if FLEET.exists() else {}
     dossiers = {}
     for n, role in ((ours, "ours"), (other, "other")):
         dossiers[n] = _cap_summary(build_dossier(n, use_tavily=use_tavily, usage=usage, emit=emit))
+        if role == "ours" and str(n) in fleet:
+            # Our own telemetry outranks web research about our satellite. The web facts are shown in the UI
+            # but kept out of the decision context, where they contradicted the registry and won.
+            reg = fleet[str(n)]
+            web = dossiers[n]
+            emit("dossier", role=role, dossier=web | {"capability": {"can_maneuver": reg["can_maneuver"], "basis": reg["basis"]},
+                                                      "web_capability": web["capability"]})
+            dossiers[n] = {k: web[k] for k in ("norad_id", "name", "satcat")} | {
+                "capability": {"can_maneuver": reg["can_maneuver"], "basis": reg["basis"]},
+                "facts": {"operator": web["facts"].get("operator"), "mission_type": web["facts"].get("mission_type")},
+                "claim_problems": []}
+            continue
         emit("dossier", role=role, dossier=dossiers[n])
     ctx |= {"our_satellite": dossiers[ours], "other_object": dossiers[other],
             "space_weather": {"kp": kp, "note": space_weather_note}, "operator_policy": policy, "mission": mission}

@@ -60,6 +60,20 @@ def _brief(path: pathlib.Path) -> dict:
             "names": [d["context"]["our_satellite"]["name"], d["context"]["other_object"]["name"]]}
 
 
+def eval_sets() -> dict:
+    """Latest run of each eval set (tuning, heldout, forged), summary only."""
+    out = {}
+    folder = DATA / "eval"
+    for name in ("heldout", "tuning", "forged"):
+        files = sorted(folder.glob(f"eval_{name}_*.json"), key=lambda p: p.stat().st_mtime, reverse=True) if folder.exists() else []
+        files = [f for f in files if not f.stem.endswith("revalidated")]
+        if files:
+            d = json.loads(files[0].read_text())
+            out[name] = {"file": files[0].name, "summary": d.get("summary_revalidated") or d["summary"],
+                         "scenarios": [{k: sc[k] for k in ("id", "title", "signal", "expected")} for sc in d["scenarios"]]}
+    return {"sets": out}
+
+
 def _result_event(d: dict) -> dict:
     ctx = d["context"]
     return {"kind": "result", "pair": d.get("pair"), "decision": d["decision"], "validation": d["validation"],
@@ -87,6 +101,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args) -> None:
         if "/api/" in (args[0] if args else ""):
             super().log_message(fmt, *args)
+
+    def do_HEAD(self) -> None:
+        if urlparse(self.path).path.startswith("/api/"):  # lets the page detect that the API is here
+            self.send_response(200)
+            self.end_headers()
+            return
+        super().do_HEAD()
 
     def do_GET(self) -> None:
         url = urlparse(self.path)
@@ -118,13 +139,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self._json(200, [_brief(p) for p in _incident_files()[:40]])
 
     def api_eval(self, q: dict) -> None:
-        files = sorted((DATA / "eval").glob("eval_*.json"), key=lambda p: p.stat().st_mtime, reverse=True) \
-            if (DATA / "eval").exists() else []
-        if not files:
-            return self._json(404, {"error": "no eval run yet: `cric eval`"})
-        d = json.loads(files[0].read_text())
-        self._json(200, {"file": files[0].name, "summary": d.get("summary_revalidated") or d["summary"],
-                         "scenarios": d["scenarios"], "revalidated": "summary_revalidated" in d})
+        self._json(200, eval_sets())
 
     def api_incident(self, q: dict) -> None:
         if not self._local_request():

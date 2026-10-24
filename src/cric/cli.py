@@ -105,6 +105,7 @@ def main() -> None:
     e.add_argument("--scenarios", help="comma list of scenario ids, e.g. S01,S07")
     e.add_argument("--workers", type=int, default=4)
     e.add_argument("--set", choices=["tuning", "heldout", "forged"], default="tuning")
+    e.add_argument("--regrade", metavar="FILE", help="re-apply the current validator to a saved run (no model calls)")
 
     f = sub.add_parser("forge", help="research a real space-weather event with Tavily into a cited record")
     f.add_argument("--event", required=True)

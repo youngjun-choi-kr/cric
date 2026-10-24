@@ -26,12 +26,26 @@ CRIC is a research prototype for decision support. It is not an operational coll
 
 ## Decisions
 - Nemotron's answers vary between runs at the same input; the eval repeats each case and reports the spread.
+  Demo recordings are single runs and were not re-recorded to get a preferred answer.
+- The eval's "policy-violating burns" count manoeuvres the scenario does not accept under the operator policy
+  (for example burning on storm-degraded TLE data while there is time to get precise data). Some operators would
+  burn in those cases; they are policy violations, not necessarily collision risks. Earlier commits called this
+  "unsafe".
+- Held-out label H02 (yellow Pc, one hour left) expects MONITOR or ESCALATE; the model consistently asks for
+  precise data instead, which is harmless. We kept the label fixed before running rather than relaxing it after.
 - The eval scenarios set capabilities, notes and data quality by hand on top of real encounters. Expected
   answers follow the operator policy in `cric/pipeline.py` and common conjunction-assessment practice;
   they are our labels, not an external benchmark.
 - Hard rules (verified propulsion, verified option, upload window, structured blackouts, coordination)
   are enforced in code by `cric.safety.validator`. Constraints written only in free text are not
   enforced by the validator; that is exactly where the model has to read.
+
+## Data snapshot
+- The first eval and demo runs used a 2026-10-24 CelesTrak file that a later refresh overwrote; that file was not
+  saved and cannot be recovered (the KOMPSAT-3A / LEMUR-2 encounter moved from 0.106 km to 12.4 km after the
+  refresh). Eval and demo now read the committed snapshot in `fixtures/snapshot_20261025`. Encounters were
+  re-selected there, note times became relative to the burn options, and H01's burn cap was made relative so its
+  intent holds; expected answers did not change. Numbers in README come from runs on this snapshot.
 
 ## History
 - An earlier spike let Nemotron search burn parameters with tools. It found a valid burn but used 45% more

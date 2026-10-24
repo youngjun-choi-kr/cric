@@ -14,6 +14,8 @@ DATA.mkdir(parents=True, exist_ok=True)
 # Frozen orbit data for the eval and the demo. Live screening writes to DATA and never touches this,
 # so results stay reproducible after CelesTrak updates (a refresh once moved a 106 m encounter to 12 km).
 SNAPSHOT = Path(os.getenv("CRIC_SNAPSHOT", ROOT / "fixtures" / "snapshot_20261025"))
+# Our own satellites: an operator knows its propulsion state from telemetry, not from the web.
+FLEET = Path(os.getenv("CRIC_FLEET", ROOT / "fixtures" / "fleet.json"))
 
 load_dotenv(ROOT / ".env")
 

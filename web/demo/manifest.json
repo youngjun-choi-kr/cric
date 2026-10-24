@@ -1,0 +1,58 @@
+[
+ {
+  "file": "60454_61786_20261025T003427_1531_safe_mode.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "safe_mode",
+  "action": "ESCALATE",
+  "final": "ESCALATE",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_1531_imaging.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "imaging",
+  "action": "MANEUVER",
+  "final": "MANEUVER",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_1531_precise.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "precise",
+  "action": "COORDINATE",
+  "final": "COORDINATE",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_1531_quiet.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "quiet",
+  "action": "REQUEST_PRECISE_DATA",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ }
+]

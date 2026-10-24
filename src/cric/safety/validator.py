@@ -58,8 +58,19 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
             override("REQUEST_PRECISE_DATA", f"Pc is {'diluted' if risk['diluted'] else 'yellow'} and the latest allowed "
                                              f"burn leaves {int(slack.total_seconds() // 60)} min to get precise data")
 
-    if action == "MANEUVER" and other["capability"]["can_maneuver"] == "yes" and not decision.get("message_to_other_operator"):
-        override("COORDINATE", "the other object can manoeuvre too; coordinate before moving")
+    other_active_unknown = (other.get("satcat", {}).get("type") == "payload"
+                            and other.get("satcat", {}).get("status") in ("operational", "partially operational")
+                            and other["capability"]["can_maneuver"] == "unknown")
+    if action == "MANEUVER" and not decision.get("message_to_other_operator"):
+        if other["capability"]["can_maneuver"] == "yes":
+            override("COORDINATE", "the other object can manoeuvre too; coordinate before moving")
+        elif other_active_unknown:
+            override("COORDINATE", "the other object is an operational satellite with unknown propulsion; policy "
+                                   "requires notifying its operator before moving")
+
+    if action == "COORDINATE" and option_id and ours["capability"]["can_maneuver"] != "yes":
+        warnings.append(f"COORDINATE named option {option_id} but our propulsion is not verified; option dropped")
+        option_id = None
 
     if action == "COORDINATE" and not decision.get("message_to_other_operator"):
         warnings.append("COORDINATE without a message to the other operator")

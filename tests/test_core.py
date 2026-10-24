@@ -99,3 +99,16 @@ def test_monitor_on_red_pc_is_escalated():
     ctx, now = _ctx()
     out = validate(_decision(action="MONITOR", option_id=None), ctx, now)
     assert out["final_action"] == "ESCALATE"
+
+
+def test_coordinate_drops_option_when_our_propulsion_unverified():
+    ctx, now = _ctx(our_cap="unknown")
+    out = validate(_decision(action="COORDINATE", msg="Please hold."), ctx, now)
+    assert out["final_action"] == "COORDINATE" and out["final_option_id"] is None and out["warnings"]
+
+
+def test_operational_other_with_unknown_propulsion_requires_notice():
+    ctx, now = _ctx(other_cap="unknown")
+    ctx["other_object"]["satcat"] = {"type": "payload", "status": "operational"}
+    assert validate(_decision(), ctx, now)["final_action"] == "COORDINATE"
+    assert validate(_decision(msg="We will burn O1 at 09:18Z."), ctx, now)["final_action"] == "MANEUVER"
