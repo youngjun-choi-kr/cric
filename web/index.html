@@ -423,13 +423,13 @@ function step(key, state, html) {
   r.querySelector('.tx').innerHTML = html;
 }
 const nameOf = (norad) => bySat.get(String(norad))?.name || `NORAD ${norad}`;
-function renderRisk(r, c) {
+function renderRisk(r, c, sw) {
   $('riskSec').hidden = false;
   const assumed = /SIMULATED/.test(r.assumption) ? '<span class="tag blue">simulated precise data</span>' : '<span class="tag mid">assumed covariance</span>';
   $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${r.level}">Pc ${pcTxt(r.pc)}</span>
     <span class="tag ${r.level === 'red' ? 'bad' : r.level === 'yellow' ? 'mid' : 'ok'}">${r.level.toUpperCase()}</span>${assumed}
     ${r.diluted ? `<span class="tag mid">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}</div>
-    <div class="lim">${c ? `${esc(c.data)} · miss ${fmtDist(c.miss_km)} · ${c.hours_to_tca} h to TCA · ` : ''}thresholds: red ≥ 1e-4, yellow ≥ 1e-5</div>`;
+    <div class="lim">${c ? `${esc(c.data)} · miss ${fmtDist(c.miss_km)} · ${c.hours_to_tca} h to TCA · ` : ''}thresholds: red ≥ 1e-4, yellow ≥ 1e-5${sw ? ` · Kp ${sw.kp}${sw.noaa ? ' (NOAA live)' : ' (scenario)'}` : ''}</div>`;
 }
 function renderOptions(opts, chosen) {
   $('optSec').hidden = false;
@@ -496,7 +496,11 @@ function handle(e) {
        <div class="sub2">${esc(d.capability.basis)}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
        ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
   }
-  else if (k === 'context') renderRisk(e.risk, e.conjunction);
+  else if (k === 'space_weather_start') step('sw', 'run', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> reading the Sun (SDO) and NOAA Kp…`);
+  else if (k === 'space_weather') step('sw', e.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> Kp ${e.kp} used for covariance · drag risk <b>${esc(e.assessment.leo_drag_risk_72h)}</b>
+      <div class="sub2">${esc(e.assessment.orbit_prediction_impact)}</div>`);
+  else if (k === 'space_weather_error') step('sw', 'warn', `<span class="who">Space weather</span> unavailable, using Kp ${e.kp_used}: ${esc(e.message)}`);
+  else if (k === 'context') renderRisk(e.risk, e.conjunction, e.space_weather);
   else if (k === 'decision_start') step('dec', 'run', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> weighing risk, options, dossiers, policy and mission notes…`);
   else if (k === 'decision') {
     step('dec', 'ok', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> <b>${e.decision.action.replace(/_/g, ' ')}</b>${e.decision.option_id ? ' · ' + esc(e.decision.option_id) : ''}`);
@@ -509,7 +513,7 @@ function handle(e) {
   else if (k === 'report_error') step('rep', 'warn', `<span class="who">Report</span> failed: ${esc(e.message)}`);
   else if (k === 'done') incStats(` · <b>$${e.usage.cost_usd.toFixed(4)}</b> · ${e.usage.calls} model calls · ${e.seconds}s`);
   else if (k === 'result') {
-    renderRisk(e.risk, e.conjunction); renderOptions(e.options, e.validation.final_option_id);
+    renderRisk(e.risk, e.conjunction, e.space_weather); renderOptions(e.options, e.validation.final_option_id);
     renderDecision(e.decision, e.model); renderValidation(e.validation); renderReport(e.report);
     if (e.trajectory) { traj.data = e.trajectory; $('trajSec').hidden = false; trajDraw(); }
   }

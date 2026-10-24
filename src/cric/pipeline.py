@@ -8,8 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from .agent.decision import decide
 from .agent.report import write_report
-from .config import MODEL_ULTRA
-from .config import DATA, MODEL_SUPER
+from .config import DATA, MODEL_SUPER, MODEL_ULTRA, MODEL_VL
 from .ingest.celestrak import Catalog, load_catalog
 from .llm import Usage
 from .physics.maneuver import Encounter, trajectory_series
@@ -108,7 +107,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                  space_weather_note: str = "Quiet geomagnetic conditions.", mission: dict | None = None,
                  policy: dict | None = None, use_tavily: bool = True, cat: Catalog | None = None,
                  data_quality: str = "tle", model: str = MODEL_SUPER, tag: str = "custom", with_report: bool = True,
-                 emit=_noop) -> dict:
+                 live_space_weather: bool = False, emit=_noop) -> dict:
     """Assess one conjunction from OUR satellite's point of view. now_utc lets a recorded
     encounter be replayed as if the decision were made at that moment."""
     t0 = time.time()
@@ -127,8 +126,25 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     mission = mission or {"notes": "No mission constraints today.", "blackouts": []}
     policy = policy or DEFAULT_POLICY
 
+    sw = None
+    if live_space_weather:
+        from .agent.perception import assess
+
+        emit("space_weather_start", model=MODEL_VL)
+        try:
+            sw = assess(now, tca, usage=usage)
+            kp, space_weather_note = sw["kp"], sw["note"]
+            emit("space_weather", kp=kp, noaa=sw["noaa"], alerts=sw["alerts"], assessment=sw["vl"]["assessment"],
+                 image=sw["vl"]["image"], model=sw["vl"]["model"])
+        except Exception as exc:  # weather must not block a conjunction decision; fall back to the given Kp
+            emit("space_weather_error", message=str(exc)[:300], kp_used=kp)
+
     ctx = build_context(cat, ours, other, tca, now, kp=kp, space_weather_note=space_weather_note, mission=mission,
                         policy=policy, use_tavily=use_tavily, usage=usage, data_quality=data_quality, emit=emit)
+    if sw:
+        ctx["space_weather"] |= {"noaa": sw["noaa"], "alerts": sw["alerts"],
+                                 "vl_assessment": {k: sw["vl"]["assessment"][k] for k in
+                                                   ("leo_drag_risk_72h", "orbit_prediction_impact", "unknowns")}}
     emit("context", now_utc=ctx["now_utc"], conjunction=ctx["conjunction"], risk=ctx["risk"],
          space_weather=ctx["space_weather"], mission=ctx["mission"], policy_text=policy["text"])
     emit("decision_start", model=model)

@@ -60,7 +60,8 @@ def _result_event(d: dict) -> dict:
     return {"kind": "result", "pair": d.get("pair"), "decision": d["decision"], "validation": d["validation"],
             "trajectory": d.get("trajectory"), "report": d.get("report"), "usage": d["usage"], "seconds": d["seconds"], "model": d["model"],
             "options": ctx["burn_options"]["options"], "risk": ctx["risk"], "conjunction": ctx["conjunction"],
-            "ours": ctx["our_satellite"], "other": ctx["other_object"], "mission": ctx["mission"]}
+            "ours": ctx["our_satellite"], "other": ctx["other_object"], "mission": ctx["mission"],
+            "space_weather": ctx.get("space_weather")}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -149,7 +150,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._send(_result_event(d))
             else:
                 tca = _find_tca(ours, other)
-                d = run_incident(ours, other, tca, now_utc=default_now(tca, 3.0), tag=name,
+                d = run_incident(ours, other, tca, now_utc=default_now(tca, 3.0), tag=name, live_space_weather=True,
                                  emit=lambda kind, **data: self._send({"kind": kind, **data}), **preset(name, tca))
                 self._send(_result_event(d))
             self._send({"kind": "end"})
