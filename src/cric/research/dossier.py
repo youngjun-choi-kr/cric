@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from ..config import DATA, MODEL_SUPER, require_env
 from ..ingest.celestrak import satcat
 from ..llm import Usage, structured_call
+from .untrusted import DATA_RULE, suspicious, tier, wrap_sources
 
 QUERIES = [
     "{name} satellite propulsion system thruster",
@@ -76,6 +77,7 @@ Rules:
 - "unknown": sources do not say. value null. Never guess propulsion from satellite size or type alone.
 - Facts from the SATCAT record use source_url "celestrak:satcat" and quote the field, e.g. "OWNER: SKOR".
 - Sources may describe a different satellite with a similar name (e.g. another KOMPSAT); ignore those.
+- """ + DATA_RULE + """
 Return one JSON object only."""
 
 
@@ -163,6 +165,8 @@ def check_claims(d: Dossier, sources: list[dict], row: dict) -> list[str]:
             problems.append(f"{field}: sourced without a verbatim quote of 6+ words")
         elif _norm(fact.quote) not in texts[fact.source_url]:
             problems.append(f"{field}: quote not found in source text -> {fact.quote[:90]!r}")
+        elif suspicious(fact.quote):
+            problems.append(f"{field}: quote reads like an instruction, not a fact -> {fact.quote[:90]!r}")
     return problems
 
 
@@ -222,7 +226,9 @@ def build_dossier(norad: int, *, use_tavily: bool = True, refresh: bool = False,
         from tavily import TavilyClient
 
         sources, stats = gather(TavilyClient(api_key=require_env("TAVILY_API_KEY")), name, emit=emit)
-    src = "\n\n".join(f"[{i}] URL: {s['url']}\nTITLE: {s['title']}\nTEXT:\n{s['text']}" for i, s in enumerate(sources))
+    src, injection_flags = wrap_sources(sources)
+    if injection_flags:
+        emit("injection_flagged", norad=norad, flags=injection_flags)
     user = (f"Target: NORAD {norad}, {name}\n\nSATCAT record:\n{json.dumps(row, ensure_ascii=False)}\n\n"
             f"Web sources:\n{src or '(none: web search disabled)'}")
     emit("llm_start", norad=norad, model=MODEL_SUPER, sources=len(sources))
@@ -242,10 +248,11 @@ def build_dossier(norad: int, *, use_tavily: bool = True, refresh: bool = False,
                       + "\n- ".join(issues) + "\nFix these and return the full corrected dossier. Quotes must be "
                       "copied exactly from the source text."}]
     out = {"norad_id": norad, "satcat": row, "dossier": dossier.model_dump(), "claim_problems": problems,
-           "consistency_issues": consistency_issues(dossier), "repairs": repairs,
+           "consistency_issues": consistency_issues(dossier), "repairs": repairs, "injection_flags": injection_flags,
            "capability": capability(row, dossier, problems), "seconds": round(time.time() - t0, 1),
            "tavily": {"enabled": use_tavily, **stats,
-                      "sources": [{k: s[k] for k in ("url", "title", "score")} for s in sources]}}
+                      "sources": [{k: s[k] for k in ("url", "title", "score")} | {"tier": tier(s["url"])}
+                                  for s in sources]}}
     path.write_text(json.dumps(out, indent=2, ensure_ascii=False))
     emit("dossier_done", norad=norad, capability=out["capability"], problems=len(problems))
     return out

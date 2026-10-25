@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from ..config import DATA, MODEL_SUPER, require_env
 from ..llm import Usage, structured_call
+from .untrusted import DATA_RULE, sanitize, suspicious, wrap_sources
 from .dossier import LOW_QUALITY_DOMAINS, _cached
 
 FORGED = DATA / "forged"
@@ -89,7 +90,7 @@ def check(e: ForgedEvent, sources: list[dict]) -> list[str]:
         if f.status == "sourced":
             if f.source_url not in texts:
                 issues.append(f"{name}: cites a URL Tavily did not return -> {f.source_url}")
-            elif not f.quote or _norm(f.quote) not in texts[f.source_url]:
+            elif not f.quote or _norm(f.quote) not in texts[f.source_url] or suspicious(f.quote):
                 issues.append(f"{name}: quote not found in the cited page -> {f.quote!r}")
         if f.status == "unknown" and f.value not in (None, ""):
             issues.append(f"{name}: unknown but has value {f.value!r}")
@@ -123,7 +124,7 @@ def snippets(sources: list[dict], pattern: str, *, width: int = 160, limit: int 
     """Short windows of source text around a keyword, with their URL. Deterministic retrieval, no model."""
     out, seen = [], set()
     for s in sources:
-        text = " ".join(s["text"].split())
+        text = " ".join(sanitize(s["text"])[0].split())
         for m in re.finditer(pattern, text, flags=re.I):
             w = text[max(0, m.start() - width): m.end() + width]
             if w not in seen:
@@ -149,7 +150,7 @@ def fill_unknowns(rec: ForgedEvent, sources: list[dict], *, usage: Usage | None 
     # defaults. Showing the exact shape fixes that (found while debugging this pass).
     example = ('{"fills": [{"field": "space_weather.kp_peak", "fact": {"value": "9", "status": "sourced", '
                '"source_url": "<url in parentheses>", "quote": "<exact words>", "note": null}}]}')
-    messages = [{"role": "system", "content": SYSTEM + "\nFill only the listed fields from the listed sentences. "
+    messages = [{"role": "system", "content": SYSTEM + "\n" + DATA_RULE + "\nFill only the listed fields from the listed sentences. "
                  "Answer in exactly this shape, one entry per listed field:\n" + example},
                 {"role": "user", "content": prompt}]
     fills, _ = structured_call(MODEL_SUPER, messages, Fills, usage=usage, max_tokens=8000)
@@ -205,8 +206,8 @@ def forge(event: str, *, usage: Usage | None = None, refresh: bool = False, log=
     sources, stats = gather(TavilyClient(api_key=require_env("TAVILY_API_KEY")), event)
     log(f"Tavily: {len(sources)} pages, {stats['search_calls']} searches + {stats['extract_calls']} extract, "
         f"~{stats['credits']} credits")
-    block = "\n\n".join(f"[{i}] URL: {s['url']}\nTITLE: {s['title']}\nTEXT:\n{s['text']}" for i, s in enumerate(sources))
-    messages = [{"role": "system", "content": SYSTEM},
+    block, injection_flags = wrap_sources(sources)
+    messages = [{"role": "system", "content": SYSTEM + "\n" + DATA_RULE},
                 {"role": "user", "content": f"Event: {event}\n\nSources:\n{block}\n\nFill every field."}]
     repairs = []
     for attempt in range(2):
@@ -234,7 +235,7 @@ def forge(event: str, *, usage: Usage | None = None, refresh: bool = False, log=
     for _, f in _facts(rec):
         counts[f.status] += 1
     out = {"event": event, "record": rec.model_dump(), "issues": issues, "repairs": repairs, "fact_counts": counts,
-           "second_pass_filled": filled,
+           "second_pass_filled": filled, "injection_flags": injection_flags,
            "tavily": {**stats, "sources": [{k: s[k] for k in ("url", "title", "score")} for s in sources]},
            "seconds": round(time.time() - t0, 1)}
     path.write_text(json.dumps(out, indent=2, ensure_ascii=False))
