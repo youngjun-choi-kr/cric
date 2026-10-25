@@ -45,21 +45,21 @@ class CovarianceModel:
     radial_growth_km_per_day: float = 0.05
     along_growth_km_per_day: float = 1.0
     cross_growth_km_per_day: float = 0.05
-    storm_along_factor_per_kp: float = 0.3  # along-track x (1 + f * max(0, Kp - 3))
 
-    def sigmas(self, age_days: float, kp: float) -> np.ndarray:
+    def sigmas(self, age_days: float, storm_along_km: float = 0.0) -> np.ndarray:
+        """1-sigma RTN (km). storm_along_km: unmodelled storm drag drift (physics.drag), added in quadrature."""
         age = max(age_days, 0.0)
-        storm = 1.0 + self.storm_along_factor_per_kp * max(0.0, kp - 3.0)
+        along = self.along_km + self.along_growth_km_per_day * age
         return np.array([
             self.radial_km + self.radial_growth_km_per_day * age,
-            (self.along_km + self.along_growth_km_per_day * age) * storm,
+            math.hypot(along, storm_along_km),
             self.cross_km + self.cross_growth_km_per_day * age,
         ])
 
 
 # Precise ephemeris / CDM-grade knowledge, used when the scenario says better data has arrived.
 # Not real CDM data: ~100 m along-track, ~25 m radial and cross-track, no growth (fresh solution).
-CDM_GRADE = CovarianceModel(0.025, 0.1, 0.025, 0.0, 0.0, 0.0, 0.3)
+CDM_GRADE = CovarianceModel(0.025, 0.1, 0.025, 0.0, 0.0, 0.0)
 
 
 def _rtn_cov_eci(r: np.ndarray, v: np.ndarray, sig: np.ndarray) -> np.ndarray:
@@ -78,7 +78,10 @@ def _pc_2d(miss_vec_2d: np.ndarray, cov_2d: np.ndarray, hbr_km: float) -> float:
 
 
 def collision_probability(enc: Encounter, age_days: tuple[float, float], *, kp: float = 2.0,
-                          hbr_km: float = 0.02, model: CovarianceModel | None = None) -> dict:
+                          hbr_km: float = 0.02, model: CovarianceModel | None = None,
+                          span_days: tuple[float, float] | None = None) -> dict:
+    """span_days: how long each orbit is propagated through the storm (TLE age at TCA by default; for a fresh
+    precise solution, the time from now to TCA)."""
     """Pc at the nominal TCA of an Encounter under the assumed covariance model."""
     model = model or CovarianceModel()
     i = enc.i_tca
@@ -93,8 +96,12 @@ def collision_probability(enc: Encounter, age_days: tuple[float, float], *, kp: 
     e2 = np.cross(vhat, e1)
     proj = np.vstack([e1, e2])
 
-    sig_m = model.sigmas(age_days[0], kp)
-    sig_o = model.sigmas(age_days[1], kp)
+    from .drag import ASSUMPTIONS, storm_along_km
+
+    span = span_days or age_days
+    storm = [storm_along_km(float(np.linalg.norm(r)) - 6378.137, kp, d) for r, d in ((rM, span[0]), (rO, span[1]))]
+    sig_m = model.sigmas(age_days[0], storm[0])
+    sig_o = model.sigmas(age_days[1], storm[1])
     cov = _rtn_cov_eci(rM, vM, sig_m) + _rtn_cov_eci(rO, vO, sig_o)
     cov2 = proj @ cov @ proj.T
     miss2 = np.array([np.linalg.norm(perp), 0.0])
@@ -120,6 +127,8 @@ def collision_probability(enc: Encounter, age_days: tuple[float, float], *, kp: 
         "sigma_rtn_km": {"maneuvering": sig_m.round(3).tolist(), "other": sig_o.round(3).tolist()},
         "sensitivity": {"pc_min": min(sweep), "pc_max": max(sweep), "levels": sorted(sweep_levels),
                         "robust": len(sweep_levels) == 1, "sweep": "sigma x0.5-x2, hard-body radius 10-40 m"},
-        "assumptions": {"covariance": "ASSUMED from TLE age and Kp; no CDM", "hbr_km": hbr_km, "kp": kp,
+        "storm_drag_along_km": [round(x, 3) for x in storm],
+        "assumptions": {"covariance": "ASSUMED from TLE age, plus storm drag from MSIS at Kp; no CDM",
+                        "storm_drag": ASSUMPTIONS, "hbr_km": hbr_km, "kp": kp,
                         "tle_age_days": [round(a, 2) for a in age_days], "model": asdict(model)},
     }

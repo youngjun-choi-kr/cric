@@ -18,6 +18,7 @@ dependencies = [
     "tavily-python>=0.5",
     "python-dotenv>=1.0",
     "pydantic>=2.8",
+    "pymsis>=0.10",
 ]
 
 [project.optional-dependencies]

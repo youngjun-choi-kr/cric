@@ -179,14 +179,18 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
     usage, t0 = Usage(), time.time()
     base, _, variant = model.partition("+")
     try:
-        if variant in ("extract", "vote3+constraints"):   # read the notes into structured constraints first
+        if variant in ("extract", "vote3+constraints", "hybrid"):   # read the notes into structured constraints first
             from ..agent.constraints import apply, extract
             c, problems = extract(ctx, model=base, usage=usage)
             ctx = apply(ctx, c, problems)
         if variant == "extract":                          # then let the coded policy decide: no model judgement
             from ..agent.constraints import coded_policy
             dec = coded_policy(ctx, now)
-        elif variant.startswith("vote3"):                 # the pipeline's decision: 3 independent calls
+        elif variant == "hybrid":                         # coded policy and 3 votes must agree, else escalate
+            from ..agent.constraints import agree, coded_policy
+            voted, _, _ = decide_votes(ctx, n=3, model=base, usage=usage)
+            dec = agree(coded_policy(ctx, now), voted)
+        elif variant.startswith("vote3"):                 # 3 independent calls, majority or escalate
             dec, _, _ = decide_votes(ctx, n=3, model=base, usage=usage)
         else:
             d, _ = decide(ctx, model=base, usage=usage)
@@ -335,7 +339,7 @@ def main_cli(args) -> None:
         return
     models = {"super": MODEL_SUPER, "nano": MODEL_NANO, "super+vote3": MODEL_SUPER + "+vote3",
               "super+extract": MODEL_SUPER + "+extract", "nano+extract": MODEL_NANO + "+extract",
-              "super+vote3+constraints": MODEL_SUPER + "+vote3+constraints"}
+              "super+vote3+constraints": MODEL_SUPER + "+vote3+constraints", "super+hybrid": MODEL_SUPER + "+hybrid"}
     summary = run([models[m] for m in args.models.split(",")], repeats=args.repeats,
                   scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers,
                   scenario_set=args.set, log=lambda *a: print(*a, flush=True))

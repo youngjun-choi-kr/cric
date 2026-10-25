@@ -158,3 +158,21 @@ def coded_policy(ctx: dict, now: datetime) -> dict:
     trimmed = {**ctx, "burn_options": {**ctx["burn_options"],
                                        "options": [o for o in ctx["burn_options"]["options"] if o["id"] not in bad]}}
     return policy_rule(trimmed, now)
+
+
+def agree(coded: dict, voted: dict) -> dict:
+    """Two independent routes must agree before CRIC proposes anything: the coded policy over the extracted
+    constraints, and the model's majority vote. Same action (and same option for a burn) -> that decision, with the
+    model's rationale and message; otherwise a person decides, with both views on the table."""
+    same = coded["action"] == voted["action"] and (
+        coded["action"] not in ("MANEUVER", "COORDINATE") or coded.get("option_id") == voted.get("option_id"))
+    if same:
+        return {**voted, "agreement": "coded policy and model agree"}
+    a = f"coded policy {coded['action']} {coded.get('option_id') or ''}".strip()
+    b = f"model {voted['action']} {voted.get('option_id') or ''}".strip()
+    return {"action": "ESCALATE", "option_id": None, "message_to_other_operator": None,
+            "rationale": f"The two decision routes disagree ({a}; {b}); a person should decide.",
+            "key_factors": [{"factor": "route disagreement", "evidence": f"{a}; {b}", "effect": "escalate"},
+                            {"factor": "policy", "evidence": "both routes must agree", "effect": "no automatic action"}],
+            "mission_conflicts": [], "recheck_at_utc": None, "confidence": 0.0,
+            "unknowns": ["which route is right"], "agreement": "disagree", "routes": {"coded": coded, "model": voted}}

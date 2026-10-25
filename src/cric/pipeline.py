@@ -63,7 +63,8 @@ def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
     emit("geometry", miss_km=enc.nominal[0], rel_speed_kms=enc.rel_speed)
     jd = sum(julian(tca))
     if data_quality == "cdm":
-        risk = collision_probability(enc, (0.0, 0.0), kp=kp, model=CDM_GRADE)
+        to_tca = (tca - now).total_seconds() / 86400
+        risk = collision_probability(enc, (0.0, 0.0), kp=kp, model=CDM_GRADE, span_days=(to_tca, to_tca))
         risk["assumptions"]["covariance"] = "SIMULATED precise ephemeris (CDM-grade); not real CDM data"
         # Dilution means "better data could change the answer"; with precise data in hand that no longer applies.
         risk["diluted"] = False
@@ -88,7 +89,8 @@ def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
                         "orbital_period_min": round(enc.period / 60, 1),
                         "data": ("precise ephemeris (simulated CDM)" if data_quality == "cdm"
                                  else "public GP/TLE, accuracy about 1 km")},
-        "risk": {k: risk[k] for k in ("pc", "pc_max_if_better_data", "diluted", "level", "sigma_rtn_km", "sensitivity")}
+        "risk": {k: risk[k] for k in ("pc", "pc_max_if_better_data", "diluted", "level", "sigma_rtn_km", "sensitivity",
+                                      "storm_drag_along_km")}
                 | {"data_quality": data_quality}
                 | {"assumption": risk["assumptions"]["covariance"], "tle_age_days": risk["assumptions"]["tle_age_days"]},
         "burn_options": opts,
