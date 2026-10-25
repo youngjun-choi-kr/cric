@@ -42,24 +42,24 @@ SHOTS = [
     ("S7", 17, "app", "app_60454-61786_imaging", "Tavily Search + Extract · quote verified",
      "Can the other satellite move? Tavily searches the web. Nemotron 3 Super writes a dossier where every fact "
      "carries a source and an exact quote, and our code checks each one. Tonight, nobody can confirm it."),
-    ("S8", 23, "app", "app_60454-61786_imaging", "Nemotron 3 Super × 3 votes · MANEUVER O2",
+    ("S8", 23, "app", "app_60454-61786_imaging", "Nemotron 3 Super × 3 votes · coordinate, burn O2",
      "Then three independent Nemotron 3 Super runs vote. They read what a rule engine can't: a disaster-response "
-     "imaging pass rules out the cheapest burn, so they take the later one."),
+     "imaging pass rules out the cheapest burn, so they plan the later one and tell the other operator first."),
     ("S9a", 5, "app", "app_60454-61786_imaging", "Validator · routes agree · approved by a person",
      "Code checks every decision, a second route in code must agree, and a person approves."),
     ("S9b", 10, "cine", "go-to-burn", "Flown with errors: conjunction cleared · Nebius Token Factory",
      "The burn is flown in simulation with real-world errors and checked again. Every model runs on Nebius "
      "Token Factory."),
-    ("S10", 20, "app", "app_60454-61786_storm_2024", "May 2024 · G5 · Kp 9 · 3 of 3 burns stopped (eval)",
-     "We replayed real storms, researched with Tavily. In twenty runs the model tried to burn on storm-degraded "
-     "data three times. All three times, code said: get better data first."),
-    ("S11", 15, "app", "app_60454-61786_korean_note", "Held-out 2: policy 5/8 · Nemotron + validator 40/40",
+    ("S10", 20, "app", "app_60454-61786_storm_2024", "May 2024 · G5 · Kp 9 · storm drag ±40 km → get precise data",
+     "We replayed real storms, researched with Tavily. NASA's thermosphere model says the orbit could be off by "
+     "tens of kilometres. Nobody should burn on that: get better data first."),
+    ("S11", 15, "app", "app_60454-61786_korean_note", "Held-out 2: coded policy 5/8 · Nemotron 8/8",
      "Some of what matters lives only in an operator's note: Korean, Japanese, Spanish, ops jargon. On a held-out "
-     "set written before any model saw it, a coded policy missed three of eight. Nemotron with the validator: "
-     "forty runs out of forty."),
-    ("S12", 20, "card", None, "0 policy-violating burns on held-out\nCode · Nemotron · People",
-     "Answers fixed before we ran them. Code for what can be checked. Nemotron for what must be read. People for "
-     "what must be decided."),
+     "set written before any model saw it, a coded policy missed three of eight situations. Nemotron read all "
+     "eight."),
+    ("S12", 20, "card", None, "102 test runs · 0 burns past the checks\nCode · Nemotron · People",
+     "Answers fixed before we ran them. Two routes must agree, or a person decides: no burn got past the checks. "
+     "Code for what can be checked. Nemotron for what must be read. People for what must be decided."),
     ("S13", 10, "cine", "pass-and-pullback", "Predicted miss: 17 m → 2 km", ""),
     ("S14", 4, "title", None, "CRIC\nBuilt with NVIDIA Nemotron on Nebius Token Factory · Tavily\ngithub.com/youngjun-choi-kr/cric", ""),
 ]
