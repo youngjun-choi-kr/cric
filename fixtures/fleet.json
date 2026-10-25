@@ -1,4 +1,13 @@
 {
   "_note": "Demo fleet registry. In the demo we play the operator of these satellites; their propulsion status is an assumption standing in for the operator's own telemetry, not a claim about the real spacecraft.",
-  "60454": {"name": "EOS-08", "can_maneuver": "yes", "basis": "fleet registry (demo assumption): propulsion nominal at last pass"}
+  "60454": {
+    "name": "EOS-08",
+    "can_maneuver": "yes",
+    "basis": "fleet registry (demo assumption): propulsion nominal at last pass"
+  },
+  "43250": {
+    "name": "IRIDIUM 149",
+    "can_maneuver": "yes",
+    "basis": "fleet registry (demo assumption): propulsion nominal at last pass"
+  }
 }

@@ -1,5 +1,33 @@
 [
  {
+  "file": "43250_34430_20261025T125605_0344_precise.json",
+  "ours": 43250,
+  "other": 34430,
+  "tca_utc": "2026-10-25T12:56:05.511209Z",
+  "preset": "precise",
+  "action": "MONITOR",
+  "final": "MONITOR",
+  "has_trace": true,
+  "names": [
+   "IRIDIUM 149",
+   "COSMOS 2251 DEB"
+  ]
+ },
+ {
+  "file": "43250_34430_20261025T125605_0343_quiet.json",
+  "ours": 43250,
+  "other": 34430,
+  "tca_utc": "2026-10-25T12:56:05.511209Z",
+  "preset": "quiet",
+  "action": "MANEUVER",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "IRIDIUM 149",
+   "COSMOS 2251 DEB"
+  ]
+ },
+ {
   "file": "60454_61786_20261025T003427_1624_korean_note.json",
   "ours": 60454,
   "other": 61786,
