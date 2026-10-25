@@ -1,7 +1,7 @@
 """cric command line.
 
   cric screen   --hours 6                      screen the active catalog for close approaches
-  cric incident --ours 40536 --other 42845     assess one conjunction and let Nemotron decide
+  cric incident --ours 43250 --other 34430     assess one conjunction and let Nemotron decide
   cric eval     --models super,nano            decision scenarios vs rule baselines
   cric forge    --event "May 2024 G5 storm"    real event -> cited record (Tavily + Nemotron)
   cric watch    --every 30 --cycles 0          unattended loop: screen, decide, notify a person (Nebius job)

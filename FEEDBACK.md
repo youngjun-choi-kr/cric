@@ -10,7 +10,7 @@ messages and LIMITATIONS.md have the details.
 | Nebius Token Factory | OpenAI-compatible chat completions, `response_format: json_schema` | every model call |
 | NVIDIA Nemotron 3 Super (120B-A12B) | `nvidia/nemotron-3-super-120b-a12b` | decisions, satellite dossiers, event records |
 | NVIDIA Nemotron 3.5 Super VL | `nvidia/Nemotron-3.5-Super-VL` | reading SDO images of the Sun with NOAA data |
-| NVIDIA Nemotron 3 Ultra (550B-A55B) | `nvidia/Nemotron-3-Ultra-550b-a55b` | coordination messages and escalation briefs, only when a person must act |
+| NVIDIA Nemotron 3 Ultra (550B-A55B) | `nvidia/Nemotron-3-Ultra-550b-a55b` | coordination messages and escalation briefs, only when a person must act (86% vs Super 7% on our code-checked completeness test, and faster) |
 | NVIDIA Nemotron 3 Nano (30B-A3B) | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | evaluated for decisions; not used in the final routing |
 | Tavily | Search (advanced) + Extract (advanced, query-focused chunks) | satellite capability facts and real space-weather events, each with a verbatim quote |
 
@@ -21,8 +21,10 @@ messages and LIMITATIONS.md have the details.
   our first run returned the right content under different field names.
 - **`reasoning_content` is returned separately.** We show it in the console as the decision trace; judges and
   operators can see why the model decided, not only what.
-- **Nemotron Super reads plain-language constraints well.** On held-out scenarios where the deciding fact was only
-  in free text (including notes written in Korean), Super was right 18 of 20 times (0.90) against 0.75 for a coded policy that cannot read them.
+- **Nemotron Super reads plain-language constraints well.** On a second held-out set written after the design
+  froze (notes in Japanese, Spanish, Korean, ops jargon, chat messages), Super plus our validator was right 40 of
+  40 times against 5 of 8 scenarios for a coded policy that cannot read them. On the first held-out set the
+  text-only cases were 18 of 20 (0.90) vs 0.75.
 - **Super VL kept "observed" and "inferred" apart** and volunteered that one EUV image cannot confirm an
   Earth-directed CME, and that high-energy electron flux is a charging issue rather than drag.
 - **Tavily Extract with a `query` made the difference** between snippets that miss the number and page text that
@@ -51,7 +53,8 @@ messages and LIMITATIONS.md have the details.
    (`"O1'} } // Note: ..."`). A `pattern` constraint on the field prevents it.
 
 ## Numbers from our runs
-- A typical incident (dossiers cached): 1 Super decision + 1 Ultra report, about $0.011 and 15-25 s.
+- A typical incident (dossiers cached): 3 Super decisions in parallel + 1 Ultra report when a person must act,
+  about $0.008-0.015 and 15-25 s.
 - Space-weather read with Super VL: about $0.004 and 10-20 s per image.
 - A satellite dossier with Tavily: 3 searches + 1 extract (7-8 Tavily credits) and 1-2 Super calls.
 - All evaluation runs together cost under $1 of Token Factory credit.
