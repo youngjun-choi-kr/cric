@@ -164,6 +164,7 @@ def test_vl_read_is_context_only():
     assert cross_check("low", 2.0) is None and cross_check("unknown", 9) is None
     d = cross_check("high", 2.0)
     assert d["direction"] == "vl_higher" and "recheck" in d["effect"]
+    assert cross_check("moderate", 2.0) is None           # the model says moderate for every image: no signal
     assert cross_check("low", 8)["direction"] == "vl_lower"
 
 

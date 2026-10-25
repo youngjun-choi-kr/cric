@@ -4,9 +4,10 @@ What reaches the physics is the Kp value from NOAA (observed and forecast), neve
 a picture. The VL read has two jobs:
 1. explain the conditions in plain language for the operator (active regions, coronal holes, what one image
    cannot show), with every observation labelled observed / inferred / unknown;
-2. act as a second opinion. If its drag-risk read is higher than NOAA's Kp implies (for example a fresh eruption
-   the forecast has not caught up with), that disagreement is flagged by code and the decision must name a
-   recheck time. It can make CRIC look again sooner; it can never change a Pc or approve a burn.
+2. act as a second opinion, in principle. A "high" or "severe" image read against a quiet Kp is flagged and the
+   decision should name a recheck time; it can never change a Pc or approve a burn. In practice the retrospective
+   test (scripts/eval_vl.py, results/vl_eval.json) found no forecasting signal: the model rated all 20 images
+   "moderate", including the eves of ten G3-G5 storms, so the flag has not fired on any tested day.
 Cached for an hour per image.
 """
 
@@ -70,9 +71,13 @@ def cross_check(vl_level: str, kp: float) -> dict | None:
     gap = LEVELS.index(vl_level) - LEVELS.index(n)
     if gap == 0:
         return None
-    if gap > 0:
+    if gap > 0 and vl_level in ("high", "severe"):
+        # Only a strong image read counts: in a retrospective test (scripts/eval_vl.py) the model rated every
+        # image "moderate", storm-eve and quiet days alike, so a moderate-vs-low gap carries no signal.
         return {"vl": vl_level, "noaa": n, "direction": "vl_higher",
                 "effect": "physics keeps NOAA Kp; set a recheck before the latest burn and after the next NOAA forecast"}
+    if gap > 0:
+        return None
     return {"vl": vl_level, "noaa": n, "direction": "vl_lower", "effect": "physics keeps NOAA Kp (the more cautious input)"}
 
 

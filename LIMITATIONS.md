@@ -72,6 +72,12 @@ CRIC is a research prototype for decision support. It is not an operational coll
   re-selected there, note times became relative to the burn options, and H01's burn cap was made relative so its
   intent holds; expected answers did not change. Numbers in README come from runs on this snapshot.
 
+## Space-weather image read
+- Retrospective test (`scripts/eval_vl.py`, `results/vl_eval.json`): on 10 calm days before G3-G5 storms and 10
+  calm days with no storm, both in 2023-2026, Nemotron 3.5 Super VL rated LEO drag risk "moderate" for all 20
+  images when given the SDO image alone. It does not discriminate, so CRIC uses it only to explain conditions;
+  the recheck flag fires only on a "high" or "severe" read, which did not occur in the test.
+
 ## Reports
 - The report comparison (Ultra vs Super, `cric.eval.reports`) checks grounding and completeness by code. It does
   not judge tone or usefulness, and it counts correct arithmetic derived from the context (for example "2.5 min

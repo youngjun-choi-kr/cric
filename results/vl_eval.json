@@ -1,0 +1,196 @@
+{
+ "summary": {
+  "storm_eve_days": 10,
+  "quiet_days": 10,
+  "storm_eve_flagged_moderate_or_more": 10,
+  "storm_eve_flagged_high_or_more": 0,
+  "quiet_flagged_moderate_or_more": 10,
+  "quiet_flagged_high_or_more": 0,
+  "current_kp_rule": "flags none of these days (previous 24 h Kp <= 4 by selection)",
+  "unreadable": 0,
+  "cost_usd": 0.044,
+  "model": "nvidia/Nemotron-3.5-Super-VL"
+ },
+ "rows": [
+  {
+   "kind": "storm_eve",
+   "day_utc": "2023-03-21T12:00:00+00:00",
+   "kp_max_prev_24h": 4.0,
+   "kp_max_next_72h": 8.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2023/03/21/20230321_120017_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows a large coronal hole, which can drive high-speed solar wind and geomagnetic activity if Earth-directed. This could increase thermospheric density and LEO drag over the next 72 hours. However, without CME confirmation or Kp forecasts, the magnitude and timing remain uncertain."
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2023-04-21T12:00:00+00:00",
+   "kp_max_prev_24h": 2.333,
+   "kp_max_next_72h": 8.333,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2023/04/21/20230421_115805_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "Visible coronal holes can drive high-speed solar wind streams that increase geomagnetic activity and thermospheric density, raising LEO drag. However, without solar wind, Kp, or CME data, and without confirming Earth-facing orientation, the risk is elevated but uncertain."
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2023-11-03T12:00:00+00:00",
+   "kp_max_prev_24h": 2.0,
+   "kp_max_next_72h": 7.333,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2023/11/03/20231103_115805_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "A substantial coronal hole is visible, which can drive a high-speed solar wind stream. If Earth-facing, such a stream could arrive within 1\u20133 days, enhancing geomagnetic activity and thermospheric density, thereby increasing drag on LEO objects. However, Earth-direction is not confirmed and no Kp da"
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-04-18T12:00:00+00:00",
+   "kp_max_prev_24h": 2.0,
+   "kp_max_next_72h": 7.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/04/18/20240418_115717_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows coronal holes and active regions capable of driving elevated solar wind and geomagnetic activity, which can increase thermospheric density and LEO drag. However, no Earth-directed CME is confirmed and no Kp data is available, so the risk is not high or severe."
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-05-08T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 9.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/05/08/20240508_115807_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The AIA 193 image shows active regions and coronal holes, which are potential sources of solar wind disturbances and geomagnetic activity that can increase thermospheric density and LEO drag. However, because an Earth-directed CME cannot be confirmed from this image alone and no Kp data is available"
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-06-26T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 7.667,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/06/26/20240626_115853_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows coronal holes and active regions that can drive solar wind variability and geomagnetic activity, potentially increasing LEO drag. However, a single EUV image cannot confirm an Earth-directed CME or the geoeffective orientation of coronal holes, and no Kp data is available, so the ris"
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-08-02T12:00:00+00:00",
+   "kp_max_prev_24h": 3.0,
+   "kp_max_next_72h": 7.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/08/02/20240802_115817_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows coronal holes and active regions that could drive geomagnetic activity and enhance LEO drag over the next 72 hours, but no Earth-directed CME is confirmed and no Kp data is available to quantify the risk."
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-08-10T12:00:00+00:00",
+   "kp_max_prev_24h": 2.0,
+   "kp_max_next_72h": 8.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/08/10/20240810_115753_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows an active Sun with multiple bright regions and possible coronal holes, which could drive geomagnetic activity and increase thermospheric density over the next 72 hours. However, without confirmation of an Earth-directed CME or Kp/F10.7 data, the risk cannot be elevated to high or sev"
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-09-10T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 7.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/09/10/20240910_115753_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The presence of a coronal hole and active regions suggests potential for enhanced solar wind and geomagnetic activity over the next 72 hours, which can increase thermospheric density and LEO drag. However, without knowing if the coronal hole will become Earth-directed or without geomagnetic indices,"
+  },
+  {
+   "kind": "storm_eve",
+   "day_utc": "2024-10-05T12:00:00+00:00",
+   "kp_max_prev_24h": 3.0,
+   "kp_max_next_72h": 7.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/10/05/20241005_120929_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows a large northern coronal hole and active regions that can drive elevated solar wind and EUV flux, potentially increasing thermospheric density and LEO drag. However, Earth-impact of any solar wind stream or CME cannot be confirmed from this single image, and no Kp data is available t"
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2024-01-07T12:00:00+00:00",
+   "kp_max_prev_24h": 1.0,
+   "kp_max_next_72h": 2.333,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/01/07/20240107_115717_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "A visible coronal hole near the solar disk may produce a high-speed solar wind stream that could reach Earth within the next few days, potentially raising Kp and thermospheric density. However, without NOAA solar wind data or coronagraph confirmation of any CME, the timing and magnitude are uncertai"
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2024-01-16T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 2.667,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/01/16/20240116_115729_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "A coronal hole is visible in the AIA 193 \u00c5 image, which can be a source of high-speed solar wind capable of driving geomagnetic activity and increasing LEO atmospheric drag. However, without confirmation that the hole is Earth-facing or will rotate into an Earth-affecting position, and without Kp or"
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2024-02-28T12:00:00+00:00",
+   "kp_max_prev_24h": 3.0,
+   "kp_max_next_72h": 2.667,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/02/28/20240228_115717_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "Coronal holes visible in AIA 193 \u00c5 can drive high-speed solar wind streams that increase thermospheric density and LEO drag. However, no Earth-directed CME is confirmed in this single image, and without Kp or solar wind data, the likelihood and severity of geomagnetic enhancement over the next 72 ho"
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2024-04-11T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 2.333,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/04/11/20240411_115717_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows an active Sun with multiple bright active regions and possible coronal holes, which could increase geomagnetic activity and thermospheric density over the next 72 hours. However, there is no confirmed Earth-directed CME and no Kp data, so the drag risk is elevated but not certain."
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2024-11-18T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 2.667,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2024/11/18/20241118_115753_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "A coronal hole is observed on the solar disk, which is a known source of high-speed solar wind streams that can increase thermospheric density and LEO drag. However, without confirmation that the hole is Earth-facing and without NOAA Kp or solar wind data, the timing and intensity of any drag enhanc"
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2025-08-25T12:00:00+00:00",
+   "kp_max_prev_24h": 1.667,
+   "kp_max_next_72h": 3.0,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2025/08/25/20250825_115753_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows a prominent coronal hole and active regions, suggesting potential for elevated solar wind and geomagnetic activity over the next 3 days. However, without NOAA Kp data or confirmation of the coronal hole's central meridian passage and CME status, the drag enhancement is uncertain but "
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2026-02-01T12:00:00+00:00",
+   "kp_max_prev_24h": 1.333,
+   "kp_max_next_72h": 2.333,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2026/02/01/20260201_115753_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The observed active regions suggest elevated solar EUV output, which can increase thermospheric density and LEO drag. However, no Earth-directed CME is confirmed from this single image, and no Kp or geomagnetic forecast data is provided, so a severe drag event is not indicated."
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2026-06-14T12:00:00+00:00",
+   "kp_max_prev_24h": 3.667,
+   "kp_max_next_72h": 2.667,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2026/06/14/20260614_115717_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "Visible coronal holes suggest possible high-speed solar wind streams that could enhance geomagnetic activity and thermospheric density over the next 72 hours, increasing LEO drag. However, without confirmation of an Earth-directed CME or Kp forecasts, the risk is moderate rather than high or severe."
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2026-08-14T12:00:00+00:00",
+   "kp_max_prev_24h": 3.0,
+   "kp_max_next_72h": 2.333,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2026/08/14/20260814_115753_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "Visible coronal holes on the solar disk suggest potential high-speed solar wind streams that could become Earth-facing as they rotate toward central meridian, increasing geomagnetic activity and thermospheric density. However, without NOAA Kp data or coronagraph imagery, the severity and timing cann"
+  },
+  {
+   "kind": "quiet",
+   "day_utc": "2026-09-20T12:00:00+00:00",
+   "kp_max_prev_24h": 2.667,
+   "kp_max_next_72h": 1.667,
+   "image": "https://sdo.gsfc.nasa.gov/assets/img/browse/2026/09/20/20260920_115729_512_0193.jpg",
+   "leo_drag_risk_72h": "moderate",
+   "reasoning": "The image shows a large coronal hole, which can drive high-speed solar wind streams and elevate geomagnetic activity (Kp), increasing thermospheric density and LEO drag. However, without NOAA Kp forecasts, coronagraph data, or knowledge of the coronal hole's magnetic connectivity to Earth, the timin"
+  }
+ ]
+}

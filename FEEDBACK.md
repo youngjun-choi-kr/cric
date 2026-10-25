@@ -26,7 +26,9 @@ messages and LIMITATIONS.md have the details.
   40 times against 5 of 8 scenarios for a coded policy that cannot read them. On the first held-out set the
   text-only cases were 18 of 20 (0.90) vs 0.75.
 - **Super VL kept "observed" and "inferred" apart** and volunteered that one EUV image cannot confirm an
-  Earth-directed CME, and that high-energy electron flux is a charging issue rather than drag.
+  Earth-directed CME, and that high-energy electron flux is a charging issue rather than drag. But in a
+  retrospective test it rated every one of 20 solar images "moderate" drag risk, the eves of ten G3-G5 storms
+  and ten quiet days alike, so its read carries no forecasting signal for us (details in LIMITATIONS.md).
 - **Tavily Extract with a `query` made the difference** between snippets that miss the number and page text that
   contains it (for example the Kp 9 peak of the May 2024 storm on Wikipedia and NOAA pages).
   `exclude_domains` let us keep social media out of safety-relevant facts.
