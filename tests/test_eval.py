@@ -52,3 +52,10 @@ def test_policy_rule_paths():
     assert policy_rule(_ctx(other_type="payload", other_cap="unknown"), NOW)["action"] == "COORDINATE"
     w = {"label": "x", "start_utc": NOW.isoformat(), "end_utc": (NOW + timedelta(hours=1)).isoformat()}
     assert policy_rule(_ctx(blackouts=[w]), NOW)["option_id"] == "O2"
+
+
+def test_wilson_interval():
+    from cric.eval.runner import wilson
+    lo, hi = wilson(18, 20)
+    assert 0.68 < lo < 0.72 and 0.96 < hi < 0.98
+    assert wilson(0, 0) == [0.0, 0.0]

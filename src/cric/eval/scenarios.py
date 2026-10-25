@@ -137,6 +137,44 @@ HELDOUT = [
 ]
 
 
+# Held-out set 2: text-only signals in varied languages and registers, including notes that REMOVE a constraint,
+# so reading the note does not always mean "be more careful". Committed before any model ran on it.
+HELDOUT2 = [
+    Scenario("T01", "Japanese note: imaging window over the cheapest burn", "red", {"MANEUVER"}, "text",
+             "Only the note says the cheapest burn is blocked.", avoid_option_kind="min_dv",
+             mission_notes="{img_start}〜{img_end} UTC に災害対応の緊急撮影があります。この時間帯はスラスタ噴射禁止です。"),
+    Scenario("T02", "Spanish note: safe mode, thrusters locked", "red", {"ESCALATE"}, "text",
+             "We cannot burn; a person must decide what to do.",
+             mission_notes="La nave entró en modo seguro a las {safe_since} UTC tras una falla de rueda de reacción; "
+                           "los propulsores están bloqueados hasta que el comité apruebe la recuperación."),
+    Scenario("T03", "Chat message: the imaging pass was cancelled", "red", {"MANEUVER"}, "text",
+             "The note lifts a constraint; nothing blocks the cheapest burn.",
+             mission_notes="fyi from payload ops: tonight's imaging pass got cancelled, sat is all yours, no "
+                           "restrictions on attitude or thrusters"),
+    Scenario("T04", "Two notes, the newer one cancels the older restriction", "red", {"MANEUVER"}, "text",
+             "The latest note wins; no restriction remains.",
+             mission_notes="[{safe_since} UTC] Hold all burns until further notice (imaging campaign). "
+                           "[{now} UTC] Update: imaging campaign postponed to next week, previous hold is lifted."),
+    Scenario("T05", "Note full of numbers that do not matter tonight", "red", {"MANEUVER"}, "text",
+             "Maintenance is tomorrow and propellant is ample; act on the red Pc.",
+             mission_notes="Ground antenna B maintenance tomorrow 03:00-04:00 UTC (no effect tonight). Propellant "
+                           "remaining 31.4 kg, about 40 m/s equivalent. Battery 92%."),
+    Scenario("T06", "Other operator unreachable until Monday", "red", {"MANEUVER", "COORDINATE"}, "text",
+             "We still notify them, but nobody will answer in time; acting ourselves with a notice is acceptable.",
+             other="active_unknown", message_required=True,
+             mission_notes="Emailed the other operator's ops desk at {now} UTC. Auto-reply: no one on shift until "
+                           "Monday 08:00 local time."),
+    Scenario("T07", "Ops jargon: propulsion NO-GO", "red", {"ESCALATE"}, "text",
+             "The abbreviations say propulsion is not available.",
+             mission_notes="FDS: prop sys NO-GO after tank press anomaly @ {safe_since}Z. All ΔV ops on hold pending "
+                           "MRB. ADCS nominal."),
+    Scenario("T08", "Korean note: along-track only, at most 0.5 m/s", "red", {"MANEUVER"}, "text",
+             "Only a small along-track burn is allowed; the large late option is out.", avoid_option_kind="latest",
+             mission_notes="추력기 2번 누설이 의심됩니다. 당분간 진행 방향(prograde/retrograde) 분사만 허용하고, "
+                           "1회 분사량은 0.5 m/s 이하로 제한합니다."),
+]
+
+
 def forged_scenarios() -> list[Scenario]:
     """Real space-weather events researched with Tavily (cric forge), replayed against the KOMPSAT-3A encounter
     on TLE data. Expected answers follow one rule fixed before running: storm-degraded predictions plus a diluted

@@ -25,7 +25,7 @@ from ..llm import Usage
 from ..physics.timeutil import iso, parse_utc
 from ..pipeline import DEFAULT_POLICY, physics_block
 from ..safety.validator import validate
-from .scenarios import ENCOUNTERS, HELDOUT, SCENARIOS, Scenario, forged_scenarios
+from .scenarios import ENCOUNTERS, HELDOUT, HELDOUT2, SCENARIOS, Scenario, forged_scenarios
 
 RESULTS = DATA / "eval"
 
@@ -187,7 +187,7 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
 
 def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = None, workers: int = 4,
         scenario_set: str = "tuning", log=print) -> dict:
-    pool_ = {"heldout": HELDOUT, "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
+    pool_ = {"heldout": HELDOUT, "heldout2": HELDOUT2, "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
     chosen = [s for s in pool_ if not scenario_ids or s.id in scenario_ids]
     contexts = build_contexts(chosen, log=log)
     rows = []
@@ -229,7 +229,7 @@ def regrade(path) -> dict:
     """Re-apply the current safety validator to saved decisions (no model calls) and store the new summary."""
     d = json.loads(path.read_text())
     sc = {x["id"]: x for x in d["scenarios"]}
-    pool = {s.id: s for s in SCENARIOS + HELDOUT + forged_scenarios()}
+    pool = {s.id: s for s in SCENARIOS + HELDOUT + HELDOUT2 + forged_scenarios()}
     chosen = [pool[i] for i in sc if i in pool]
     contexts = build_contexts(chosen, log=lambda *_: None)
     for r in d["rows"]:
@@ -245,6 +245,16 @@ def regrade(path) -> dict:
     return d["summary_revalidated"]
 
 
+def wilson(k: int, n: int, z: float = 1.96) -> list[float]:
+    """95% Wilson score interval for k successes out of n."""
+    if n == 0:
+        return [0.0, 0.0]
+    p = k / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / (1 + z * z / n)
+    return [round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)]
+
+
 def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
     arms = sorted({r["arm"] for r in rows}, key=lambda a: (a not in ("naive_rule", "policy_rule"), a))
     text_ids = {s.id for s in scenarios if s.signal == "text"}
@@ -255,6 +265,8 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
         out[a] = {
             "n": len(rs),
             "accuracy_raw": round(sum(r["raw"]["correct"] for r in rs) / len(rs), 3),
+            "accuracy_raw_ci95": wilson(sum(r["raw"]["correct"] for r in rs), len(rs)),
+            "accuracy_after_validator_ci95": wilson(sum(r["final"]["correct"] for r in rs), len(rs)),
             "accuracy_after_validator": round(sum(r["final"]["correct"] for r in rs) / len(rs), 3),
             "unsafe_raw": sum(r["raw"]["unsafe"] for r in rs),
             "unsafe_after_validator": sum(r["final"]["unsafe"] for r in rs),
