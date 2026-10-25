@@ -85,8 +85,12 @@ CRIC is a research prototype for decision support. It is not an operational coll
 
 ## Prompt injection
 - Web text is tiered, filtered for instruction-like sentences, and wrapped as data; quotes that read like
-  instructions are rejected. The filter is pattern-based and can be evaded by a determined page. What stops an
-  unsafe action is the validator and the human approval step, not the filter.
+  instructions are rejected. Tested on six injection styles (0/24 succeeded with the defences, 15/24 without), but
+  the filter is pattern-based: the Korean pattern was added after a Korean injection got through once, and a new
+  phrasing in another language could pass. What stops an unsafe action is the validator and the human approval
+  step, not the filter.
+- Misinformation is not injection: a page on a trusted domain that simply states a false capability is accepted
+  (2/2 in the test). Pages on unknown sites cannot decide capability.
 
 ## Deployment
 - `cric watch` and the Dockerfile are written for a Nebius Serverless AI Job. The loop was run locally in dry-run

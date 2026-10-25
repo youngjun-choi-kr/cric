@@ -200,6 +200,8 @@ def capability(row: dict, d: Dossier, problems: list[str]) -> dict:
             continue
         if any(dom in (f.source_url or "") for dom in LOW_QUALITY_DOMAINS):
             continue
+        if tier(f.source_url) == "other":
+            continue  # an unknown site may record a claim, but only agency, operator or reference pages decide
         if f.scope != "this_satellite":
             continue  # a fleet-level fact does not prove this unit can move
         yn = _yes_no(f.value)

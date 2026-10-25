@@ -80,9 +80,15 @@ to the shared prompt and reran both: Ultra 100%, Super 82% (Super still dropped 
 of 28). Neither invented a number. Ultra was faster (5.6 s vs 9.1 s median) at $0.0067 vs $0.0022 per brief;
 briefs are written only when a person must act, so Ultra writes them (`python -m cric.eval.reports`).
 
-**Web text is data.** Tavily results are tiered by source, instruction-like sentences are cut and logged before
-any model sees them, sources sit in tags a page cannot close, and the claim checker rejects quotes that read like
-instructions (`src/cric/research/untrusted.py`).
+**Web text is data, and we tested it.** Tavily results are tiered by source, instruction-like sentences (English
+plus common phrasings in six other languages) are cut and logged before any model sees them, sources sit in tags a
+page cannot close, quotes that read like instructions are rejected, and only agency, operator or reference pages
+may decide whether another satellite can manoeuvre. `scripts/eval_injection.py` plants six injection styles in a
+page about SITRO-AIS 38 (true answer: propulsion unknown) on an unknown site and on a trusted domain: with the
+defences 0 of 24 attacks changed the verdict, without them 15 of 24 did. Our first run let a Korean injection
+through 1 of 12 times; the multilingual patterns were added after that, so that case is not held-out
+(`results/injection_eval_v1_before_fix.json`). A plain false fact on a trusted domain is still accepted:
+misinformation is a different problem.
 
 Limits and label choices: [LIMITATIONS.md](LIMITATIONS.md). Our feedback on the tools: [FEEDBACK.md](FEEDBACK.md).
 

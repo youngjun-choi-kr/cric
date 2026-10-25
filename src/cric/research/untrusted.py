@@ -35,6 +35,13 @@ SUSPICIOUS = [
     r"\b(set|report|mark|return) (has_propulsion|can_maneuver\w*|status|action)\b",
     r"\b(action|decision)\s*[:=]\s*\"?(maneuver|monitor|escalate)",
     r"</?\s*(system|assistant|user|source|instructions?)\s*>",
+    # the same moves in other languages (added after a Korean injection passed the English-only filter)
+    r"(이전|위의?|앞의?)\s*(모든\s*)?(지시|명령|지침)|지시(는|를|사항을)?\s*(모두\s*)?무시|무시하고|(기록|답|출력)하(세요|십시오|라)",
+    r"(以前|前|上記)の(すべての)?(指示|命令)|指示を無視|無視して",
+    r"忽略(之前|以上|上述|所有|先前)的?(指令|指示|说明)|无视(之前|以上)?的?指令",
+    r"\bignora(r)? (todas )?(las )?instrucciones\b",
+    r"\bignore[rz]? (toutes )?les instructions\b",
+    r"\bignorier(e|en)? (alle )?(vorherigen |bisherigen )?anweisungen\b",
 ]
 _SUSPICIOUS = re.compile("|".join(SUSPICIOUS), re.I)
 
