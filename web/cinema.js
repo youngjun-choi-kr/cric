@@ -32,7 +32,7 @@ export function initCinema(api) {
 
   const SHOTS = {
     'overview-push': {
-      key: '1', seconds: 8, caption: '15,912 objects. Right now.',
+      key: '1', seconds: 8, caption: '18,806 tracked objects. Real orbits.',
       sim: (t) => tca() - 20 * 60e3 + t * 4 * 60e3,
       pose(t, date) {
         const f = frameAt(date), k = easeInOut(t);
@@ -41,7 +41,7 @@ export function initCinema(api) {
       },
     },
     'find-pair': {
-      key: '2', seconds: 9, caption: 'Two of them will pass 17 metres apart.',
+      key: '2', seconds: 9, caption: 'Public data says these two pass 17 metres apart. It is accurate to about a kilometre.',
       sim: (t) => tca() - 120e3 + easeOut(t) * 108e3,   // slows down toward TCA - 12 s
       pose(t, date) {
         const f = frameAt(date), k = easeInOut(t);
@@ -52,7 +52,7 @@ export function initCinema(api) {
       },
     },
     'go-to-burn': {
-      key: '3', seconds: 10, caption: 'One burn now. Two kilometres of clearance at closest approach.', needsTrajectory: true,
+      key: '3', seconds: 10, caption: 'Precise data confirms the risk. One burn, checked against every object, approved by a person.', needsTrajectory: true,
       // From just before the burn to just after TCA: about half an hour of flight squeezed into 10 seconds.
       sim: (t) => {
         const b = Date.parse(api.trajectory().burn_utc) - 30e3, end = tca() + 20e3;
@@ -72,7 +72,7 @@ export function initCinema(api) {
       },
     },
     'pass-and-pullback': {
-      key: '4', seconds: 11, caption: '17 m → 2 km',
+      key: '4', seconds: 11, caption: 'Predicted miss: 17 m → 2 km',
       sim: (t) => tca() - 25e3 + t * 90e3,
       pose(t, date) {
         const f = frameAt(date);
