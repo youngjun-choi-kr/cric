@@ -12,6 +12,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]" pyflakes
+      - run: pip install -e ".[dev,film]" pyflakes   # film = playwright; tests/test_web.py uses the runner's Chrome
       - run: python -m pyflakes src/cric web/serve.py scripts tests
-      - run: python -m pytest -q   # physics, safety rules and eval grading; no network, no API keys
+      - run: python -m pytest -q   # physics, safety rules, eval grading, a browser replay of the static console; no API keys
