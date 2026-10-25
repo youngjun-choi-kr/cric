@@ -33,9 +33,9 @@ SHOTS = [
                                 "One engineer. A few hours to decide."),
     ("S4", 6, "title", None, "CRIC\nCosmic Response & Intelligence Console",
      "This is CRIC. It does the work, and it knows when to ask."),
-    ("S5", 12, "app", "app_60454-61786_imaging", "NOAA Kp · Nemotron 3.5 Super VL (context)",
-     "It starts with the Sun. NOAA's numbers set the physics; NVIDIA Nemotron 3.5 Super VL reads today's solar "
-     "image as a second opinion, and flags when the two disagree."),
+    ("S5", 12, "app", "app_60454-61786_imaging", "NOAA Kp → MSIS drag · Nemotron 3.5 Super VL (context)",
+     "It starts with the Sun. NVIDIA Nemotron 3.5 Super VL describes today's solar image for the operator; "
+     "NOAA's numbers, run through NASA's thermosphere model, set the physics."),
     ("S6", 13, "app", "app_60454-61786_imaging", "Pc (simulated precise data) · verified burns",
      "The physics is code. Real orbits, a collision probability, and burn options that an optimiser has already "
      "checked against every other object in the catalog."),
@@ -45,10 +45,11 @@ SHOTS = [
     ("S8", 23, "app", "app_60454-61786_imaging", "Nemotron 3 Super × 3 votes · MANEUVER O2",
      "Then three independent Nemotron 3 Super runs vote. They read what a rule engine can't: a disaster-response "
      "imaging pass rules out the cheapest burn, so they take the later one."),
-    ("S9a", 5, "app", "app_60454-61786_imaging", "Safety validator · approved by a person",
-     "A safety validator, written in code, checks every decision, and a person approves it."),
-    ("S9b", 10, "cine", "go-to-burn", "Nebius Token Factory",
-     "When a person has to act, Nemotron 3 Ultra writes the brief. Every model runs on Nebius Token Factory."),
+    ("S9a", 5, "app", "app_60454-61786_imaging", "Validator · routes agree · approved by a person",
+     "Code checks every decision, a second route in code must agree, and a person approves."),
+    ("S9b", 10, "cine", "go-to-burn", "Flown with errors: conjunction cleared · Nebius Token Factory",
+     "The burn is flown in simulation with real-world errors and checked again. Every model runs on Nebius "
+     "Token Factory."),
     ("S10", 20, "app", "app_60454-61786_storm_2024", "May 2024 · G5 · Kp 9 · 3 of 3 burns stopped (eval)",
      "We replayed real storms, researched with Tavily. In twenty runs the model tried to burn on storm-degraded "
      "data three times. All three times, code said: get better data first."),

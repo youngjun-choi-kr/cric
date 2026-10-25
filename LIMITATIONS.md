@@ -37,21 +37,24 @@ CRIC is a research prototype for decision support. It is not an operational coll
 
 ## Decisions
 - Nemotron's answers vary between runs at the same input; the eval repeats each case and reports the spread
-  with 95% Wilson intervals. The pipeline takes the majority of 3 independent decisions and escalates a split.
-  "3 votes" accuracy in the README is computed from the 5 repeats already collected (all 3-run combinations),
-  not from separate 3-call runs. Demo recordings were not re-recorded to get a preferred answer; the IRIDIUM 149
+  as stability. The pipeline takes the majority of 3 independent decisions and escalates a split; the "3 votes"
+  arm in the eval makes 3 real, independent calls per run. Demo recordings were not re-recorded to get a preferred answer; the IRIDIUM 149
   quiet run was re-recorded once, after adding the satellite to the demo fleet (the first run escalated
   correctly because its propulsion was unknown).
 - Retakes: during development the EOS-08 "imaging" situation was recorded three times on 2026-10-24 with
-  different results (ESCALATE, ESCALATE, MANEUVER) while the dossier and fleet-registry code was being fixed, and
-  the demo showed the last. On 2026-10-25 every EOS-08 situation was re-recorded once on the final pipeline
-  (3 votes, debris snapshot, TLE rule) and those single takes replaced all earlier ones: quiet -> request data,
-  precise -> manoeuvre O1, imaging -> manoeuvre O2, safe mode -> escalate, May 2024 storm -> request data,
-  Korean note -> coordinate on O2.
-- A constraint that exists only in free text cannot be enforced by the validator. On tuning scenario S11 one of
-  five runs burned above a 0.1 m/s approval limit written in a mission note; voting removes it (no 3-run
-  majority burns), but a single run can still make that mistake.
-- Majority voting triples decision cost (about $0.007 per incident instead of $0.0025).
+  different results while the dossier and fleet-registry code was being fixed, and the demo showed the last. The
+  demo situations were then re-recorded once each after every pipeline change (2026-10-25, and on 2026-10-26 for
+  the final pipeline with constraints from notes, the agreement check, MSIS drag and the execution check); the
+  latest single takes replaced all earlier ones and were kept whatever they said. On the final pipeline EOS-08
+  "precise" escalates because the two routes chose different fallback burns, and the green pair escalates on a
+  three-way vote split.
+- Constraints in free text are now read into quoted fields that code enforces, but a reading error becomes a
+  wrong field the validator trusts: on held-out H03, "Super reads notes, code decides" burned after a contact
+  cut-off in 2 of 3 runs. The pipeline's agreement check (model votes vs coded policy) caught every such case in
+  the final runs, at the price of more escalations (held-out 6/9 scenarios, all misses escalations).
+- Eval statistics: intervals are over scenarios (8-13 per set), so no difference between arms is statistically
+  established; earlier versions of this README computed intervals over repeated runs, which overstated certainty.
+- Voting and the agreement check cost about $0.008 per decision (one call: $0.0025; reading notes only: $0.0006).
 - The eval's "policy-violating burns" count manoeuvres the scenario does not accept under the operator policy
   (for example burning on storm-degraded TLE data while there is time to get precise data). Some operators would
   burn in those cases; they are policy violations, not necessarily collision risks. Earlier commits called this

@@ -524,12 +524,13 @@ const SET_NOTE = {
 };
 function renderEval(sets, name) {
   const d = sets[name]; if (!d) return;
-  const order = (k) => (ARM[k] ? 0 : k.includes('vote3') ? 2 : 1);
+  const order = (k) => (ARM[k] ? 0 : k.endsWith('+hybrid') ? 4 : k.endsWith('+extract') ? 3 : k.includes('vote3') ? 2 : 1);
   const rows = Object.entries(d.summary).filter(([k, m]) => m && typeof m === 'object').sort((a, b) => order(a[0]) - order(b[0]));
-  const label = (k) => ARM[k] || 'Nemotron ' + (k.toLowerCase().includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k) + (k.includes('vote3') ? ' · 3 votes (pipeline)' : ' · single call');
+  const label = (k) => ARM[k] || (k.endsWith('+hybrid') ? 'CRIC pipeline: votes and code must agree'
+    : (k.includes('Nano') ? 'Nano' : 'Super') + (k.endsWith('+extract') ? ' reads notes, code decides' : k.includes('vote3') ? ', 3 votes' : ', one call'));
   const pct = (x) => (x == null ? '—' : Math.round(x * 100) + '%');
   const ci = (c) => (c ? `${pct(c[0])}–${pct(c[1])}` : '');
-  const best = rows.find(([k]) => k.includes('vote3')) || rows.find(([k]) => !ARM[k]);
+  const best = rows.find(([k]) => k.endsWith('+hybrid')) || rows.find(([k]) => !ARM[k]);
   const pol = d.summary.policy_rule;
   const headline = best ? `<div class="headline">Scenarios handled correctly: <b>${esc(label(best[0]))} + validator ${best[1].scenarios_passed_after_validator}</b>
     (95% CI ${ci(best[1].scenario_ci95_after_validator)}) · coded policy ${pol?.scenarios_passed_after_validator ?? '—'} ·

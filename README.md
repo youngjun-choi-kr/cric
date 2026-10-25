@@ -44,33 +44,46 @@ quality, time left for better data). `archive/spike/` keeps the original day-1 f
 
 ## Results
 
-Decision accuracy on scenarios built on real CelesTrak encounters (frozen snapshot in `fixtures/`: 15,912 active
-satellites + 2,894 public debris objects). Each answer is graded raw and after the safety validator.
-"Policy-violating burns" are manoeuvres the operator policy does not allow, counted before -> after the validator.
-Nemotron 3 Super, 5 runs per scenario; "3 votes" is the majority of 3 independent runs (every 3-run combination of
-those 5), which is how the pipeline decides.
+Scenarios are built on real CelesTrak encounters (frozen snapshot: 15,912 active satellites + 2,894 public debris
+objects). Every arm ran each scenario 3 times; a scenario counts as passed when most runs are right after the
+safety validator. Intervals are 95% Wilson **over scenarios, not runs**: these sets are small, and overlapping
+intervals mean a difference is indicative, not proven. "Burns" are policy-violating burns that got past the
+validator, summed over runs. Every answer is in [`results/`](results/README.md).
 
-| Set | Coded policy (fields only) | Super | Super + validator (95% CI) | 3 votes + validator | Policy-violating burns |
-|---|---|---|---|---|---|
-| **Held-out 2** (8 x 5, written after the design froze, before any model ran) | 0.62 | 0.90 | **1.00** (0.91-1.00) | **1.00** | 0 -> 0 |
-| **Held-out** (9 x 5, answers committed before running) | **0.89** | 0.82 | 0.82 (0.69-0.91) | 0.86 | 0 -> 0 |
-| Tuning (13 x 5, used to design the validator) | 0.77 | 0.86 | 0.91 | **0.95** | 2 -> 1 |
-| Real storms via Tavily (4 x 5: 1989, 2003, 2022, 2024) | 1.00 | 0.85 | **1.00** | **1.00** | 3 -> 0 |
+| Arm | Held-out 2 (8) | Held-out (9) | Tuning (13) | Storms (4) | Burns past the validator | $ per decision |
+|---|---|---|---|---|---|---|
+| Coded policy, structured fields only | 5/8 | 8/9 | 10/13 | 4/4 | 7 | 0 |
+| Nemotron Super, one call | 8/8 | 7/9 | 11/13 | 4/4 | 1 | 0.0025 |
+| Super, 3 votes | 8/8 | 8/9 | 11/13 | 4/4 | 2 | 0.0076 |
+| Nano reads the notes, code decides | 7/8 | 8/9 | 12/13 | 4/4 | 1 | 0.0003 |
+| Super reads the notes, code decides | 8/8 | 8/9 | **13/13** | 4/4 | 2 | 0.0006 |
+| **CRIC pipeline**: votes and code must agree | 7/8 | 6/9 | 11/13 | 4/4 | **0** | 0.0084 |
 
-What this shows:
-- Where the deciding fact is only in plain-language notes (Korean, Japanese, Spanish, ops jargon, chat messages),
-  Super reads it and a coded policy cannot: on held-out 2 the policy fails 3 of 8, Super + validator fails none.
-- The validator catches what can be checked on fields: on storm replays Super burned 3 times on storm-degraded TLE
-  data with time left to get precise data; the validator stopped all 3.
-- What the validator cannot catch: a constraint that exists only in text. In 1 of 5 runs of S11 Super burned
-  0.148 m/s although a note required ops-lead approval above 0.1 m/s. The other 4 runs escalated, so no 3-vote
-  majority burns; this is why the pipeline votes.
-- On the first held-out set the coded policy is ahead (0.89 vs 0.82-0.86). Super's misses there are cautious
-  (escalate or ask for data instead of monitor), never a burn.
-- Nemotron 3 Nano was slower (median 32 s vs 12 s) and less accurate (0.69 on held-out, in the run before the debris snapshot), so Super decides.
+What this shows, and what we chose:
+- **Reading free text is where the model earns its place.** Notes in Korean, Japanese, Spanish and ops jargon
+  decide held-out 2; the coded policy, which cannot read them, passes 5 of 8. Letting Super only *read* the
+  notes into quoted constraints and having code decide was the most accurate arm at a tenth of the cost.
+- **But a reading error becomes an unchecked action.** In 2 of 27 held-out runs that arm extracted a contact
+  cut-off as the wrong kind of constraint and burned after the cut-off; the validator trusts the extracted
+  fields, so nothing caught it.
+- **The CRIC pipeline therefore requires two independent routes to agree**: the model's 3-vote decision after
+  the hard rules, and the operator policy in code over the same fields. It is the only arm with **zero
+  policy-violating burns in all 102 runs**. Every miss is an escalation to a person (for example when the
+  routes pick different fallback burns), never a wrong action. We accept more escalations for that.
+- **Voting buys consistency, not accuracy**: same scenarios passed, stability up (tuning 0.54 -> 0.69,
+  held-out 0.78 -> 0.89).
+- Statistically, none of these differences is proven on sets this size; the burn counts are the clearest signal.
 
-Reproduce: `cric eval --set heldout2 --models super --repeats 5` (needs keys; about $0.10 per set);
-`cric eval --regrade <file>` re-applies the current validator to saved answers without new model calls.
+**Screening checked against an independent source.** CelesTrak SOCRATES ran at 2026-10-24 15:00, five minutes
+before our snapshot. Of its 1,885 crossing pairs under 2 km in the same 24 h (both objects in our catalog), CRIC
+found 1,879 (99.7%); all 6 misses involve "analyst" objects whose elements differ between data pulls. Times of
+closest approach agree within 1 ms and miss distances within 1.1 m at the 95th percentile
+(`scripts/validate_socrates.py`, `results/socrates.json`).
+
+**Does the Sun image add anything?** We tested Nemotron 3.5 Super VL on archived SDO images: 10 calm days before
+G3-G5 storms and 10 calm days with no storm (2023-2026). Given the image alone, it rated drag risk "moderate"
+for all 20. No forecasting signal, so the image read only explains conditions to the operator; the physics uses
+NOAA Kp through NASA's MSIS thermosphere model (`scripts/eval_vl.py`).
 
 **Who writes the human-facing documents.** Every ESCALATE / COORDINATE case gets a brief from Super and from
 Ultra (14 cases x 2 runs each). A code checker, not a model, verifies that every number comes from the context

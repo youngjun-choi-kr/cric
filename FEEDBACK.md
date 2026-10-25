@@ -22,9 +22,9 @@ messages and LIMITATIONS.md have the details.
 - **`reasoning_content` is returned separately.** We show it in the console as the decision trace; judges and
   operators can see why the model decided, not only what.
 - **Nemotron Super reads plain-language constraints well.** On a second held-out set written after the design
-  froze (notes in Japanese, Spanish, Korean, ops jargon, chat messages), Super plus our validator was right 40 of
-  40 times against 5 of 8 scenarios for a coded policy that cannot read them. On the first held-out set the
-  text-only cases were 18 of 20 (0.90) vs 0.75.
+  froze (notes in Japanese, Spanish, Korean, ops jargon, chat messages), Super passed all 8 scenarios where a
+  coded policy that cannot read the notes passed 5. Its best use for us was as a reader: turning notes into
+  quoted constraints that code enforces (13/13 tuning scenarios at about $0.0006 a decision).
 - **Super VL kept "observed" and "inferred" apart** and volunteered that one EUV image cannot confirm an
   Earth-directed CME, and that high-energy electron flux is a charging issue rather than drag. But in a
   retrospective test it rated every one of 20 solar images "moderate" drag risk, the eves of ten G3-G5 storms

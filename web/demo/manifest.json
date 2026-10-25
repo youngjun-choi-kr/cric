@@ -1,16 +1,58 @@
 [
  {
-  "file": "60454_61786_20261025T003427_2134_korean_note.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "korean_note",
-  "action": "COORDINATE",
-  "final": "COORDINATE",
+  "file": "43677_48423_20261025T061937_0319_quiet.json",
+  "ours": 43677,
+  "other": 48423,
+  "tca_utc": "2026-10-25T06:19:37.954166Z",
+  "preset": "quiet",
+  "action": "ESCALATE",
+  "final": "ESCALATE",
   "has_trace": true,
   "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
+   "TEN-KOH",
+   "YAOGAN-30 09A"
+  ]
+ },
+ {
+  "file": "52939_67291_20261025T060356_0303_quiet.json",
+  "ours": 52939,
+  "other": 67291,
+  "tca_utc": "2026-10-25T06:03:56.704864Z",
+  "preset": "quiet",
+  "action": "REQUEST_PRECISE_DATA",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "POEM",
+   "QMR-KWT-2 (RS95S)"
+  ]
+ },
+ {
+  "file": "43250_34430_20261025T125605_0956_precise.json",
+  "ours": 43250,
+  "other": 34430,
+  "tca_utc": "2026-10-25T12:56:05.511209Z",
+  "preset": "precise",
+  "action": "MONITOR",
+  "final": "MONITOR",
+  "has_trace": true,
+  "names": [
+   "IRIDIUM 149",
+   "COSMOS 2251 DEB"
+  ]
+ },
+ {
+  "file": "43250_34430_20261025T125605_0956_quiet.json",
+  "ours": 43250,
+  "other": 34430,
+  "tca_utc": "2026-10-25T12:56:05.511209Z",
+  "preset": "quiet",
+  "action": "MANEUVER",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "IRIDIUM 149",
+   "COSMOS 2251 DEB"
   ]
  },
  {
@@ -47,8 +89,8 @@
   "other": 61786,
   "tca_utc": "2026-10-25T00:34:27.156166Z",
   "preset": "imaging",
-  "action": "MANEUVER",
-  "final": "MANEUVER",
+  "action": "COORDINATE",
+  "final": "COORDINATE",
   "has_trace": true,
   "names": [
    "EOS-08",
@@ -61,8 +103,8 @@
   "other": 61786,
   "tca_utc": "2026-10-25T00:34:27.156166Z",
   "preset": "precise",
-  "action": "MANEUVER",
-  "final": "MANEUVER",
+  "action": "COORDINATE",
+  "final": "ESCALATE",
   "has_trace": true,
   "names": [
    "EOS-08",
@@ -84,59 +126,17 @@
   ]
  },
  {
-  "file": "43677_48423_20261025T061937_0415_quiet.json",
-  "ours": 43677,
-  "other": 48423,
-  "tca_utc": "2026-10-25T06:19:37.954166Z",
-  "preset": "quiet",
-  "action": "ESCALATE",
-  "final": "ESCALATE",
+  "file": "60454_61786_20261025T003427_2134_korean_note.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "korean_note",
+  "action": "COORDINATE",
+  "final": "COORDINATE",
   "has_trace": true,
   "names": [
-   "TEN-KOH",
-   "YAOGAN-30 09A"
-  ]
- },
- {
-  "file": "52939_67291_20261025T060356_0303_quiet.json",
-  "ours": 52939,
-  "other": 67291,
-  "tca_utc": "2026-10-25T06:03:56.704864Z",
-  "preset": "quiet",
-  "action": "REQUEST_PRECISE_DATA",
-  "final": "REQUEST_PRECISE_DATA",
-  "has_trace": true,
-  "names": [
-   "POEM",
-   "QMR-KWT-2 (RS95S)"
-  ]
- },
- {
-  "file": "43250_34430_20261025T125605_0344_precise.json",
-  "ours": 43250,
-  "other": 34430,
-  "tca_utc": "2026-10-25T12:56:05.511209Z",
-  "preset": "precise",
-  "action": "MONITOR",
-  "final": "MONITOR",
-  "has_trace": true,
-  "names": [
-   "IRIDIUM 149",
-   "COSMOS 2251 DEB"
-  ]
- },
- {
-  "file": "43250_34430_20261025T125605_0343_quiet.json",
-  "ours": 43250,
-  "other": 34430,
-  "tca_utc": "2026-10-25T12:56:05.511209Z",
-  "preset": "quiet",
-  "action": "MANEUVER",
-  "final": "REQUEST_PRECISE_DATA",
-  "has_trace": true,
-  "names": [
-   "IRIDIUM 149",
-   "COSMOS 2251 DEB"
+   "EOS-08",
+   "SITRO-AIS 38"
   ]
  }
 ]

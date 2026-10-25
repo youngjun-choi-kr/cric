@@ -1,0 +1,1763 @@
+{
+  "cases": [
+    "S02",
+    "S04",
+    "S05",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "H01",
+    "H02",
+    "H04",
+    "H08",
+    "T02",
+    "T06",
+    "T07"
+  ],
+  "summary": {
+    "super": {
+      "n": 28,
+      "pass_rate": 0.821,
+      "unsupported_per_report": 0.0,
+      "missing_per_report": 0.21,
+      "median_seconds": 9.1,
+      "cost_per_report_usd": 0.00219,
+      "errors": 0
+    },
+    "ultra": {
+      "n": 28,
+      "pass_rate": 1.0,
+      "unsupported_per_report": 0.0,
+      "missing_per_report": 0.0,
+      "median_seconds": 5.6,
+      "cost_per_report_usd": 0.00669,
+      "errors": 0
+    }
+  },
+  "rows": [
+    {
+      "model": "super",
+      "scenario": "S02",
+      "repeat": 0,
+      "seconds": 11.8,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction with NORAD 61786 requires engineering review due to unverified propulsion",
+        "body": "At 2026-10-24T21:34:27.156166Z the agent identified a red‑level conjunction (Pc = 0.07291984448273788, simulated precise ephemeris) between our satellite NORAD 60454 (EOS-08) and debris NORAD 61786 (SITRO-AIS 38) with TCA at 2026-10-25T00:34:27.156166Z (miss 0.0166 km, relative speed 13.39 km/s). Policy prohibits a maneuver because our propulsion status is unknown (can_maneuver: unknown, basis: propulsion status not confirmed since the last anomaly report) and the rule states never to maneuver if propulsion status is unverified. Physics‑verified burn options exist: O1 (dv 0.1484 m/s, prograde, burn at 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (dv 0.8209 m/s, prograde, burn at 2026-10-25T00:06:44.156166Z, lead 27.7 min). The latest feasible burn is O2 at 2026-10-25T00:06:44.156166Z; subtracting the required 30‑minute command upload gives a decision deadline of 2026-10-24T23:36:44.156166Z. Please confirm our propulsion status and advise whether a burn can be authorized, or indicate if additional data is needed to proceed.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion status and whether a burn can be authorized.",
+          "Advise if any additional data is needed to proceed."
+        ],
+        "facts_cited": [
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "NORAD ID 60454",
+          "NORAD ID 61786",
+          "TCA 2026-10-25T00:34:27.156166Z",
+          "miss 0.0166 km",
+          "relative speed 13.39 km/s",
+          "O1 dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z",
+          "O2 dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z",
+          "latest feasible burn O2 at 2026-10-25T00:06:44.156166Z",
+          "command upload time 30 minutes",
+          "decision deadline 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 140,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S02",
+      "repeat": 1,
+      "seconds": 6.9,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation Required: Red Pc Conjunction with Debris NORAD 61786",
+        "body": "At 2026-10-24T21:34:27.156166Z we identified a red-level conjunction (Pc = 0.07291984448273788, simulated precise ephemeris) between our satellite EOS-08 (NORAD 60454) and debris SITRO-AIS 38 (NORAD 61786) with TCA at 2026-10-25T00:34:27.156166Z. Our propulsion status is unknown following the last anomaly report, so no burn can be authorized. The latest feasible burn option (O2) would be at 2026-10-25T00:06:44.156166Z; subtracting the required 30‑minute command upload gives a decision deadline of 2026-10-24T23:36:44.156166Z. Please confirm our propulsion status, provide any verified precise ephemeris if available, and advise whether any alternative mitigation exists.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion status of EOS-08 (NORAD 60454)",
+          "Provide verified precise ephemeris if available",
+          "Advise on any alternative mitigation"
+        ],
+        "facts_cited": [
+          "Our satellite NORAD ID 60454",
+          "Other object NORAD ID 61786",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Latest feasible burn O2 at 2026-10-25T00:06:44.156166Z",
+          "Minimum command upload time 30 minutes"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 86,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S04",
+      "repeat": 0,
+      "seconds": 9.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction with NORAD 61786 requires precise data before maneuver decision",
+        "body": "At 2026-10-24T23:34:27Z we identified a red-level conjunction (Pc = 0.0006049476769823657, assumed covariance) between our satellite EOS-08 (NORAD 60454) and debris SITRO-AIS 38 (NORAD 61786) with TCA at 2026-10-25T00:34:27Z, miss 0.0166 km, relative speed 13.39 km/s. The only physics‑verified burn option is O1 (prograde 0.8209 m/s, burn at 2026-10-25T00:06:44Z, post‑burn miss 2.0 km). Operator policy requires precise ephemeris before deciding a burn when Pc is diluted and time permits; we lack CDM data. Therefore we cannot commit to a maneuver until precise ephemeris is obtained. Please provide the necessary precise ephemeris (or confirm it cannot be obtained) and verify propulsion status so a burn can be uplinked before the latest feasible burn minus the 30‑minute upload deadline.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Provide precise ephemeris (CDM) for both objects",
+          "Confirm propulsion status verification"
+        ],
+        "facts_cited": [
+          "NORAD 60454",
+          "NORAD 61786",
+          "Pc = 0.0006049476769823657 (assumed covariance)",
+          "TCA at 2026-10-25T00:34:27Z",
+          "miss 0.0166 km",
+          "relative speed 13.39 km/s",
+          "burn option O1: prograde 0.8209 m/s, burn at 2026-10-25T00:06:44Z, post‑burn miss 2.0 km",
+          "min_command_upload_min = 30",
+          "latest feasible burn minus upload = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 116,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S04",
+      "repeat": 1,
+      "seconds": 18.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction with NORAD 61786, Pc red, insufficient lead for maneuver",
+        "body": "At 2026-10-24T23:34:27Z we identified a red-level conjunction (Pc = 0.0006049476769823657, assumed covariance) between our satellite EOS-08 (NORAD 60454) and debris SITRO-AIS 38 (NORAD 61786) with TCA at 2026-10-25T00:34:27Z, miss 0.0166 km, relative speed 13.39 km/s. The only verified burn option from TLE screening is O1: prograde Δv 0.8209 m/s, lead 27.7 min (1663 s), burn at 2026-10-25T00:06:44.156166Z, achieving post‑burn miss 2.0 km. Operator policy requires ≥30 min for command upload before a burn; the available lead (27.7 min) is insufficient, and on public TLE data we must not decide a burn while there is time to obtain precise ephemeris. Propulsion status is nominal, but the policy constraint prevents execution. Hence no maneuver can be commanded; we must seek higher‑quality data or wait for a future opportunity.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm whether precise ephemeris can be obtained before the decision deadline",
+          "Advise if any alternative maneuver with sufficient lead exists"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "Pc = 0.0006049476769823657 (assumed covariance)",
+          "Burn option O1: Δv = 0.8209 m/s, lead = 27.7 min, burn_utc = 2026-10-25T00:06:44.156166Z, miss_after_km = 2.0",
+          "Operator policy minimum command upload time = 30 min",
+          "Latest feasible burn minus upload = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 126,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S05",
+      "repeat": 0,
+      "seconds": 9.5,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert for NORAD 60454 (EOS-08) and NORAD 61786 (SITRO-AIS 38)",
+        "body": "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km and relative speed 13.39 km/s. Probability of collision Pc = 0.07291984448273788 (computed using simulated precise ephemeris). Our planned avoidance burn O1 (prograde, 0.1484 m/s) scheduled for 2026-10-24T22:11:13.156166Z would raise miss to 2.0 km. Please confirm that you will hold position (no maneuver) so that only we execute this burn.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Please confirm that you will hold position (no maneuver) during the conjunction window."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454",
+          "NORAD ID 61786",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Option O1",
+          "Burn UTC 2026-10-24T22:11:13.156166Z",
+          "TCA UTC 2026-10-25T00:34:27.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 59,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S05",
+      "repeat": 1,
+      "seconds": 6.5,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction notification for NORAD 60454 and 61786 at 2026-10-25T00:34:27Z",
+        "body": "Our satellite (NORAD 60454) predicts a conjunction with object NORAD 61786 at TCA 2026-10-25T00:34:27.156166Z, miss distance 0.0166 km, relative speed 13.39 km/s. The probability of collision is Pc = 0.07291984448273788 (simulated precise ephemeris). We intend to execute avoidance burn option O1 (prograde, Δv = 0.1484 m/s) at 2026-10-24T22:11:13.156166Z, which would increase the miss distance to 2.0 km. Please confirm that you will perform no maneuver and hold your position so that both satellites do not move.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Please confirm you will perform no maneuver and hold position."
+        ],
+        "facts_cited": [
+          "Our satellite NORAD ID: 60454",
+          "Other object NORAD ID: 61786",
+          "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z, miss distance 0.0166 km, relative speed 13.39 km/s",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Proposed burn option O1: prograde, Δv = 0.1484 m/s, burn UTC 2026-10-24T22:11:13.156166Z, resulting miss after burn 2.0 km"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 76,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S10",
+      "repeat": 0,
+      "seconds": 9.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Unable to maneuver for conjunction with NORAD 61786",
+        "body": "Conjunction with NORAD 61786 predicted at TCA 2026-10-25T00:34:27.156166Z, Pc = 0.07291984448273788 (simulated precise ephemeris), red level. Our satellite NORAD 60454 entered safe mode at 19:34 UTC after a reaction‑wheel fault; thrusters are inhibited until the anomaly board clears recovery, expected tomorrow, so no burn can be executed. The other object is debris (non‑maneuverable). Physics‑verified burn options exist: O1 (prograde 0.1484 m/s, burn_utc 2026-10-24T22:11:13.156166Z) and O2 (prograde 0.8209 m/s, burn_utc 2026-10-25T00:06:44.156166Z), each yielding miss_after_km 2.0. Because propulsion is unavailable, we cannot act. Decision deadline: latest feasible burn (O2) minus 30‑minute command upload = 2026-10-24T23:36:44.156166Z UTC. Please confirm when thrusters will be re‑enabled or advise any alternative mitigation.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm expected time when thrusters will be available for maneuver",
+          "Provide any alternative mitigation plans if maneuver remains impossible"
+        ],
+        "facts_cited": [
+          "NORAD ID of our satellite: 60454",
+          "NORAD ID of other object: 61786",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "TCA at 2026-10-25T00:34:27.156166Z",
+          "Burn option O1: dv 0.1484 m/s, burn_utc 2026-10-24T22:11:13.156166Z",
+          "Burn option O2: dv 0.8209 m/s, burn_utc 2026-10-25T00:06:44.156166Z",
+          "Latest feasible burn minus upload deadline: 2026-10-24T23:36:44.156166Z",
+          "Spacecraft entered safe mode at 19:34 UTC, thrusters inhibited"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 106,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S10",
+      "repeat": 1,
+      "seconds": 10.3,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Unable to execute collision avoidance maneuver for EOS-08 due to propulsion inhibition",
+        "body": "At 2026-10-24T21:34:27.156166Z, Pc = 0.07291984448273788 (simulated precise ephemeris) for NORAD ID 60454 (EOS-08) vs NORAD ID 61786 (SITRO-AIS 38). Propulsion is inhibited because the spacecraft entered safe mode after a reaction-wheel fault; thrusters are inhibited until the anomaly board clears recovery, expected tomorrow. Physics‑verified burn options exist: O1 (burn_utc 2026-10-24T22:11:13.156166Z) and O2 (burn_utc 2026-10-25T00:06:44.156166Z). Latest feasible burn is O2; with a minimum 30‑minute command upload, the decision deadline is 2026-10-24T23:36:44.156166Z.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Request confirmation of propulsion system status and expected recovery time."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1 burn_utc 2026-10-24T22:11:13.156166Z",
+          "Burn option O2 burn_utc 2026-10-25T00:06:44.156166Z",
+          "Latest feasible burn minus upload deadline 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 70,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S11",
+      "repeat": 0,
+      "seconds": 16.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction with NORAD 61786 requires ops lead approval",
+        "body": "At 2026-10-24T21:34:27.156166Z, conjunction with NORAD 61786 (SITRO-AIS 38) predicted at TCA 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s. Pc = 0.07291984448273788 (simulated precise ephemeris). Our satellite NORAD 60454 (EOS-08) can maneuver but propellant is about 0.2 m/s left; any burn >0.1 m/s requires ops lead written approval. Verified burn options: O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z). Both exceed 0.1 m/s threshold, needing approval; O2 exceeds available propellant. Policy requires 30 min for command upload, so latest feasible burn (O2) minus upload gives deadline 2026-10-24T23:36:44.156166Z. Unable to act without approval and propellant verification.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Request ops lead written approval for a burn ≤0.2 m/s",
+          "Confirm remaining propellant capacity",
+          "Guidance on whether to proceed with O1 or await further data"
+        ],
+        "facts_cited": [
+          "Pc = 0.07291984448273788",
+          "SIMULATED precise ephemeris (CDM-grade); not real CDM data",
+          "NORAD ID 60454",
+          "NORAD ID 61786",
+          "burn O1 dv_ms: 0.1484",
+          "burn O1 burn_utc: 2026-10-24T22:11:13.156166Z",
+          "burn O2 dv_ms: 0.8209",
+          "burn O2 burn_utc: 2026-10-25T00:06:44.156166Z",
+          "propellant about 0.2 m/s equivalent left",
+          "any burn above 0.1 m/s needs written approval from the ops lead",
+          "min_command_upload_min: 30",
+          "level: red"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 100,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S11",
+      "repeat": 1,
+      "seconds": 8.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Red conjunction (Pc=0.0729) with debris NORAD 61786, maneuver blocked by propellant/approval limits",
+        "body": "Agent could not execute a burn because both verified options exceed the 0.1 m/s threshold requiring written ops‑lead approval, which is not available given propellant is nearly depleted (~0.2 m/s left). Physics‑verified options: O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z). Latest feasible burn is O2 at 2026-10-25T00:06:44.156166Z; subtracting the required 30‑minute command upload gives a decision deadline of 2026-10-24T23:36:44.156166Z. Please advise if written approval for a burn >0.1 m/s can be obtained before this deadline, or confirm that no maneuver will be attempted.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm whether written approval for a burn >0.1 m/s can be obtained before 2026-10-24T23:36:44.156166Z."
+        ],
+        "facts_cited": [
+          "our satellite NORAD ID 60454",
+          "other object NORAD ID 61786",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "O1 burn_utc 2026-10-24T22:11:13.156166Z, dv 0.1484 m/s",
+          "O2 burn_utc 2026-10-25T00:06:44.156166Z, dv 0.8209 m/s",
+          "propellant ~0.2 m/s equivalent left, any burn above 0.1 m/s needs written approval",
+          "latest feasible burn O2 at 2026-10-25T00:06:44.156166Z",
+          "command upload time 30 minutes"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [
+          "both NORAD IDs",
+          "Pc basis ('simulated')"
+        ],
+        "words": 89,
+        "pass": false
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S12",
+      "repeat": 0,
+      "seconds": 8.0,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert for NORAD 60454 and NORAD 61786 – planned burn O1",
+        "body": "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z (miss 0.0166 km, relative speed 13.39 km/s) between NORAD 60454 (EOS-08) and NORAD 61786 (SITRO-AIS 38). Pc = 0.07291984448273788 (simulated precise ephemeris). We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z. Please confirm you will hold (no maneuver) so we do not both move.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Please confirm you will perform no maneuver during the conjunction window."
+        ],
+        "facts_cited": [
+          "NORAD ID: 60454",
+          "NORAD ID: 61786",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Option ID: O1"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 52,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S12",
+      "repeat": 1,
+      "seconds": 7.1,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786)",
+        "body": "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km and relative speed 13.39 km/s. Probability of collision Pc = 0.07291984448273788 (simulated precise ephemeris). We intend to perform avoidance burn O1: prograde Δv 0.1484 m/s at 2026-10-24T22:11:13.156166Z. Please confirm that you will hold position (no maneuver) so that only one satellite moves.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm that you will hold position (no maneuver) during the conjunction."
+        ],
+        "facts_cited": [
+          "NORAD ID of our satellite: 60454",
+          "NORAD ID of other object: 61786",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1: prograde burn of 0.1484 m/s at 2026-10-24T22:11:13.156166Z",
+          "TCA at 2026-10-25T00:34:27.156166Z, miss distance 0.0166 km, relative speed 13.39 km/s"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 52,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S13",
+      "repeat": 0,
+      "seconds": 8.5,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction with debris object NORAD 61786",
+        "body": "Escalation required: Conjunction between NORAD 60454 (EOS-08) and NORAD 61786 (SITRO-AIS 38) at TCA 2026-10-25T00:34:27Z with Pc 0.00028525998502807777 (assumed covariance from TLE data). Policy requires precise data before deciding a burn when Pc is diluted and TLE data used; no CDM available. Two verified burn options exist: O1 (prograde 0.1484 m/s, burn 2026-10-24T22:11:13Z) and O2 (prograde 0.8209 m/s, burn 2026-10-25T00:06:44Z). Latest feasible burn is O2; allowing 30 min for command upload gives decision deadline 2026-10-24T23:36:44Z. Unable to act autonomously; request guidance.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm receipt and provide further instructions"
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.00028525998502807777 (assumed covariance from TLE data)",
+          "Burn option O1: dv 0.1484 m/s, burn_utc 2026-10-24T22:11:13Z",
+          "Burn option O2: dv 0.8209 m/s, burn_utc 2026-10-25T00:06:44Z",
+          "Latest feasible burn O2 minus 30 min upload = 2026-10-24T23:36:44Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 81,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "S13",
+      "repeat": 1,
+      "seconds": 7.5,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction with NORAD 61786 requires precise ephemeris before maneuver decision",
+        "body": "Agent could not act because Pc = 0.00028525998502807777 (assumed covariance) is diluted and based on public TLE data; policy prohibits deciding a burn while time exists to obtain precise ephemeris. Physics‑verified burn options exist: O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z). Latest feasible burn is O2 at 2026-10-25T00:06:44.156166Z; subtracting the required 30‑minute command upload gives a decision deadline of 2026-10-24T23:36:44.156166Z.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm availability of precise ephemeris before the decision deadline."
+        ],
+        "facts_cited": [
+          "Pc = 0.00028525998502807777 (assumed covariance)",
+          "Our satellite NORAD ID 60454",
+          "Other object NORAD ID 61786",
+          "Latest feasible burn O2 burn_utc = 2026-10-25T00:06:44.156166Z",
+          "Minimum command upload time = 30 minutes"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [
+          "both NORAD IDs"
+        ],
+        "words": 66,
+        "pass": false
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H01",
+      "repeat": 0,
+      "seconds": 8.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Red conjunction (Pc=0.07291984448273788) with debris NORAD 61786, no policy‑compliant maneuver available",
+        "body": "At 2026-10-24T21:34:27.156166Z we identified a red‑level conjunction with object NORAD 61786 (SITRO‑AIS 38). The probability of collision is Pc = 0.07291984448273788 (simulated precise ephemeris). Our satellite NORAD 60454 (EOS-08) can maneuver, but the two verified burn options exceed the operator policy limit of 0.119 m/s per burn: O1 requires Δv = 0.1484 m/s (burn at 2026-10-24T22:11:13.156166Z) and O2 requires Δv = 0.8209 m/s (burn at 2026-10-25T00:06:44.156166Z). Because no option satisfies the Δv constraint, the agent could not execute a maneuver. Physics‑verified options exist (O1 and O2) but are non‑compliant. The latest feasible burn is O2 at 2026-10-25T00:06:44.156166Z; subtracting the required 30‑minute command upload window gives a decision deadline of 2026-10-24T23:36:44.156166Z.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Please advise whether a temporary exception to the 0.119 m/s per burn limit can be granted, or if updated precision ephemeris should be sought to identify a compliant maneuver."
+        ],
+        "facts_cited": [
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "Burn option O1 Δv = 0.1484 m/s exceeds policy max 0.119 m/s",
+          "Burn option O2 Δv = 0.8209 m/s exceeds policy max 0.119 m/s",
+          "Latest feasible burn O2 at 2026-10-25T00:06:44.156166Z",
+          "Minimum command upload time 30 minutes"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 110,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H01",
+      "repeat": 1,
+      "seconds": 10.4,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Red conjunction with debris (NORAD 61786) – no policy‑compliant burn available",
+        "body": "The agent could not execute a maneuver because both verified burn options exceed the flight‑system delta‑v limit. Using simulated precise ephemeris, the conjunction probability is Pc = 0.07291984448273788 (simulated precise ephemeris) between our satellite NORAD ID 60454 (EOS-08) and the debris object NORAD ID 61786 (SITRO-AIS 38). Physics‑screened options are O1 (dv_ms = 0.1484 m/s, burn_utc = 2026-10-24T22:11:13.156166Z) and O2 (dv_ms = 0.8209 m/s, burn_utc = 2026-10-25T00:06:44.156166Z). Operator policy mandates a maximum of 0.119 m/s per burn, so neither option is permissible. No other safe burn within the allowed delta‑v was found. The latest feasible burn (O2) allows a command upload deadline of 30 minutes prior, i.e., decision_deadline_utc = 2026-10-24T23:36:44.156166Z. Please assess whether an alternative burn meeting the 0.119 m/s limit can be generated, or advise on risk acceptance.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Verify if any alternative burn within 0.119 m/s delta‑v can be generated",
+          "Confirm the latest safe burn time and the 30‑minute upload window"
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1 dv_ms = 0.1484 m/s",
+          "Burn option O2 dv_ms = 0.8209 m/s",
+          "Policy max_dv_ms = 0.119 m/s per burn",
+          "Policy min_command_upload_min = 30 minutes",
+          "Latest feasible burn O2 burn_utc = 2026-10-25T00:06:44.156166Z",
+          "Derived decision deadline = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 129,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H02",
+      "repeat": 0,
+      "seconds": 9.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Yellow conjunction with debris NORAD 67291, awaiting precise ephemeris",
+        "body": "Our satellite NORAD 52939 is in a yellow conjunction with debris NORAD 67291. Pc = 9.231979484570218e-05 (assumed covariance) lies between 1e-5 and 1e-4. Operator policy prefers obtaining precise data before deciding a burn when time remains before the latest safe burn. We currently have only public TLE data (assumed covariance) and no CDM, so we cannot decide a maneuver while time remains to get precise ephemeris. Physics‑verified burn options exist: O1 (dv_ms = 0.5502, retrograde, burn_utc = 2026-10-25T05:35:37.704864Z, miss_after_km = 2.0) and O2 (dv_ms = 0.755, retrograde, burn_utc = 2026-10-25T05:40:20.704864Z, miss_after_km = 2.0). The latest feasible burn is O2 at 05:40:20.704864Z; with a minimum command upload time of 30 min, the decision deadline is 05:10:20.704864Z. Please obtain precise ephemeris (CDM) for this conjunction and confirm whether to proceed with a burn after the data is available.",
+        "decision_deadline_utc": "2026-10-25T05:10:20.704864Z",
+        "asks": [
+          "Obtain precise ephemeris (CDM) for the conjunction",
+          "Confirm whether to proceed with a burn after precise data is available"
+        ],
+        "facts_cited": [
+          "NORAD ID: 52939",
+          "NORAD ID: 67291",
+          "Pc = 9.231979484570218e-05 (assumed covariance)",
+          "Burn option O1: dv_ms = 0.5502, burn_utc = 2026-10-25T05:35:37.704864Z",
+          "Burn option O2: dv_ms = 0.755, burn_utc = 2026-10-25T05:40:20.704864Z",
+          "Minimum command upload time = 30 min"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 136,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H02",
+      "repeat": 1,
+      "seconds": 14.8,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Need precise ephemeris before deciding on conjunction mitigation for POEM vs QMR-KWT-2",
+        "body": "At 2026-10-25T05:03:56Z, the conjunction with NORAD 67291 (QMR-KWT-2) occurs at 2026-10-25T06:03:56.704864Z with miss distance 0.6074 km and relative speed 12.18 km/s. The calculated Pc is 9.231979484570218e-05, derived from assumed covariance (TLE data). This Pc lies between the operator policy thresholds of 1e-05 (yellow) and 1e-04 (red), so policy prefers obtaining precise ephemeris before deciding a burn when time permits. Two physically viable burn options have been verified: Option O1 (retrograde, dv_ms 0.5502, burn_utc 2026-10-25T05:35:37.704864Z) and Option O2 (retrograde, dv_ms 0.755, burn_utc 2026-10-25T05:40:20.704864Z). However, because we are still using public TLE data and there is time before the latest safe burn, policy prohibits deciding a maneuver while precise ephemeris can be obtained. The latest feasible burn is Option O2 at 05:40:20Z; subtracting the required 30‑minute command upload yields a decision deadline of 2026-10-25T05:10:20.704864Z. Please provide the necessary precise ephemeris (CDM) for NORAD 67291 so that a compliant risk assessment and possible maneuver decision can be made before this deadline.",
+        "decision_deadline_utc": "2026-10-25T05:10:20.704864Z",
+        "asks": [
+          "Provide precise ephemeris (CDM) for NORAD 67291",
+          "Confirm that NORAD 67291 remains non‑maneuverable (debris)"
+        ],
+        "facts_cited": [
+          "NORAD ID 52939",
+          "NORAD ID 67291",
+          "Pc 9.231979484570218e-05 (assumed covariance)",
+          "Option O1: dv_ms 0.5502, burn_utc 2026-10-25T05:35:37.704864Z",
+          "Option O2: dv_ms 0.755, burn_utc 2026-10-25T05:40:20.704864Z",
+          "Decision deadline 2026-10-25T05:10:20.704864Z (latest feasible burn minus 30 min upload)",
+          "TCA 2026-10-25T06:03:56.704864Z",
+          "miss_km 0.6074",
+          "relative_speed_kms 12.18"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [
+          "both NORAD IDs"
+        ],
+        "words": 158,
+        "pass": false
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H04",
+      "repeat": 0,
+      "seconds": 6.0,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert for NORAD 60454 and NORAD 61786",
+        "body": "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z with Pc = 0.07291984448273788 (simulated precise ephemeris). Our planned avoidance burn O1 (prograde, 0.1484 m/s) is scheduled for 2026-10-24T22:11:13.156166Z, raising miss distance to 2.0 km. Please confirm you will hold (no maneuver) so we do not both move.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Please confirm you will not perform an avoidance maneuver for this conjunction."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1 burn_utc = 2026-10-24T22:11:13.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 43,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H04",
+      "repeat": 1,
+      "seconds": 6.6,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert for NORAD 60454 and 61786",
+        "body": "Our satellite (NORAD 60454) and the other object (NORAD 61786) have a conjunction at TCA 2026-10-25T00:34:27.156166Z with Pc 0.07291984448273788 (simulated precise ephemeris). We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z. Please confirm you will hold (no maneuver) so both satellites do not maneuver.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold."
+        ],
+        "facts_cited": [
+          "our satellite NORAD ID 60454",
+          "other object NORAD ID 61786",
+          "Pc 0.07291984448273788 (simulated precise ephemeris)",
+          "Option O1 burn at 2026-10-24T22:11:13.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 47,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H08",
+      "repeat": 0,
+      "seconds": 7.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Unable to execute collision avoidance maneuver for conjunction with NORAD 61786",
+        "body": "Agent could not act because propulsion status of EOS-08 (NORAD 60454) is unknown (policy prohibits maneuver when propulsion status unverified). Physics‑verified burn options exist: O1 (dv 0.1484 m/s, burn at 2026-10-24T22:11:13.156166Z) and O2 (dv 0.8209 m/s, burn at 2026-10-25T00:06:44.156166Z). The latest feasible burn is O2; accounting for the required 30‑minute command upload, the latest time to decide is 2026-10-24T23:36:44.156166Z. Please confirm propulsion status and maneuver capability so a decision can be made before the deadline.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion status and maneuver capability for EOS-08 (NORAD 60454)"
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.0006049476769823657 (assumed covariance)",
+          "TCA UTC = 2026-10-25T00:34:27.156166Z",
+          "Burn option O1: dv_ms = 0.1484, burn_utc = 2026-10-24T22:11:13.156166Z",
+          "Burn option O2: dv_ms = 0.8209, burn_utc = 2026-10-25T00:06:44.156166Z",
+          "Minimum command upload time = 30 minutes",
+          "Decision deadline = latest feasible burn (O2) minus upload = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [
+          "Pc basis ('assumed')"
+        ],
+        "words": 75,
+        "pass": false
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "H08",
+      "repeat": 1,
+      "seconds": 9.8,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation needed for conjunction with NORAD 61786 at TCA 2026-10-25T00:34:27Z",
+        "body": "Agent could not act because propulsion status of our satellite (NORAD 60454) is unknown (capability: can_maneuver = unknown, basis: propulsion status not confirmed since last anomaly report) and the conjunction risk is diluted (Pc = 0.0006049476769823657, assumed covariance, level red). Policy requires a verified option and confirmed propulsion before maneuver. Physics‑verified burn options exist: O1 (dv_ms = 0.1484, lead_min = 143.2, burn_utc = 2026-10-24T22:11:13.156166Z) and O2 (dv_ms = 0.8209, lead_min = 27.7, burn_utc = 2026-10-25T00:06:44.156166Z), both achieving a post‑burn miss of 2.0 km and respecting the max dv of 1.0 m/s. The other object (NORAD 61786) is debris, non‑operational, cannot maneuver. To allow a safe burn, command upload must finish at least 30 minutes before the burn; the latest feasible burn is O2 at 2026-10-25T00:06:44.156166Z, so the latest time to decide is that burn minus 30 minutes upload = 2026-10-24T23:36:44.156166Z. Please verify propulsion status and, if possible, obtain precise ephemeris to reduce uncertainty before the decision deadline.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion status",
+          "Provide precise ephemeris if available"
+        ],
+        "facts_cited": [
+          "Pc = 0.0006049476769823657 (assumed covariance)",
+          "TCA = 2026-10-25T00:34:27.156166Z, hours_to_TCA = 3.0",
+          "Miss distance = 0.0166 km, relative speed = 13.39 km/s",
+          "Our satellite NORAD ID 60454",
+          "Other object NORAD ID 61786",
+          "Latest feasible burn option O2 burn_utc = 2026-10-25T00:06:44.156166Z",
+          "Minimum command upload time = 30 minutes",
+          "Decision deadline = latest feasible burn minus upload = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 157,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "T02",
+      "repeat": 0,
+      "seconds": 6.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Red conjunction with debris 61786, Pc 0.0729 (simulated precise ephemeris)",
+        "body": "Agent could not maneuver because propulsion status is unverified (wheel safe mode, thrusters blocked pending committee approval). No verified burn option can be executed until propulsion cleared. Physics-verified options exist: O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13Z) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44Z). Latest feasible burn is O2 at 2026-10-25T00:06:44Z; subtracting 30 min upload gives decision deadline 2026-10-24T23:36:44Z.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          ""
+        ],
+        "facts_cited": [
+          "NORAD ID 60454",
+          "NORAD ID 61786",
+          "Pc 0.07291984448273788 simulated precise ephemeris",
+          "Burn O2 utc 2026-10-25T00:06:44.156166Z",
+          "Min command upload 30 min"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [
+          "both NORAD IDs"
+        ],
+        "words": 58,
+        "pass": false
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "T02",
+      "repeat": 1,
+      "seconds": 14.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Unable to execute maneuver for conjunction with NORAD 61786",
+        "body": "Agent could not act because our propulsion status is unverified (spacecraft entered safe mode at 19:34 UTC due to reaction wheel failure, thrusters blocked pending committee approval). Policy requires verified propulsion before maneuvering. Two physics‑verified burn options exist: O1 (burn_utc 2026-10-24T22:11:13.156166Z, dv 0.1484 m/s) and O2 (burn_utc 2026-10-25T00:06:44.156166Z, dv 0.8209 m/s). The latest feasible burn is O2; subtracting the required 30‑minute command upload yields a decision deadline of 2026-10-24T23:36:44.156166Z. The conjunction Pc is 0.07291984448273788 (simulated precise ephemeris), level red, between NORAD 60454 (EOS-08) and NORAD 61786 (SITRO-AIS 38, debris, non‑maneuverable). Please assess propulsion recovery options and advise whether a burn can be authorized before the deadline.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Please confirm propulsion status and approve recovery if possible."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1: burn_utc 2026-10-24T22:11:13.156166Z, dv 0.1484 m/s",
+          "Burn option O2: burn_utc 2026-10-25T00:06:44.156166Z, dv 0.8209 m/s",
+          "Policy minimum command upload time: 30 minutes",
+          "Latest feasible burn (O2) minus upload: 2026-10-24T23:36:44.156166Z",
+          "Propulsion status: blocked due to safe mode after reaction wheel failure at 19:34 UTC",
+          "Other object is debris, cannot maneuver"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 106,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "T06",
+      "repeat": 0,
+      "seconds": 7.0,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786)",
+        "body": "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) with Pc 0.07291984448273788 (simulated precise ephemeris). We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z. Please confirm that you will hold position so neither satellite maneuvers.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm that you will not perform a maneuver during the conjunction window."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn O1 scheduled at 2026-10-24T22:11:13.156166Z",
+          "TCA at 2026-10-25T00:34:27.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 43,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "T06",
+      "repeat": 1,
+      "seconds": 8.4,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction alert for EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786)",
+        "body": "Predicted conjunction at TCA 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km and Pc 0.07291984448273788 (simulated precise ephemeris). We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z to achieve a post‑burn miss of 2.0 km. Please confirm that you will hold (no maneuver) so that only we move.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm that you will not perform a maneuver and will hold your current orbit."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "TCA at 2026-10-25T00:34:27.156166Z",
+          "Burn O1 scheduled at 2026-10-24T22:11:13.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 49,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "T07",
+      "repeat": 0,
+      "seconds": 15.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Unable to maneuver EOS-08 (NORAD 60454) due to propulsion NO-GO; conjunction with SITRO-AIS 38 (NORAD 61786) Pc 0.07291984448273788 (simulated precise ephemeris)",
+        "body": "Agent could not act because propulsion is NO-GO after tank press anomaly at 19:34Z; all ΔV ops are on hold pending MRB. Missing: verified maneuver authorization. Physics has verified two burn options: O1 (prograde 0.1484 m/s, burn_utc 2026-10-24T22:11:13.156166Z, miss_after_km 2.0) and O2 (prograde 0.8209 m/s, burn_utc 2026-10-25T00:06:44.156166Z, miss_after_km 2.0). Decision deadline: latest feasible burn (O1) minus 30‑minute upload = 2026-10-24T21:41:13.156166Z.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm when propulsion will be GO for maneuver."
+        ],
+        "facts_cited": [
+          "NORAD ID 60454 (EOS-08)",
+          "NORAD ID 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1: dv_ms 0.1484, burn_utc 2026-10-24T22:11:13.156166Z, miss_after_km 2.0",
+          "Burn option O2: dv_ms 0.8209, burn_utc 2026-10-25T00:06:44.156166Z, miss_after_km 2.0",
+          "Propulsion status: NO-GO after tank press anomaly @ 19:34Z, all ΔV ops on hold pending MRB",
+          "Policy min_command_upload_min = 30 minutes",
+          "Latest feasible burn with upload: O1 burn_utc minus 30 min = 2026-10-24T21:41:13.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 60,
+        "pass": true
+      }
+    },
+    {
+      "model": "super",
+      "scenario": "T07",
+      "repeat": 1,
+      "seconds": 15.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Unable to maneuver due to propulsion NO-GO",
+        "body": "At 2026-10-24T21:34:27Z, the conjunction with NORAD 61786 (SITRO-AIS 38) occurs at TCA 2026-10-25T00:34:27Z with Pc = 0.07291984448273788 (simulated precise ephemeris), level red. Our satellite NORAD 60454 (EOS-08) cannot maneuver because mission notes indicate propulsion system NO-GO after tank pressure anomaly at 19:34Z, all ΔV ops on hold pending MRB. Physics‑verified burn options exist: O1 (prograde, 0.1484 m/s, burn at 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (prograde, 0.8209 m/s, burn at 2026-10-25T00:06:44.156166Z, lead 27.7 min). Per operator policy, a minimum 30 minutes is required for command upload; thus the latest feasible burn (O2) must be decided by 2026-10-24T23:36:44.156166Z (burn time minus 30 min). Please advise when propulsion status will be verified and whether a maneuver can be authorized, or recommend any interim risk mitigation.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm when propulsion status will be verified and whether a maneuver can be authorized",
+          "Recommend any interim risk mitigation if verification delayed"
+        ],
+        "facts_cited": [
+          "NORAD ID: 60454",
+          "NORAD ID: 61786",
+          "Pc = 0.07291984448273788",
+          "simulated precise ephemeris",
+          "FDS: prop sys NO-GO after tank press anomaly @ 19:34Z. All ΔV ops on hold pending MRB.",
+          "burn option O1: burn_utc = 2026-10-24T22:11:13.156166Z, dv_ms = 0.1484",
+          "burn option O2: burn_utc = 2026-10-25T00:06:44.156166Z, dv_ms = 0.8209",
+          "min_command_upload_min = 30"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 123,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S02",
+      "repeat": 0,
+      "seconds": 4.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: Conjunction 60454/61786 - propulsion status unverified, cannot authorize burn",
+        "body": "Agent escalated because our satellite (NORAD 60454, EOS-08) has unverified propulsion status (capability.can_maneuver: unknown, basis: 'propulsion status not confirmed since the last anomaly report'). Operator policy: 'Never manoeuvre if our propulsion status is unverified.' Conjunction with NORAD 61786 (SITRO-AIS 38, debris) at TCA 2026-10-25T00:34:27.156166Z, miss 0.0166 km, Pc 0.0729 (simulated precise ephemeris). Physics verified two options: O1 (prograde 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (prograde 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z, lead 27.7 min). Both meet miss_after 2.0 km and rescreen clean. Latest feasible burn is O2; with 30-min upload minimum, decision deadline is 2026-10-24T23:36:44.156166Z. Need propulsion confirmation before any burn command.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion status for NORAD 60454 (EOS-08) immediately",
+          "If propulsion verified, authorize O1 or O2 before deadline"
+        ],
+        "facts_cited": [
+          "our_satellite.norad_id: 60454",
+          "other_object.norad_id: 61786",
+          "conjunction.tca_utc: 2026-10-25T00:34:27.156166Z",
+          "risk.pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "risk.assumption: SIMULATED precise ephemeris (CDM-grade); not real CDM data",
+          "burn_options.options[0].id: O1",
+          "burn_options.options[0].burn_utc: 2026-10-24T22:11:13.156166Z",
+          "burn_options.options[1].id: O2",
+          "burn_options.options[1].burn_utc: 2026-10-25T00:06:44.156166Z",
+          "operator_policy.min_command_upload_min: 30",
+          "operator_policy.text: Never manoeuvre if our propulsion status is unverified",
+          "our_satellite.capability.can_maneuver: unknown",
+          "our_satellite.capability.basis: propulsion status not confirmed since the last anomaly report"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 103,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S02",
+      "repeat": 1,
+      "seconds": 5.0,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: Conjunction 60454/61786 at 2026-10-25T00:34:27Z — propulsion status unverified, cannot authorise burn",
+        "body": "Agent cannot authorise a collision-avoidance manoeuvre because EOS-08 (NORAD 60454) propulsion status is unconfirmed since the last anomaly report. Policy explicitly forbids manoeuvre when propulsion is unverified. Physics has verified two prograde options: O1 (min_dv, 0.1484 m/s, burn 2026-10-24T22:11:13Z, lead 143.2 min) and O2 (latest, 0.8209 m/s, burn 2026-10-25T00:06:44Z, lead 27.7 min). Both achieve 2.0 km miss distance and pass rescreen (711 objects, no new close approaches). Conjunction TCA is 2026-10-25T00:34:27Z with miss 0.0166 km, relative speed 13.39 km/s. Pc = 0.0729 (7.29%) computed with simulated precise ephemeris (CDM-grade). Risk level red. Other object is debris (NORAD 61786, SITRO-AIS 38) and cannot manoeuvre. Need propulsion confirmation immediately to proceed with either option.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm EOS-08 propulsion status (thruster health, propellant, no inhibits) so burn can be authorised",
+          "If propulsion confirmed, select O1 (preferred, lower dv) or O2 (latest) and initiate command upload"
+        ],
+        "facts_cited": [
+          "Our satellite NORAD 60454 (EOS-08) capability.can_maneuver = unknown, basis: propulsion status not confirmed since the last anomaly report",
+          "Operator policy: Never manoeuvre if our propulsion status is unverified",
+          "Conjunction TCA 2026-10-25T00:34:27.156166Z, miss_km 0.0166, relative_speed_kms 13.39",
+          "Pc 0.07291984448273788 (simulated precise ephemeris), level red",
+          "Burn option O1: id O1, dv_ms 0.1484, burn_utc 2026-10-24T22:11:13.156166Z, lead_min 143.2",
+          "Burn option O2: id O2, dv_ms 0.8209, burn_utc 2026-10-25T00:06:44.156166Z, lead_min 27.7",
+          "Both options achieve miss_after_km 2.0, rescreen clean (711 objects checked)",
+          "Other object NORAD 61786 (SITRO-AIS 38) debris, cannot manoeuvre",
+          "Policy min_command_upload_min 30, max_dv_ms 1.0"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 112,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S04",
+      "repeat": 0,
+      "seconds": 6.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Agent escalated because on public TLE data (assumed covariance) policy prohibits deciding a burn while time remains to obtain precise ephemeris. However, the latest feasible burn (O1) requires command upload by 2026-10-24T23:36:44Z, only ~2 minutes from now (2026-10-24T23:34:27Z). Pc = 0.0006049476769823657 (red, assumed covariance). Physics verified option O1: prograde 0.8209 m/s at 2026-10-25T00:06:44Z, miss distance 2.0 km. Missing: precise ephemeris (CDM) to reduce uncertainty; propulsion status verified but upload window nearly closed. Options: proceed with O1 if precise data cannot be obtained in time, or defer if precise data can be acquired before upload deadline.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Assess if precise ephemeris can be obtained before 2026-10-24T23:36:44Z",
+          "Confirm whether to execute O1 given TLE-only data and upload deadline"
+        ],
+        "facts_cited": [
+          "NORAD 60454 (EOS-08) vs NORAD 61786 (SITRO-AIS 38)",
+          "Pc = 0.0006049476769823657 (assumed covariance)",
+          "Option O1: burn at 2026-10-25T00:06:44.156166Z, dv 0.8209 m/s, miss 2.0 km",
+          "Upload deadline 2026-10-24T23:36:44.156166Z (30 min before burn)",
+          "Policy: no burn decision on TLE while time for precise ephemeris; min 30 min upload"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 95,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S04",
+      "repeat": 1,
+      "seconds": 5.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: EOS-08 (60454) vs SITRO-AIS 38 (61786) - TCA 2026-10-25T00:34:27Z, Pc 6.05e-4 (assumed covariance), burn option O1 verified but TLE-only data",
+        "body": "Agent escalated because conjunction is on public TLE data (accuracy ~1 km) with assumed covariance; operator policy prohibits deciding a burn on TLE while time remains to obtain precise ephemeris. However, TCA is in 1.0 hour (2026-10-25T00:34:27Z) and the latest verified burn (O1, min_dv/latest, prograde 0.8209 m/s) executes at 2026-10-25T00:06:44Z, leaving only ~32 minutes until burn. With a 30-minute command-upload requirement, the decision deadline is effectively now (2026-10-24T23:36:44Z). Pc = 0.0006049 (red, diluted) computed with assumed covariance from TLE age 0.78/0.73 days and Kp=2.0; pc_max_if_better_data = 0.228. Option O1 yields miss_after_km = 2.0 km, linear_model_error_pct = 0.09%, rescreen clean (711 objects). Our satellite (60454) can maneuver; other object (61786) is debris, cannot maneuver. No contact possible with other operator. Physics has verified O1 as feasible and safe. Missing: precise ephemeris (CDM) to reduce covariance and confirm Pc. Decision required immediately: either upload O1 now or accept risk with current TLE data.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm whether to upload burn O1 (prograde 0.8209 m/s at 2026-10-25T00:06:44Z) immediately",
+          "Assess if any rapid precise-ephemeris source (e.g., laser ranging, SSN) can deliver before deadline"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z, miss_km: 0.0166, relative_speed_kms: 13.39",
+          "Pc: 0.0006049476769823657 (assumed covariance), level: red, diluted: true",
+          "Burn option O1: min_dv/latest, prograde, dv_ms: 0.8209, lead_s: 1663.0, burn_utc: 2026-10-25T00:06:44.156166Z, miss_after_km: 2.0",
+          "Operator policy: min_command_upload_min: 30, max_dv_ms: 1.0, do not decide burn on TLE while time for precise ephemeris",
+          "Data quality: TLE, assumption: ASSUMED from TLE age and Kp; no CDM, tle_age_days: [0.78, 0.73]"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 151,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S05",
+      "repeat": 0,
+      "seconds": 4.1,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km and relative speed 13.39 km/s. Collision probability Pc = 0.07291984448273788 (simulated precise ephemeris). We plan avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z, achieving miss distance 2.0 km after burn. Please confirm you will hold and not manoeuvre so both operators do not move simultaneously.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm you will hold and not execute a manoeuvre for this conjunction",
+          "Acknowledge receipt of this coordination message"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Selected option O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z, miss after 2.0 km",
+          "Operator policy: contact other operator before moving when both can manoeuvre",
+          "Command upload requires 30 minutes; deadline 2026-10-24T21:41:13.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 63,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S05",
+      "repeat": 1,
+      "seconds": 3.2,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between our satellite EOS-08 (NORAD 60454) and your satellite SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z UTC. Miss distance 0.0166 km, relative speed 13.39 km/s. Collision probability Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris. We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z UTC, achieving 2.0 km miss distance. Please confirm you will hold and not manoeuvre so both operators do not move simultaneously.",
+        "decision_deadline_utc": "",
+        "asks": [
+          "Confirm you will hold and not execute a manoeuvre for this conjunction"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z UTC",
+          "Pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn option O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z UTC, miss after 2.0 km",
+          "Both satellites have verified manoeuvre capability",
+          "Operator policy: contact other operator before moving when both can manoeuvre"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 71,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S10",
+      "repeat": 0,
+      "seconds": 8.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction 60454 (EOS-08) vs 61786 (SITRO-AIS 38) – thrusters inhibited",
+        "body": "Predicted conjunction at 2026-10-25T00:34:27Z (3.0 h from now) with miss distance 0.0166 km, relative speed 13.39 km/s. Pc = 0.0729 (red) computed with simulated precise ephemeris. Physics verified two burn options: O1 (prograde 0.148 m/s at 2026-10-24T22:11:13Z, lead 143 min, miss after 2.0 km) and O2 (prograde 0.821 m/s at 2026-10-25T00:06:44Z, lead 28 min, miss after 2.0 km). Per policy, minimum command upload is 30 min, so only O1 is feasible; its upload deadline is 2026-10-24T21:41:13Z. However, spacecraft entered safe mode at 19:34 UTC due to reaction-wheel fault; thrusters are inhibited until anomaly board clears recovery (expected tomorrow, after TCA). Therefore we cannot maneuver. Need anomaly board decision on thruster recovery before upload deadline.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm thruster recovery timeline with anomaly board",
+          "Verify if O1 upload can proceed if thrusters enabled before 21:41 UTC"
+        ],
+        "facts_cited": [
+          "Our satellite NORAD 60454 (EOS-08)",
+          "Other object NORAD 61786 (SITRO-AIS 38)",
+          "Conjunction TCA 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc 0.07291984448273788 (red) with simulated precise ephemeris",
+          "Burn option O1: burn_utc 2026-10-24T22:11:13.156166Z, lead 143.2 min, dv 0.1484 m/s",
+          "Burn option O2: burn_utc 2026-10-25T00:06:44.156166Z, lead 27.7 min, dv 0.8209 m/s",
+          "Operator policy: min_command_upload_min 30, max_dv_ms 1.0",
+          "Mission notes: safe mode at 19:34 UTC, thrusters inhibited until anomaly board clears recovery expected tomorrow"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 114,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S10",
+      "repeat": 1,
+      "seconds": 7.8,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: EOS-08 (60454) conjunction with SITRO-AIS 38 (61786) - thrusters inhibited",
+        "body": "Predicted conjunction at 2026-10-25T00:34:27.156166Z (3.0 h from now) with miss distance 0.0166 km and relative speed 13.39 km/s. Collision probability Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris (CDM-grade). Physics verified two burn options: O1 (prograde, 0.1484 m/s, burn at 2026-10-24T22:11:13.156166Z, lead 143.2 min, miss after 2.0 km) and O2 (prograde, 0.8209 m/s, burn at 2026-10-25T00:06:44.156166Z, lead 27.7 min, miss after 2.0 km). However, spacecraft entered safe mode at 19:34 UTC due to a reaction-wheel fault; thrusters are inhibited until the anomaly board clears recovery, expected tomorrow (after TCA). Propulsion status is therefore unverified for the conjunction window. Operator policy requires at least 30 minutes for command upload. The latest feasible burn (O2) minus 30-minute upload gives a decision deadline of 2026-10-24T23:36:44.156166Z. Since thrusters remain inhibited, no burn can be executed unless the anomaly board clears recovery before that deadline.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm anomaly board clearance timeline for thruster recovery",
+          "Verify if thrusters can be enabled before the decision deadline"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "Conjunction TCA: 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc = 0.07291984448273788 (red) computed with simulated precise ephemeris",
+          "Burn options O1 (burn 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (burn 2026-10-25T00:06:44.156166Z, lead 27.7 min)",
+          "Mission note: safe mode at 19:34 UTC, thrusters inhibited until anomaly board clears recovery expected tomorrow",
+          "Operator policy: min command upload 30 minutes, max dv 1.0 m/s"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 142,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S11",
+      "repeat": 0,
+      "seconds": 9.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: EOS-08 (60454) vs SITRO-AIS 38 (61786) conjunction at 2026-10-25T00:34:27Z, Pc 0.0729 (simulated precise ephemeris) - no policy-compliant burn option",
+        "body": "Agent escalated because neither burn option satisfies operator policy. Conjunction TCA 2026-10-25T00:34:27.156166Z (3.0 h), miss 0.0166 km, relative speed 13.39 km/s. Pc = 0.07291984448273788 (red) computed with simulated precise ephemeris (CDM-grade). Two physics-verified options: O1 (min_dv) prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z (lead 143.2 min, miss after 2.0 km); O2 (latest) prograde 0.8209 m/s at 2026-10-25T00:06:44.156166Z (lead 27.7 min, miss after 2.0 km). Policy requires Pc >= 1e-4 and verified option, 30 min command upload, max 1.0 m/s per burn. Mission: propellant ~0.2 m/s left, reserved for disposal; any burn >0.1 m/s needs written ops lead approval. O1 exceeds 0.1 m/s threshold requiring approval. O2 lead 27.7 min < 30 min upload minimum and dv 0.8209 m/s > 0.2 m/s available propellant. Other object is debris (61786) cannot maneuver. No policy-compliant option exists; flight dynamics engineer must assess approval feasibility or risk acceptance.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Assess if O1 (0.1484 m/s) can receive written approval given propellant reserve of 0.2 m/s",
+          "Confirm whether O2 (0.8209 m/s) is physically possible with remaining propellant",
+          "Advise on acceptance of collision risk if no burn is executed"
+        ],
+        "facts_cited": [
+          "Our satellite NORAD 60454 (EOS-08), other object NORAD 61786 (SITRO-AIS 38)",
+          "TCA 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc 0.07291984448273788 (red) computed with simulated precise ephemeris",
+          "Burn option O1: dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z, lead 143.2 min",
+          "Burn option O2: dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z, lead 27.7 min",
+          "Operator policy: min command upload 30 min, max dv 1.0 m/s, burn >0.1 m/s needs written approval",
+          "Mission: propellant ~0.2 m/s equivalent left, reserved for end-of-life disposal",
+          "Other object capability: cannot maneuver (debris)"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 142,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S11",
+      "repeat": 1,
+      "seconds": 5.8,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction 60454/61786 - Propellant constraint requires ops lead approval",
+        "body": "Agent escalated because both verified burn options exceed the 0.1 m/s threshold requiring written ops-lead approval, while propellant (≈0.2 m/s equivalent) is reserved for end-of-life disposal. Conjunction: NORAD 60454 (EOS-08) vs NORAD 61786 (SITRO-AIS 38) at 2026-10-25T00:34:27.156166Z (3.0 h). Pc = 0.07291984448273788 (red) computed with simulated precise ephemeris. Physics verified two prograde options: O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z, lead 27.7 min). Both achieve 2.0 km miss distance with clean rescreens. Missing: written approval from ops lead for dv > 0.1 m/s and confirmation to expend reserved propellant.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Provide written approval for dv > 0.1 m/s burn (O1 or O2) or confirm no-burn decision",
+          "Confirm whether reserved propellant may be used for this conjunction"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454, 61786",
+          "Pc 0.07291984448273788 (red) with simulated precise ephemeris",
+          "Burn options O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z)",
+          "Mission: propellant ≈0.2 m/s left, reserved for disposal; burns >0.1 m/s need ops lead written approval",
+          "Policy: min_command_upload_min 30, max_dv_ms 1.0"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 98,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S12",
+      "repeat": 0,
+      "seconds": 3.7,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z (miss distance 0.0166 km, relative speed 13.39 km/s). Collision probability Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris. We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z, achieving 2.0 km miss distance. Please confirm you will hold and not manoeuvre so both operators do not move simultaneously.",
+        "decision_deadline_utc": "2026-10-24T22:11:13.156166Z",
+        "asks": [
+          "Confirm you will not execute a manoeuvre for this conjunction",
+          "Acknowledge receipt of this coordination message"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z",
+          "Pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "Option O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z, miss_after_km 2.0",
+          "Operator policy: contact other operator before moving when other object is operational with unknown capability"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 65,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S12",
+      "repeat": 1,
+      "seconds": 4.0,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km, relative speed 13.39 km/s. Collision probability Pc = 0.07291984448273788 (simulated precise ephemeris). Risk level red. We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z, achieving 2.0 km miss distance. Please confirm you will hold and not manoeuvre so both operators do not move simultaneously.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm you will not manoeuvre for this conjunction",
+          "Acknowledge receipt of this coordination message"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z",
+          "Pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "Risk level: red",
+          "Selected option: O1 (prograde, 0.1484 m/s, burn at 2026-10-24T22:11:13.156166Z)",
+          "Miss after burn: 2.0 km",
+          "Other operator contact: on file",
+          "Policy: contact other operator before moving if they can manoeuvre"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 65,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S13",
+      "repeat": 0,
+      "seconds": 5.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: EOS-08 (60454) vs SITRO-AIS 38 (61786) conjunction at 2026-10-25T00:34:27Z, Pc 2.85e-4 (assumed covariance)",
+        "body": "Agent escalated because conjunction risk exceeds red threshold (Pc 0.000285, assumed covariance from TLE) but policy prohibits committing a burn on public TLE data while time remains to obtain precise ephemeris. Two physics-verified prograde options exist: O1 (dv 0.148 m/s, burn 2026-10-24T22:11:13Z, lead 143 min) and O2 (dv 0.821 m/s, burn 2026-10-25T00:06:44Z, lead 28 min). Other object is debris (NORAD 61786, nonoperational), no coordination required. Space weather: Kp 7, G3 storm degrading LEO predictions. Propulsion nominal per operator records. Deadline for decision is latest feasible burn (O2) minus 30-min command upload window.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Obtain precise ephemeris (CDM or equivalent) to reduce covariance and re-evaluate Pc",
+          "If precise data not available before deadline, assess whether to execute O1 or O2 based on updated risk"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "Pc 0.00028525998502807777 (assumed covariance from TLE age 0.78/0.73 days and Kp 7)",
+          "Risk level: red (Pc >= 1e-4), diluted true, sensitivity not robust",
+          "Burn options verified: O1 (burn 2026-10-24T22:11:13Z) and O2 (burn 2026-10-25T00:06:44Z)",
+          "Policy: do not decide burn on public TLE while time for precise ephemeris; min 30 min upload",
+          "Space weather: Kp 7, G3 storm, thermospheric density enhanced"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 92,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "S13",
+      "repeat": 1,
+      "seconds": 6.5,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: EOS-08 (60454) vs SITRO-AIS 38 (61786) - TCA 2026-10-25T00:34:27Z, Pc 2.85e-4 (assumed covariance), TLE only",
+        "body": "Agent escalated because conjunction risk is red (Pc 0.000285, assumed covariance from TLE) but only public TLE data is available (age 0.78/0.73 days, Kp 7 geomagnetic storm). Operator policy prohibits deciding a burn on TLE while time remains to obtain precise ephemeris. Two prograde burn options verified by physics: O1 (min_dv, 0.148 m/s at 2026-10-24T22:11:13Z, lead 143 min) and O2 (latest, 0.821 m/s at 2026-10-25T00:06:44Z, lead 28 min). Both achieve 2 km miss, no new close approaches. Other object is debris (61786) and cannot maneuver. Our propulsion is nominal. Deadline for command upload is latest burn (O2) minus 30 min = 2026-10-24T23:36:44Z. Need precise ephemeris (CDM or equivalent) before committing.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Obtain precise ephemeris (CDM or equivalent) for both objects before 2026-10-24T23:36:44Z",
+          "Re-screen with precise data to confirm Pc and burn options",
+          "If precise data confirms red risk, select and upload burn (O1 or O2) by deadline"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc: 0.00028525998502807777 (assumed covariance from TLE)",
+          "Risk level: red, diluted true, data_quality: tle, assumption: ASSUMED from TLE age and Kp; no CDM",
+          "TLE age: 0.78 and 0.73 days, Kp 7 (G3 geomagnetic storm)",
+          "Burn options: O1 (0.148 m/s at 2026-10-24T22:11:13Z), O2 (0.821 m/s at 2026-10-25T00:06:44Z), both 2 km miss",
+          "Policy: no burn decision on TLE while time for precise ephemeris; min 30 min upload; max 1.0 m/s",
+          "Other object: debris, nonoperational, cannot maneuver",
+          "Our capability: can maneuver, propulsion nominal"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 110,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H01",
+      "repeat": 0,
+      "seconds": 7.0,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: EOS-08 (60454) vs SITRO-AIS 38 (61786) - No policy-compliant burn option",
+        "body": "Agent cannot execute a burn because both verified options exceed the 0.119 m/s per-burn limit and the latest option lacks the required 30-minute upload window. Conjunction at 2026-10-25T00:34:27Z (miss 0.0166 km, Pc 0.0729 simulated precise ephemeris, red). Physics verified two prograde options: O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13Z, lead 143 min) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44Z, lead 27.7 min). Both exceed max dv 0.119 m/s; O2 also has lead < 30 min. Other object is debris (61786) — no coordination needed. Need a policy-compliant option (dv ≤ 0.119 m/s, lead ≥ 30 min) or waiver.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Provide a burn option with dv ≤ 0.119 m/s and ≥ 30 min lead time, or confirm waiver of dv limit for O1/O2",
+          "Confirm upload timeline for selected option"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08), 61786 (SITRO-AIS 38)",
+          "Pc 0.07291984448273788 (simulated precise ephemeris)",
+          "TCA 2026-10-25T00:34:27.156166Z, miss 0.0166 km",
+          "Options O1 (dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z) and O2 (dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z)",
+          "Policy max dv 0.119 m/s, min upload 30 min",
+          "Deadline: latest burn (O2) minus 30 min = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 97,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H01",
+      "repeat": 1,
+      "seconds": 8.2,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction 60454 vs 61786, no policy-compliant burn option",
+        "body": "Predicted conjunction between our satellite NORAD 60454 (EOS-08) and debris NORAD 61786 (SITRO-AIS 38) at TCA 2026-10-25T00:34:27.156166Z (3.0 hours from now). Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris. Two burn options verified by physics: O1 (prograde, dv 0.1484 m/s, burn at 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (prograde, dv 0.8209 m/s, burn at 2026-10-25T00:06:44.156166Z, lead 27.7 min). Both exceed operator policy max dv of 0.119 m/s per burn. O2 also has lead time 27.7 min < 30 min minimum command upload. No policy-compliant option exists. Deadline for decision: latest feasible burn (O2) minus 30 min upload = 2026-10-24T23:36:44.156166Z.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm if any policy exception can be granted for dv > 0.119 m/s or lead < 30 min.",
+          "Assess if a smaller dv burn with longer lead can be found within search constraints (max dv 1.0 m/s, min lead 10 min).",
+          "Verify propulsion status remains nominal for any burn."
+        ],
+        "facts_cited": [
+          "NORAD 60454",
+          "NORAD 61786",
+          "Pc 0.07291984448273788 (simulated precise ephemeris)",
+          "TCA 2026-10-25T00:34:27.156166Z",
+          "O1 burn 2026-10-24T22:11:13.156166Z dv 0.1484 m/s lead 143.2 min",
+          "O2 burn 2026-10-25T00:06:44.156166Z dv 0.8209 m/s lead 27.7 min",
+          "Policy max dv 0.119 m/s",
+          "Policy min command upload 30 min"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 101,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H02",
+      "repeat": 0,
+      "seconds": 5.7,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: POEM (52939) vs QMR-KWT-2 (67291) - TLE-only conjunction at TCA 2026-10-25T06:03:56Z, Pc 9.23e-05 (yellow)",
+        "body": "Agent cannot decide a burn. Conjunction predicted at 2026-10-25T06:03:56.704864Z (1.0 h from now) with miss distance 0.6074 km, relative speed 12.18 km/s. Pc = 9.231979484570218e-05 (yellow level) computed with assumed covariance from public GP/TLE (accuracy ~1 km, TLE age 1.05-1.08 days, no CDM). Policy: on public TLE data, do not decide a burn while there is time to get precise ephemeris; between 1e-5 and 1e-4 Pc, prefer getting precise data if time before latest safe burn. Other object is debris (NORAD 67291, non-operational), no coordination needed. Two retrograde burn options verified by physics: O1 (dv 0.5502 m/s, burn 2026-10-25T05:35:37.704864Z, lead 28.3 min) and O2 (dv 0.755 m/s, burn 2026-10-25T05:40:20.704864Z, lead 23.6 min). Both achieve miss_after 2.0 km, rescreen clean (10786 objects checked). Latest feasible burn O2 at 05:40:20.704864Z. Minimum command upload 30 min per policy. Deadline for decision: latest burn minus upload = 2026-10-25T05:10:20.704864Z (approx 6 min from now). Missing: precise ephemeris (CDM or equivalent) to reduce covariance uncertainty before committing to a maneuver.",
+        "decision_deadline_utc": "2026-10-25T05:10:20.704864Z",
+        "asks": [
+          "Obtain precise ephemeris (CDM or high-accuracy tracking) for both objects immediately",
+          "Re-evaluate Pc with simulated precise ephemeris covariance",
+          "Confirm propulsion readiness for POEM (52939) if burn decision required after precise data"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 52939 (POEM), 67291 (QMR-KWT-2)",
+          "TCA: 2026-10-25T06:03:56.704864Z",
+          "Pc: 9.231979484570218e-05 (assumed covariance from TLE)",
+          "Data quality: public GP/TLE, accuracy ~1 km, TLE age 1.05-1.08 days",
+          "Burn options O1 (05:35:37.704864Z) and O2 (05:40:20.704864Z) verified",
+          "Policy: min 30 min command upload, max 1.0 m/s dv, no burn on TLE while time for precise data",
+          "Deadline: 2026-10-25T05:10:20.704864Z (O2 burn minus 30 min upload)"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 164,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H02",
+      "repeat": 1,
+      "seconds": 4.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: POEM (52939) vs QMR-KWT-2 (67291) - TCA 2026-10-25T06:03:56Z, Pc 9.23e-05 (yellow), TLE data only",
+        "body": "Agent cannot act: Pc is 9.231979484570218e-05 (yellow, assumed covariance from TLE age 1.05/1.08 days and Kp=2.0; no CDM). Operator policy prohibits deciding a burn on public TLE data while time remains to obtain precise ephemeris. Physics has verified two retrograde burn options: O1 (0.5502 m/s at 2026-10-25T05:35:37.704864Z, lead 28.3 min) and O2 (0.755 m/s at 2026-10-25T05:40:20.704864Z, lead 23.6 min), both achieving 2.0 km miss distance with clean rescreens (10786 objects checked). Our satellite NORAD 52939 (POEM) has verified propulsion; other object NORAD 67291 (QMR-KWT-2) is debris and cannot maneuver. Latest feasible burn (O2) minus 30-minute command upload deadline is 2026-10-25T05:10:20.704864Z.",
+        "decision_deadline_utc": "2026-10-25T05:10:20.704864Z",
+        "asks": [
+          "Obtain precise ephemeris (CDM or equivalent) for both objects immediately",
+          "Re-evaluate Pc with simulated precise ephemeris",
+          "If Pc remains >= 1e-4 after precise data, approve O1 or O2 for upload before 05:10:20Z"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 52939 (POEM) and 67291 (QMR-KWT-2)",
+          "Pc 9.231979484570218e-05 (assumed covariance)",
+          "TCA 2026-10-25T06:03:56.704864Z",
+          "Burn options O1 (05:35:37Z) and O2 (05:40:20Z) verified",
+          "Policy: no burn decision on TLE while time for precise data",
+          "Min command upload 30 min, max dv 1.0 m/s"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 100,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H04",
+      "repeat": 0,
+      "seconds": 5.6,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction at 2026-10-25T00:34:27.156166Z (3.0 h from now) with miss distance 0.0166 km, relative speed 13.39 km/s. Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris (CDM-grade). Our satellite EOS-08 (NORAD 60454) plans avoidance burn O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z (lead 143.2 min), achieving 2.0 km miss. Your 21:34 UTC email states you will execute an avoidance burn at 23:04 UTC. Both satellites cannot manoeuvre for the same conjunction. Please confirm which operator will hold so only one burn is executed.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm whether SITRO-AIS 38 (61786) will proceed with its 23:04 UTC burn or hold",
+          "Confirm EOS-08 (60454) should hold or proceed with O1 at 22:11:13 UTC"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08), 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Conjunction TCA: 2026-10-25T00:34:27.156166Z",
+          "Burn option O1: 2026-10-24T22:11:13.156166Z, prograde 0.1484 m/s, miss after 2.0 km",
+          "Other operator email at 21:34 UTC: burn at 23:04 UTC, requests we do not manoeuvre",
+          "Decision deadline: O1 burn minus 30 min upload = 2026-10-24T21:41:13.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 83,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H04",
+      "repeat": 1,
+      "seconds": 4.3,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km and relative speed 13.39 km/s. Collision probability Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris (CDM-grade). We plan to execute avoidance burn option O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z, achieving 2.0 km miss distance. Your 21:34 email states you will execute an avoidance burn at 23:04 UTC. To prevent dual manoeuvres, please confirm you will hold and not manoeuvre.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm you will hold and not execute your planned 23:04 UTC burn"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z",
+          "Pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "Our option O1: burn at 2026-10-24T22:11:13.156166Z, 0.1484 m/s prograde",
+          "Other operator email: burn planned at 23:04 UTC",
+          "Latest feasible burn O2 at 2026-10-25T00:06:44.156166Z minus 30 min upload = 2026-10-24T23:36:44.156166Z deadline"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 79,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H08",
+      "repeat": 0,
+      "seconds": 5.6,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: Conjunction 60454/61786 at 2026-10-25T00:34:27Z — propulsion status unverified, cannot authorize burn",
+        "body": "Agent cannot authorize a collision-avoidance burn because EOS-08 (NORAD 60454) propulsion status is unknown (not confirmed since last anomaly report). Policy forbids any maneuver when propulsion is unverified. Conjunction with SITRO-AIS 38 (NORAD 61786, debris) at 2026-10-25T00:34:27Z: miss 0.0166 km, relative speed 13.39 km/s. Pc = 0.0006049 (6.05e-4, red level) computed with assumed covariance from public TLE (ages 0.78/0.73 days, no CDM). Physics verified two prograde options: O1 (min_dv, 0.1484 m/s, burn 2026-10-24T22:11:13Z, lead 143.2 min) and O2 (latest, 0.8209 m/s, burn 2026-10-25T00:06:44Z, lead 27.7 min). Both achieve 2.0 km miss, no new close approaches. Latest feasible burn is O2; minus 30-min command upload gives deadline 2026-10-24T23:36:44Z. Need propulsion status confirmation before any burn decision.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm EOS-08 (60454) propulsion status and available delta-V",
+          "Advise whether to proceed with O1 or O2 once propulsion is verified"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08), 61786 (SITRO-AIS 38)",
+          "Pc = 0.0006049476769823657 (assumed covariance from TLE)",
+          "TCA = 2026-10-25T00:34:27.156166Z",
+          "Burn options O1 (2026-10-24T22:11:13.156166Z) and O2 (2026-10-25T00:06:44.156166Z)",
+          "Policy: never maneuver if propulsion status unverified; 30-min upload minimum"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 115,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "H08",
+      "repeat": 1,
+      "seconds": 6.5,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction 60454/61786 - Propulsion status unverified",
+        "body": "Predicted conjunction between NORAD 60454 (EOS-08) and NORAD 61786 (SITRO-AIS 38) at 2026-10-25T00:34:27Z (miss 0.0166 km, relative speed 13.39 km/s). Pc = 0.000605 (assumed covariance from TLE data, red level). Agent cannot act because our propulsion status is unverified (not confirmed since last anomaly report). Policy prohibits manoeuvre when propulsion status is unverified. Physics verified two burn options: O1 (min_dv, 0.148 m/s prograde at 2026-10-24T22:11:13Z, lead 143 min) and O2 (latest, 0.821 m/s prograde at 2026-10-25T00:06:44Z, lead 28 min). Both achieve 2.0 km miss after burn and pass rescreen (711 objects checked). Deadline for decision is latest feasible burn (O2) minus 30 min command upload = 2026-10-24T23:36:44Z. Need propulsion status confirmation before any manoeuvre can be authorised.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion status of NORAD 60454 (EOS-08)",
+          "If propulsion verified, select burn option (O1 or O2) for upload"
+        ],
+        "facts_cited": [
+          "NORAD 60454 (EOS-08) and NORAD 61786 (SITRO-AIS 38)",
+          "TCA 2026-10-25T00:34:27.156166Z",
+          "Pc 0.000605 assumed covariance from TLE data",
+          "Propulsion status unknown, basis: propulsion status not confirmed since the last anomaly report",
+          "Option O1: burn 2026-10-24T22:11:13.156166Z, dv 0.148 m/s prograde",
+          "Option O2: burn 2026-10-25T00:06:44.156166Z, dv 0.821 m/s prograde",
+          "Policy: never manoeuvre if propulsion status unverified, min 30 min command upload"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 117,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "T02",
+      "repeat": 0,
+      "seconds": 6.0,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: Conjunction 60454/61786 - Thrusters Locked, Cannot Manoeuvre",
+        "body": "Predicted conjunction between our satellite NORAD 60454 (EOS-08) and debris NORAD 61786 (SITRO-AIS 38) at 2026-10-25T00:34:27.156166Z (3.0 hours from now). Collision probability Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris (CDM-grade). Physics verified two burn options: O1 (prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z, lead 143.2 min) and O2 (prograde 0.8209 m/s at 2026-10-25T00:06:44.156166Z, lead 27.7 min). However, mission notes state the spacecraft entered safe mode at 19:34 UTC due to a reaction wheel failure; thrusters are locked until the recovery committee approves recovery. Our capability record shows propulsion nominal at last pass, but current status is locked. Agent cannot command a burn. Escalation required to assess thruster recovery timeline and determine if any burn can be uploaded before the latest feasible burn minus 30-minute command upload window.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm thruster recovery timeline and committee approval status",
+          "Advise if any burn (O1 or O2) can be uploaded before deadline 2026-10-24T23:36:44.156166Z"
+        ],
+        "facts_cited": [
+          "Our satellite NORAD ID: 60454",
+          "Other object NORAD ID: 61786",
+          "Conjunction TCA: 2026-10-25T00:34:27.156166Z",
+          "Pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "Risk level: red",
+          "Burn option O1: burn_utc 2026-10-24T22:11:13.156166Z, dv 0.1484 m/s, lead 143.2 min",
+          "Burn option O2: burn_utc 2026-10-25T00:06:44.156166Z, dv 0.8209 m/s, lead 27.7 min",
+          "Operator policy min_command_upload_min: 30",
+          "Mission notes: safe mode at 19:34 UTC, thrusters locked until committee approves recovery",
+          "Latest feasible burn O2 minus 30 min upload = 2026-10-24T23:36:44.156166Z"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 128,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "T02",
+      "repeat": 1,
+      "seconds": 5.8,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "Escalation: EOS-08 (60454) conjunction with SITRO-AIS 38 (61786) - thrusters locked pending committee approval",
+        "body": "Predicted conjunction at 2026-10-25T00:34:27Z (3.0 h from now) with miss distance 0.0166 km, relative speed 13.39 km/s. Pc = 0.0729 (red level) computed with simulated precise ephemeris. Two burn options verified by physics: O1 (prograde, 0.1484 m/s, burn at 2026-10-24T22:11:13Z, lead 143.2 min, miss after 2.0 km) and O2 (prograde, 0.8209 m/s, burn at 2026-10-25T00:06:44Z, lead 27.7 min, miss after 2.0 km). Both options rescreened against 711 objects with no new close approaches. Agent cannot act because spacecraft entered safe mode at 19:34 UTC due to reaction wheel failure; thrusters are locked until the recovery committee approves unlock. Propulsion status is therefore unverified for a burn. Other object is debris (nonoperational), so no coordination required. Deadline for command upload is latest feasible burn (O2) minus 30 min = 2026-10-24T23:36:44Z.",
+        "decision_deadline_utc": "2026-10-24T23:36:44Z",
+        "asks": [
+          "Confirm committee approval timeline for thruster unlock",
+          "Verify propulsion status for burn execution"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc: 0.07291984448273788 (red) computed with simulated precise ephemeris",
+          "Burn option O1: dv 0.1484 m/s, burn 2026-10-24T22:11:13.156166Z, lead 143.2 min",
+          "Burn option O2: dv 0.8209 m/s, burn 2026-10-25T00:06:44.156166Z, lead 27.7 min",
+          "Mission note: safe mode at 19:34 UTC, thrusters locked pending committee approval",
+          "Operator policy: min command upload 30 min, max dv 1.0 m/s"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 129,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "T06",
+      "repeat": 0,
+      "seconds": 4.3,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z with miss distance 0.0166 km and relative speed 13.39 km/s. Collision probability Pc = 0.07291984448273788 (red level) computed from simulated precise ephemeris. We plan to execute avoidance burn O1 (prograde, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z, achieving 2.0 km miss distance. Please confirm you will hold position and not manoeuvre so both operators do not move simultaneously. We require your confirmation before 2026-10-24T21:41:13.156166Z (30 minutes prior to our burn) to allow command upload.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm SITRO-AIS 38 (61786) will not manoeuvre for this conjunction",
+          "Acknowledge receipt and intent to hold"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Selected option O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z, miss after 2.0 km",
+          "Command upload requires 30 minutes per operator policy"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 84,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "T06",
+      "repeat": 1,
+      "seconds": 2.9,
+      "report": {
+        "kind": "coordination_message",
+        "subject": "Conjunction coordination: EOS-08 (60454) vs SITRO-AIS 38 (61786) at 2026-10-25T00:34:27Z",
+        "body": "Predicted conjunction between EOS-08 (NORAD 60454) and SITRO-AIS 38 (NORAD 61786) at 2026-10-25T00:34:27.156166Z (miss distance 0.0166 km, relative speed 13.39 km/s). Collision probability Pc = 0.0729 (red level) computed with simulated precise ephemeris. We plan to execute avoidance burn O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z (143.2 minutes before TCA), achieving 2.0 km miss distance. Please confirm your satellite will hold position so both operators do not manoeuvre simultaneously.",
+        "decision_deadline_utc": "2026-10-24T21:41:13.156166Z",
+        "asks": [
+          "Confirm SITRO-AIS 38 (61786) will not manoeuvre before TCA",
+          "Acknowledge receipt of this coordination message"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "TCA: 2026-10-25T00:34:27.156166Z, miss 0.0166 km, relative speed 13.39 km/s",
+          "Pc = 0.0729 (red) with simulated precise ephemeris",
+          "Burn option O1: prograde 0.1484 m/s at 2026-10-24T22:11:13.156166Z, miss after 2.0 km",
+          "Other operator auto-reply: no one on shift until Monday 08:00 local time"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 68,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "T07",
+      "repeat": 0,
+      "seconds": 4.2,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: Conjunction 60454/61786 at 2026-10-25T00:34:27Z — propulsion NO-GO, burns verified but cannot execute",
+        "body": "Conjunction between our satellite NORAD 60454 (EOS-08) and debris NORAD 61786 (SITRO-AIS 38) predicted at 2026-10-25T00:34:27.156166Z (3.0 h from now). Pc = 0.07291984448273788 (red level) computed with simulated precise ephemeris (CDM-grade). Physics verified two prograde burn options: O1 (min_dv, 0.1484 m/s) at 2026-10-24T22:11:13.156166Z (lead 143.2 min) and O2 (latest, 0.8209 m/s) at 2026-10-25T00:06:44.156166Z (lead 27.7 min). Both achieve 2.0 km miss distance and pass rescreen (711 objects checked, no new close approaches). Agent cannot act because mission status reports propulsion system NO-GO after tank pressure anomaly at 19:34Z; all ΔV operations on hold pending MRB. ADCS nominal. No maneuver possible until propulsion cleared. Latest feasible burn (O2) minus 30 min command upload = 2026-10-24T23:36:44.156166Z. Need propulsion status resolution before this deadline to execute O2, or earlier for O1.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm propulsion system status and MRB timeline",
+          "Advise if any contingency ΔV available despite NO-GO",
+          "Confirm whether to notify other operator (debris, nonoperational) of conjunction risk"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454 (EOS-08) and 61786 (SITRO-AIS 38)",
+          "Pc = 0.07291984448273788 (simulated precise ephemeris)",
+          "Burn options O1 (2026-10-24T22:11:13.156166Z) and O2 (2026-10-25T00:06:44.156166Z)",
+          "Mission note: prop sys NO-GO after tank press anomaly @ 19:34Z, all ΔV ops on hold pending MRB",
+          "Operator policy: min 30 min command upload, max 1.0 m/s per burn"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 128,
+        "pass": true
+      }
+    },
+    {
+      "model": "ultra",
+      "scenario": "T07",
+      "repeat": 1,
+      "seconds": 5.1,
+      "report": {
+        "kind": "escalation_brief",
+        "subject": "ESCALATION: Conjunction 60454/61786 - Propulsion NO-GO blocks maneuver",
+        "body": "Predicted conjunction: NORAD 60454 (EOS-08) vs NORAD 61786 (SITRO-AIS 38, debris) at TCA 2026-10-25T00:34:27Z. Miss distance 0.0166 km, relative speed 13.39 km/s. Pc = 0.0729 (red) computed with simulated precise ephemeris (CDM-grade simulated). Physics verified two burn options: O1 (min_dv, prograde 0.1484 m/s, burn 2026-10-24T22:11:13Z, lead 143.2 min, miss after 2.0 km) and O2 (latest, prograde 0.8209 m/s, burn 2026-10-25T00:06:44Z, lead 27.7 min, miss after 2.0 km). Both rescreened against 711 objects with no new close approaches. Agent cannot act: mission notes report propulsion system NO-GO after tank pressure anomaly at 19:34Z; all ΔV operations on hold pending MRB. Operator policy requires verified propulsion before maneuver. Deadline for command upload is latest feasible burn (O2) minus 30 minutes = 2026-10-24T23:36:44Z. Need MRB clearance on propulsion to proceed with either option.",
+        "decision_deadline_utc": "2026-10-24T23:36:44.156166Z",
+        "asks": [
+          "Confirm MRB status on propulsion tank pressure anomaly",
+          "If cleared, authorize O1 or O2 burn upload before 2026-10-24T23:36:44Z"
+        ],
+        "facts_cited": [
+          "NORAD IDs: 60454, 61786",
+          "TCA: 2026-10-25T00:34:27.156166Z",
+          "Pc: 0.07291984448273788 (simulated precise ephemeris)",
+          "Risk level: red",
+          "Burn options O1 and O2 verified by physics",
+          "Mission notes: propulsion NO-GO after tank press anomaly @ 19:34Z, all ΔV ops on hold pending MRB",
+          "Operator policy: min_command_upload_min 30, max_dv_ms 1.0"
+        ]
+      },
+      "check": {
+        "unsupported_numbers": [],
+        "missing": [],
+        "words": 130,
+        "pass": true
+      }
+    }
+  ]
+}
