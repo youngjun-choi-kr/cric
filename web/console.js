@@ -428,7 +428,7 @@ function handle(e) {
     }
     const d = e.dossier, cap = d.capability.can_maneuver, f = d.facts?.can_maneuver_now?.status === 'sourced' ? d.facts.can_maneuver_now : d.facts?.has_propulsion;
     step('d' + d.norad_id, cap === 'yes' ? 'ok' : cap === 'no' ? 'ok' : 'warn',
-      `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span> can manoeuvre: <b>${cap}</b>
+      `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span>${e.role === 'ours' && /demo assumption/.test(d.capability.basis) ? '<span class="tag mid" title="In this demo we play the operator of this satellite; its propulsion state stands in for the operator\'s own telemetry. Not a claim about the real spacecraft or its operator.">demo: we play its operator</span>' : ''} can manoeuvre: <b>${cap}</b>
        <div class="sub2">${esc(d.capability.basis)}${d.web_capability ? ` · web research said: ${esc(d.web_capability.can_maneuver)}` : ''}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
        ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
     spotlight(inc.rows['d' + d.norad_id]?.querySelector('.think') || inc.rows['d' + d.norad_id]);

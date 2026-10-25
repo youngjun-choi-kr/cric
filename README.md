@@ -103,7 +103,7 @@ Token Factory and Tavily. Recorded runs:
   and a mission note in Korean.
 - Two more pairs (yellow and green Pc) show the non-burn paths.
 
-In the demo we play the operator of EOS-08 and IRIDIUM 149: their propulsion state comes from
+In the demo we play the operator of EOS-08 and IRIDIUM 149 (a fictional operator scenario; the console tags it on screen, and nothing here speaks for their real operators): their propulsion state comes from
 `fixtures/fleet.json`, standing in for telemetry, not from the web. Every run ends with an approve / reject
 step for a person; nothing is ever sent to a spacecraft.
 
