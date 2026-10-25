@@ -165,3 +165,17 @@ def test_vl_read_is_context_only():
     d = cross_check("high", 2.0)
     assert d["direction"] == "vl_higher" and "recheck" in d["effect"]
     assert cross_check("low", 8)["direction"] == "vl_lower"
+
+
+def test_watch_selects_only_our_close_actionable_new_encounters():
+    from datetime import datetime, timedelta, timezone
+
+    from cric.watch import select
+    now = datetime(2026, 10, 25, tzinfo=timezone.utc)
+    ev = lambda a, b, miss, h: {"object_a": {"norad_id": a}, "object_b": {"norad_id": b}, "miss_distance_km": miss,
+                                "tca_utc": (now + timedelta(hours=h)).isoformat().replace("+00:00", "Z")}
+    events = [ev(1, 9, 0.5, 5), ev(9, 1, 0.4, 1), ev(2, 3, 0.1, 5), ev(9, 1, 3.0, 5), ev(1, 8, 0.2, 6)]
+    seen = set()
+    got = select(events, {1: "OURS"}, now, threshold_km=1.0, min_lead_min=120, seen=seen)
+    assert [(g["ours"], g["other"]) for g in got] == [(1, 9), (1, 8)]
+    assert select(events, {1: "OURS"}, now, threshold_km=1.0, min_lead_min=120, seen=seen) == []

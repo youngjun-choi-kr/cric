@@ -4,6 +4,7 @@
   cric incident --ours 40536 --other 42845     assess one conjunction and let Nemotron decide
   cric eval     --models super,nano            decision scenarios vs rule baselines
   cric forge    --event "May 2024 G5 storm"    real event -> cited record (Tavily + Nemotron)
+  cric watch    --every 30 --cycles 0          unattended loop: screen, decide, notify a person (Nebius job)
 """
 
 from __future__ import annotations
@@ -77,6 +78,13 @@ def cmd_forge(args) -> None:
     print(weather_note(rec))
 
 
+def cmd_watch(args) -> None:
+    from .watch import watch
+
+    watch(every_min=args.every, cycles=args.cycles, hours=args.hours, threshold_km=args.threshold,
+          min_lead_min=args.min_lead, dry_run=args.dry_run, snapshot=args.snapshot)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="cric", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -87,6 +95,16 @@ def main() -> None:
     s.add_argument("--threshold", type=float, default=5.0)
     s.add_argument("--no-debris", action="store_true", help="screen active satellites only")
     s.set_defaults(func=cmd_screen)
+
+    w = sub.add_parser("watch", help="sense -> decide -> notify loop")
+    w.add_argument("--every", type=float, default=30.0, help="minutes between cycles")
+    w.add_argument("--cycles", type=int, default=0, help="stop after N cycles (0 = until the job times out)")
+    w.add_argument("--hours", type=float, default=24.0, help="screening horizon")
+    w.add_argument("--threshold", type=float, default=1.0, help="miss distance (km) that opens an incident")
+    w.add_argument("--min-lead", type=float, default=120.0, help="minutes before TCA below which we only alert")
+    w.add_argument("--dry-run", action="store_true", help="screen and select only; no model calls")
+    w.add_argument("--snapshot", action="store_true", help="use the frozen catalog instead of CelesTrak")
+    w.set_defaults(func=cmd_watch)
 
     i = sub.add_parser("incident")
     i.add_argument("--ours", type=int, required=True, help="NORAD ID of the satellite we operate")

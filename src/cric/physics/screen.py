@@ -67,23 +67,36 @@ def screen(cat: Catalog, start: datetime, hours: float = 6.0, *, step_s: float =
     ids = list(cat.sats)
     sats = [cat.sats[i] for i in ids]
     radius = threshold_km + MAX_REL_SPEED_KMS * step_s / 2
-    best: dict[tuple[int, int], tuple[int, float]] = {}
+    # One candidate per pass, not per pair: a pair can come within the search radius on several passes, and the
+    # pass with the smallest sampled distance is not necessarily the one with the smallest miss. Keeping only one
+    # sample per pair once hid a 548 m encounter behind a later, wider pass of the same two objects.
+    best: dict[tuple[int, int, int], tuple[int, float]] = {}
+    last: dict[tuple[int, int], tuple[int, int]] = {}
     for i, j, k, dist in _coarse(sats, start, hours, step_s, radius):
-        if (i, j) not in best or dist < best[(i, j)][1]:
-            best[(i, j)] = (k, dist)
+        prev = last.get((i, j))
+        episode = prev[1] if prev and k - prev[0] <= 2 else k
+        last[(i, j)] = (k, episode)
+        key = (i, j, episode)
+        if key not in best or dist < best[key][1]:
+            best[key] = (k, dist)
 
-    events = []
-    for (i, j), (k, _) in best.items():
+    found: dict[tuple[int, int], list] = {}
+    for (i, j, _), (k, _) in best.items():
         tca, miss, v_rel, alt = closest_approach(sats[i], sats[j], start + timedelta(seconds=k * step_s), step_s)
         if miss <= threshold_km and v_rel >= min_vrel_kms:
-            a, b = ids[i], ids[j]
-            events.append({
-                "object_a": {"name": cat.names[a], "norad_id": a},
-                "object_b": {"name": cat.names[b], "norad_id": b},
-                "tca_utc": iso(tca),
-                "miss_distance_km": round(miss, 4),
-                "relative_speed_kms": round(v_rel, 2),
-                "altitude_km": round(alt, 1),
-            })
+            found.setdefault((i, j), []).append((miss, tca, v_rel, alt))
+
+    events = []
+    for (i, j), passes in found.items():
+        miss, tca, v_rel, alt = min(passes, key=lambda x: x[0])   # the closest pass in the window
+        a, b = ids[i], ids[j]
+        events.append({
+            "object_a": {"name": cat.names[a], "norad_id": a},
+            "object_b": {"name": cat.names[b], "norad_id": b},
+            "tca_utc": iso(tca),
+            "miss_distance_km": round(miss, 4),
+            "relative_speed_kms": round(v_rel, 2),
+            "altitude_km": round(alt, 1),
+        })
     events.sort(key=lambda e: e["miss_distance_km"])
     return events
