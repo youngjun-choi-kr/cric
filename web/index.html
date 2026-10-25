@@ -73,6 +73,7 @@
   .appr .what { font-size:12.5px; margin:2px 0 6px; }
   .appr textarea { width:100%; box-sizing:border-box; background:rgba(255,255,255,.05); color:inherit; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:11.5px; padding:5px; margin-top:6px; }
   .appr .logged { margin-top:6px; font-size:11.5px; }
+  #staticNote { margin-top:8px; font-size:10.5px; line-height:1.4; color:#ffc56b; max-width:300px; }
   .sec { border-top:1px solid var(--line); margin-top:8px; padding-top:8px; }
   .sec h3 { margin:0 0 4px; font-size:11px; letter-spacing:.08em; color:var(--dim); font-weight:600; }
   .riskline { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
@@ -128,6 +129,7 @@
   <div id="clock">--</div>
   <div class="row"><span>Objects tracked</span><b id="cnt">-</b></div>
   <div class="row"><span>Time rate</span><b id="spd">10×</b></div>
+  <div id="staticNote" hidden>Static demo: replays of runs recorded on 24–25 Oct 2026 against the frozen 24 Oct catalog. These encounters have passed. Live decisions need the local server and API keys (see SETUP.md).</div>
 </div>
 
 <div id="leftcol">
@@ -207,11 +209,14 @@ const pcTxt = (p) => (p > 0 ? p.toExponential(1) : '< 1e-300');
 // Static mode (e.g. GitHub Pages): no API; replay recordings from demo/ and read orbits from the committed snapshot.
 const STATIC = !(await fetch('/api/incidents', { method: 'HEAD' }).then((r) => r.ok).catch(() => false));
 const DATA_BASE = STATIC ? '../fixtures/snapshot_20261025/' : '/data/';
-const [tleText, conj, saved] = await Promise.all([
+if (STATIC) $('staticNote').hidden = false;
+const [tleActive, tleDebris, conj, saved] = await Promise.all([
   fetch(DATA_BASE + 'celestrak_active.tle').then(r => r.text()),
+  fetch(DATA_BASE + 'celestrak_debris.tle').then(r => (r.ok ? r.text() : '')).catch(() => ''),   // public debris clouds
   fetch(DATA_BASE + 'conjunctions.json').then(r => r.json()),
   fetch(STATIC ? 'demo/manifest.json' : '/api/incidents').then(r => (r.ok ? r.json() : [])).catch(() => []),
 ]);
+const tleText = tleActive + '\n' + tleDebris;
 const lines = tleText.split('\n').map(l => l.trimEnd()).filter(Boolean);
 const sats = [], bySat = new Map();
 for (let i = 0; i + 2 < lines.length; i += 3) {
@@ -366,6 +371,7 @@ function flyToPair() {
   startFly(() => { const m = pairMid(new Date(simMs)); return { cam: m.clone().add(offset), tgt: m }; });
 }
 const evKey = (e) => `${e.object_a.norad_id}-${e.object_b.norad_id}`;
+const recordedPair = (e) => recorded.has(evKey(e)) || recorded.has(`${e.object_b.norad_id}-${e.object_a.norad_id}`);
 function select(ev, jump = true) {
   const a = bySat.get(String(ev.object_a.norad_id)), b = bySat.get(String(ev.object_b.norad_id));
   if (!a || !b) return;
@@ -391,10 +397,12 @@ function overview() {
 // ---------- conjunction list ----------
 function renderList() {
   const inc = $('incStarlink').checked;
-  const evs = conj.events.filter(e => inc || !(e.object_a.name.startsWith('STARLINK') && e.object_b.name.startsWith('STARLINK'))).slice(0, 25);
+  const shown = conj.events.filter(e => inc || !(e.object_a.name.startsWith('STARLINK') && e.object_b.name.startsWith('STARLINK')));
+  const rec = shown.filter(e => recordedPair(e));                      // recorded runs first, then the closest
+  const evs = [...rec, ...shown.filter(e => !recordedPair(e)).slice(0, 25)];
   $('list').innerHTML = evs.map(e => `
     <div class="ev" data-id="${evKey(e)}">
-      <div class="n">${esc(e.object_a.name)} ↔ ${esc(e.object_b.name)}${recorded.has(evKey(e)) ? '<span class="rec">● recorded</span>' : ''}</div>
+      <div class="n">${esc(e.object_a.name)} ↔ ${esc(e.object_b.name)}${recordedPair(e) ? '<span class="rec">● recorded</span>' : ''}${e.involves_debris ? '<span class="tag">debris</span>' : ''}</div>
       <div class="m">${Date.parse(e.tca_utc) - Date.now() >= 2 * 3600e3 ? '<span class="tag ok">ahead</span>' : ''}<span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · alt ${e.altitude_km.toFixed(0)} km · TCA ${fmtUTC(e.tca_utc)}</div>
     </div>`).join('');
   document.querySelectorAll('.ev').forEach((el, i) => el.onclick = () => select(evs[i]));
@@ -724,7 +732,7 @@ window.cric = { THREE, scene, camera, controls, traj, inc, spotlight };  // debu
 updateSats(new Date(simMs));
 const evs = renderList();
 $('loading').classList.add('done'); setTimeout(() => $('loading').remove(), 800);
-const first = evs.find((e) => recorded.has(evKey(e))) || evs[0];
+const first = evs.find((e) => recordedPair(e)) || evs[0];
 if (first) select(first);
 
 // ---------- cinema mode ----------
