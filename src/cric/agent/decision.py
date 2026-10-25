@@ -68,10 +68,13 @@ policy, and does the other operator need to know before we move so we do not bot
 Return one JSON object."""
 
 
+def decision_messages(context: dict) -> list[dict]:
+    return [{"role": "system", "content": SYSTEM},
+            {"role": "user", "content": "Incident:\n" + json.dumps(context, indent=1, ensure_ascii=False)}]
+
+
 def decide(context: dict, *, model: str = MODEL_SUPER, usage: Usage | None = None) -> tuple[Decision, str]:
-    messages = [{"role": "system", "content": SYSTEM},
-                {"role": "user", "content": "Incident:\n" + json.dumps(context, indent=1, ensure_ascii=False)}]
-    return structured_call(model, messages, Decision, usage=usage)
+    return structured_call(model, decision_messages(context), Decision, usage=usage)
 
 
 def majority(decisions: list[dict]) -> dict:

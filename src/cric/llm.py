@@ -99,13 +99,8 @@ def shape_of(schema_model) -> str:
     return json.dumps(walk(schema), ensure_ascii=False)
 
 
-def structured_call(model: str, messages: list, schema_model, *, usage: Usage | None = None,
-                    max_tokens: int = 16000, temperature: float = 0.2):
-    """Reply constrained to a pydantic schema. Returns (parsed, reasoning_text).
-
-    Nemotron reasons first and returns that as reasoning_content, so max_tokens must
-    cover reasoning plus JSON. A runaway or malformed reply is retried once.
-    """
+def request_body(model: str, messages: list, schema_model, *, max_tokens: int = 16000, temperature: float = 0.2) -> dict:
+    """Chat-completions body for a schema-constrained reply; shared by live calls and batch jobs."""
     # Nemotron plans its JSON while reasoning; if that plan differs from the schema, guided decoding fills
     # empty defaults (seen as "Placeholder Title" / all-unknown records). Showing the exact shape prevents it.
     hint = "\n\nReply with JSON of exactly this shape (types shown as placeholders):\n" + shape_of(schema_model)
@@ -114,16 +109,22 @@ def structured_call(model: str, messages: list, schema_model, *, usage: Usage | 
         messages[0]["content"] = messages[0]["content"] + hint
     else:
         messages.insert(0, {"role": "system", "content": hint.strip()})
+    return {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens,
+            "response_format": {"type": "json_schema",
+                                "json_schema": {"name": schema_model.__name__, "schema": schema_model.model_json_schema()}}}
+
+
+def structured_call(model: str, messages: list, schema_model, *, usage: Usage | None = None,
+                    max_tokens: int = 16000, temperature: float = 0.2):
+    """Reply constrained to a pydantic schema. Returns (parsed, reasoning_text).
+
+    Nemotron reasons first and returns that as reasoning_content, so max_tokens must
+    cover reasoning plus JSON. A runaway or malformed reply is retried once.
+    """
+    body = request_body(model, messages, schema_model, max_tokens=max_tokens, temperature=temperature)
     last_error: Exception | None = None
     for _ in range(2):
-        resp = chat(
-            model=model,
-            messages=messages,
-            response_format={"type": "json_schema",
-                             "json_schema": {"name": schema_model.__name__, "schema": schema_model.model_json_schema()}},
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        resp = chat(**body)
         if usage is not None:
             usage.add(model, resp)
         msg = resp.choices[0].message

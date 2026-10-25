@@ -105,7 +105,17 @@
   #loading { position:fixed; inset:0; display:grid; place-items:center; background:var(--bg); z-index:9; transition:opacity .6s; }
   #loading.done { opacity:0; pointer-events:none; }
   @media (max-width:1200px) { #readout { left:auto; right:16px; transform:none; width:340px; min-width:0; max-height:45%; } #evalp { display:none; } }
-  @media (max-width:820px) { #leftcol, #events { display:none; } #readout { width:calc(100% - 32px); } }
+  /* Phones and narrow windows: the globe stays behind as a fixed backdrop; panels stack in a scrolling column
+     in task order (pick a pair, run it, read the result, then the eval). */
+  @media (max-width:820px) {
+    body { display:flex; flex-direction:column; padding:40vh 12px 24px; min-height:100vh; box-sizing:border-box; overflow-y:auto; }
+    .panel, #leftcol { position:relative !important; inset:auto !important; transform:none !important; width:auto !important;
+      min-width:0 !important; max-width:none !important; max-height:none !important; margin:0 0 10px; flex-shrink:0; }
+    #hud { order:1; } #events { order:2; display:flex; max-height:45vh !important; } #leftcol { order:3; display:flex; height:75vh !important; }
+    #readout { order:4; } #controls { order:5; } #evalp { order:6; display:block; }
+    #evalp table { display:block; overflow-x:auto; }
+    #tourBtn { bottom:12px; right:12px; }
+  }
 #evalBody .headline { font-size:11.5px; margin:0 0 6px; line-height:1.45; }
 [data-gl] { text-decoration: underline dotted rgba(255,255,255,.45); text-underline-offset: 2px; cursor: help; }
 #gltip { position:fixed; z-index:20; max-width:260px; padding:7px 9px; border-radius:8px; background:#0d1626; border:1px solid var(--line); font-size:11px; line-height:1.45; pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.4); }

@@ -320,6 +320,13 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
 
 
 def main_cli(args) -> None:
+    if getattr(args, "batch", False) or getattr(args, "batch_collect", None):
+        from .batch import collect, submit
+        bid = args.batch_collect or submit({"super": MODEL_SUPER, "nano": MODEL_NANO}[args.models], args.set, args.repeats)
+        summary = collect(bid, args.set)
+        if summary:
+            _print(summary)
+        return
     if args.regrade:
         from pathlib import Path
 
