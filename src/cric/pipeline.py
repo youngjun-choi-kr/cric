@@ -69,7 +69,7 @@ def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
         risk["diluted"] = False
     else:
         risk = collision_probability(enc, (cat.epoch_age_days(ours, jd), cat.epoch_age_days(other, jd)), kp=kp)
-    emit("risk", pc=risk["pc"], level=risk["level"], diluted=risk["diluted"])
+    emit("risk", pc=risk["pc"], level=risk["level"], diluted=risk["diluted"], data_quality=data_quality)
 
     # Upload time limits how EARLY relative to now a burn can be; the lead before TCA has its own floor
     # (search() also enforces 0.2 orbit, below which a burn barely moves the satellite).

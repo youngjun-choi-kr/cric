@@ -305,11 +305,13 @@ function step(key, state, html) {
 const nameOf = (norad) => bySat.get(String(norad))?.name || `NORAD ${norad}`;
 function renderRisk(r, c, sw) {
   $('riskSec').hidden = false;
+  const screening = r.data_quality === 'tle';      // public TLE data finds candidates; it does not decide burns
   const assumed = /SIMULATED/.test(r.assumption) ? '<span class="tag blue" data-gl="cdm">simulated precise data</span>' : '<span class="tag mid" data-gl="covariance">assumed covariance</span>';
-  $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${r.level}" data-gl="pc">Pc ${pcTxt(r.pc)}</span>
-    <span class="tag ${r.level === 'red' ? 'bad' : r.level === 'yellow' ? 'mid' : 'ok'}">${r.level.toUpperCase()}</span>${assumed}
+  $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${screening ? 'screen' : r.level}" data-gl="pc">Pc ${pcTxt(r.pc)}</span>
+    ${screening ? `<span class="tag mid" data-gl="tle">${r.level.toUpperCase()} ON SCREENING DATA · candidate, not a decision</span>`
+                : `<span class="tag ${r.level === 'red' ? 'bad' : r.level === 'yellow' ? 'mid' : 'ok'}">${r.level.toUpperCase()}</span>`}${assumed}
     ${r.diluted ? `<span class="tag mid" data-gl="diluted">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}
-    ${r.data_quality === 'tle' ? '<span class="tag mid" data-gl="tle">TLE: screening grade, not for burn decisions</span>' : ''}
+
     ${r.sensitivity ? `<span class="tag ${r.sensitivity.robust ? 'ok' : 'mid'}" data-gl="sensitivity">${r.sensitivity.robust ? 'robust' : 'sensitive'} · range ${pcTxt(r.sensitivity.pc_min)}–${pcTxt(r.sensitivity.pc_max)}</span>` : ''}</div>
     <div class="lim">${c ? `${esc(c.data)} · miss ${fmtDist(c.miss_km)} · ${c.hours_to_tca} h to TCA · ` : ''}thresholds: red ≥ 1e-4, yellow ≥ 1e-5${sw ? ` · Kp ${sw.kp}${sw.noaa ? ' (NOAA live)' : ' (scenario)'}` : ''}</div>`;
 }
@@ -409,7 +411,7 @@ function handle(e) {
   if (k === 'start') { $('incState').textContent = e.mode === 'live' ? 'running live…' : 'replaying…'; return; }
   if (k === 'time_mode') { step('time', 'ok', `<span class="who">Decision time</span> ${esc(e.mode)} · ${fmtUTC(e.now_utc)}`); return; }
   if (k === 'geometry') step('geo', 'ok', `<span class="who">Geometry</span> SGP4 on CelesTrak data · miss ${fmtDist(e.miss_km)} · ${e.rel_speed_kms.toFixed(1)} km/s`);
-  else if (k === 'risk') { step('risk', e.level === 'red' ? 'warn' : 'ok', `<span class="who">Collision probability</span> Pc ${pcTxt(e.pc)} · ${e.level}${e.diluted ? ' · diluted' : ''}`); }
+  else if (k === 'risk') { step('risk', e.level === 'red' ? 'warn' : 'ok', `<span class="who">Collision probability</span> Pc ${pcTxt(e.pc)} · ${e.level}${e.data_quality === 'tle' ? ' on screening data (candidate)' : ''}${e.diluted ? ' · diluted' : ''}`); }
   else if (k === 'optimiser') step('opt', 'run', `<span class="who">Optimiser</span> <span class="sub2">${esc(e.text)}</span>`);
   else if (k === 'options') { step('opt', 'ok', `<span class="who">Optimiser</span> ${e.options.length} verified burn options from ${e.feasible_points ?? '?'} feasible points, each re-screened against the catalog`); renderOptions(e.options); spotlight($('optSec')); }
   else if (k === 'satcat' || k === 'dossier_cached') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(e.name)}</span> ${k === 'satcat' ? `SATCAT: ${esc(e.type)}, ${esc(e.status)}` : 'from cache'}`);

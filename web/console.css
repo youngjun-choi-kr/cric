@@ -71,6 +71,7 @@
   .sec h3 { margin:0 0 4px; font-size:11px; letter-spacing:.08em; color:var(--dim); font-weight:600; }
   .riskline { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
   .pc { font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .pc.screen { color:var(--mid); }
   .pc.red { color:var(--warn); } .pc.yellow { color:var(--mid); } .pc.green { color:var(--ok); }
   .action { font-size:18px; font-weight:800; letter-spacing:.04em; }
   .action.MANEUVER { color:var(--ok); } .action.REQUEST_PRECISE_DATA, .action.MONITOR { color:var(--accent); }
