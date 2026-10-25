@@ -7,7 +7,7 @@
 5. Claim checker     -> rejects URLs Tavily never returned and quotes not in the page text.
 6. capability()      -> yes / no / unknown from checked facts only; model guesses never decide.
 
-Ported from spike/04_satellite_dossier.py. Tavily answers are cached on disk.
+Ported from archive/spike/04_satellite_dossier.py. Tavily answers are cached on disk.
 """
 
 from __future__ import annotations

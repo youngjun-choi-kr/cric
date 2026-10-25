@@ -28,7 +28,7 @@ Windows는 `copy .env.example .env`
 ## 4. 확인
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cd spike && ../.venv/bin/python 00_list_models.py
+cd archive/spike && ../../.venv/bin/python 00_list_models.py
 ```
 `Configured models` 세 줄이 모두 `[OK]`이면 끝.
 

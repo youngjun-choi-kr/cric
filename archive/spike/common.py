@@ -10,7 +10,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]  # archive/spike/ -> repo root
 DATA = ROOT / "data"
 DATA.mkdir(exist_ok=True)
 

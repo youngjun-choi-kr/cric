@@ -6,7 +6,7 @@ added on top of the SGP4 path, so SGP4 keeps the large effects (J2, drag) and th
 linear model only carries the metres-to-kilometres change. validate_linear_model()
 checks that against a numerical two-body integration.
 
-Ported from spike/05_avoidance.py.
+Ported from archive/spike/05_avoidance.py.
 """
 
 from __future__ import annotations

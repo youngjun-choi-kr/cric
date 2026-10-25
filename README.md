@@ -36,7 +36,7 @@ An incident runs: SGP4 geometry -> Pc from an assumed covariance -> verified bur
 
 The numeric search is done by the optimiser, not the model: Nemotron chooses among options that physics has
 already checked, using context the optimiser cannot read (policy and mission notes in plain language, evidence
-quality, time left for better data). `spike/` keeps the original feasibility scripts.
+quality, time left for better data). `archive/spike/` keeps the original day-1 feasibility scripts.
 
 ## Results
 

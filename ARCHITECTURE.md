@@ -139,5 +139,5 @@ web/         index.html serve.py demo/
 fixtures/    snapshot_20261025/ fleet.json
 scripts/     export_demo.py
 tests/       offline tests (physics, validator, grader)
-spike/       original feasibility scripts, kept for the record
+archive/spike/ original feasibility scripts (day 1), kept for the record; not used by the package
 ```

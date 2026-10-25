@@ -7,7 +7,7 @@ and numbers in the summary that no cited field supports; one repair round follow
 
 The forged event is then replayed "as if it were happening now" against a real
 encounter, so the decision agent faces conditions that actually occurred.
-Ported from spike/02_scenario_tavily.py.
+Ported from archive/spike/02_scenario_tavily.py.
 """
 
 from __future__ import annotations
