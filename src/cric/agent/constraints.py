@@ -138,7 +138,8 @@ def apply(ctx: dict, c: Constraints, problems: list[str] | None = None) -> dict:
     for o in out["burn_options"]["options"]:
         if c.allowed_axes and AXIS.get(o.get("direction", ""), "unknown") not in c.allowed_axes.allowed:
             excluded.append({"id": o["id"], "reason": f"direction {o.get('direction')} not allowed: \"{c.allowed_axes.quote}\""})
-        elif c.no_commands_after and parse_utc(o["burn_utc"]) > parse_utc(c.no_commands_after.time_utc):
+        elif c.no_commands_after and parse_utc(o["burn_utc"]) >= parse_utc(c.no_commands_after.time_utc) + timedelta(minutes=1):
+            # notes give minutes: "after 22:11" leaves a burn at 22:11:13 inside the last commandable minute
             excluded.append({"id": o["id"], "reason": f"after the command cut-off: \"{c.no_commands_after.quote}\""})
     m["excluded_options"] = excluded
     m["extracted_constraints"] = c.model_dump()

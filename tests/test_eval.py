@@ -109,3 +109,21 @@ def test_constraints_need_quotes_and_become_fields():
     assert ctx["operator_policy"]["max_dv_ms"] == 1.0                     # the original is untouched
     assert validate({"action": "MANEUVER", "option_id": "O2"}, out, NOW)["final_action"] == "ESCALATE"
     assert coded_policy(out, NOW)["option_id"] == "O1"
+
+
+def test_cutoff_is_minute_precise_and_committed_other_lets_us_monitor():
+    from cric.agent.constraints import Constraints, apply
+    from cric.safety.validator import validate
+    ctx = _ctx()
+    ctx["now_utc"] = NOW.isoformat()
+    ctx["conjunction"]["tca_utc"] = (NOW + timedelta(hours=3)).isoformat()
+    ctx["operator_policy"] = {"text": "", "max_dv_ms": 1.0, "min_command_upload_min": 30}
+    b1 = ctx["burn_options"]["options"][0]["burn_utc"]
+    cut = b1[:16] + ":00+00:00"                                       # same minute as O1's burn
+    notes = "no commands after that time"
+    c = Constraints(no_commands_after={"time_utc": cut, "quote": notes},
+                    other_operator_will_maneuver={"value": True, "quote": notes})
+    out = apply(ctx, c)
+    assert [e["id"] for e in out["mission"]["excluded_options"]] == ["O2"]
+    assert validate({"action": "MONITOR", "option_id": None}, out, NOW)["final_action"] == "MONITOR"
+    assert validate({"action": "MONITOR", "option_id": None}, ctx, NOW)["final_action"] == "ESCALATE"

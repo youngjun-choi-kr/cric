@@ -88,7 +88,10 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
 
     if action == "MANEUVER" and risk["level"] == "green" and not risk["diluted"]:
         warnings.append("manoeuvre on a green, non-diluted Pc: likely unnecessary")
-    if action == "MONITOR" and risk["level"] == "red" and not risk["diluted"]:
+    other_moves = ((ctx["mission"].get("extracted_constraints") or {}).get("other_operator_will_maneuver") or {}).get("value")
+    if action == "MONITOR" and risk["level"] == "red" and not risk["diluted"] and other_moves:
+        warnings.append("monitoring a red Pc because the other operator has committed to its own burn (mission notes)")
+    elif action == "MONITOR" and risk["level"] == "red" and not risk["diluted"]:
         # A red Pc on good data cannot be left to watch-and-wait; if we cannot act, a person must know now.
         override("ESCALATE", "red Pc on non-diluted data: monitoring alone is not an acceptable response")
     elif action == "MONITOR" and risk["level"] == "red":
