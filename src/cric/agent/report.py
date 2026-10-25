@@ -35,6 +35,9 @@ specific: times in UTC, NORAD IDs, Pc with its level, the burn option if any. No
   intended action (or that we cannot manoeuvre), and ask them to confirm their plan so both do not move.
 - escalation_brief: addressed to our on-call flight dynamics engineer. State why the agent could not act,
   what is missing, the options that physics has verified, and the deadline (latest feasible burn minus upload).
+Before answering, check that the body contains: both NORAD IDs; the Pc value with the words "assumed covariance"
+or "simulated precise ephemeris"; the option id if one is proposed; for an escalation brief, the deadline. Write
+only numbers that appear in the incident context.
 Return one JSON object."""
 
 

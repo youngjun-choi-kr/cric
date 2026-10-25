@@ -74,9 +74,11 @@ Reproduce: `cric eval --set heldout2 --models super --repeats 5` (needs keys; ab
 
 **Who writes the human-facing documents.** Every ESCALATE / COORDINATE case gets a brief from Super and from
 Ultra (14 cases x 2 runs each). A code checker, not a model, verifies that every number comes from the context
-and that the NORAD IDs, Pc with its basis, option and deadline are present. Ultra passed 86%, Super 7%: Super
-never invented a number but routinely left out the IDs and how Pc was computed. Ultra was also faster (5.9 s vs
-13.2 s median) at $0.0067 vs $0.0024 per report, so Ultra writes them (`python -m cric.eval.reports`).
+and that the NORAD IDs, Pc with its basis, option and deadline are present. With the original prompt Ultra passed
+86% and Super 7%; a reviewer pointed out that Super's misses were omissions a checklist could fix, so we added one
+to the shared prompt and reran both: Ultra 100%, Super 82% (Super still dropped a NORAD ID or the Pc basis in 5
+of 28). Neither invented a number. Ultra was faster (5.6 s vs 9.1 s median) at $0.0067 vs $0.0022 per brief;
+briefs are written only when a person must act, so Ultra writes them (`python -m cric.eval.reports`).
 
 **Web text is data.** Tavily results are tiered by source, instruction-like sentences are cut and logged before
 any model sees them, sources sit in tags a page cannot close, and the claim checker rejects quotes that read like
