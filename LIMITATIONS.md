@@ -93,6 +93,8 @@ CRIC is a research prototype for decision support. It is not an operational coll
   (2/2 in the test). Pages on unknown sites cannot decide capability.
 
 ## Deployment
+- `cric eval --batch` submits an eval set as one Token Factory batch job; batch creation was refused by the
+  service ("temporarily unavailable") both times we tried, so that path has not run end to end.
 - `cric watch` and the Dockerfile are written for a Nebius Serverless AI Job. The loop was run locally in dry-run
   mode; the image was not built (no Docker daemon on the dev machine) and nothing was run on Nebius AI Cloud.
 - The approval step logs a decision; it does not send anything. There is no uplink.

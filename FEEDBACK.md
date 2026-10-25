@@ -54,6 +54,11 @@ messages and LIMITATIONS.md have the details.
 6. **Rare malformed values inside valid JSON.** Once, text from the reasoning leaked into a string field
    (`"O1'} } // Note: ..."`). A `pattern` constraint on the field prevents it.
 
+7. **Batch inference could not be started.** We built a batch mode for the eval (same request bodies, JSONL
+   upload with purpose "batch", `batches.create` with a 24 h window). File upload worked; creating the batch
+   returned `403 Creating new batch job is temporarily unavailable` on 2026-10-25 and again hours later.
+   *Suggestion:* show batch availability per account in the console, or queue the job instead of refusing it.
+
 ## Numbers from our runs
 - A typical incident (dossiers cached): 3 Super decisions in parallel + 1 Ultra report when a person must act,
   about $0.008-0.015 and 15-25 s.
