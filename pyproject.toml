@@ -22,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+film = ["playwright>=1.48"]   # scripts/capture_app.py drives the installed Chrome
 
 [project.scripts]
 cric = "cric.cli:main"

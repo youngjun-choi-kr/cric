@@ -6,8 +6,8 @@
     .venv/bin/python scripts/rough_cut.py
 
 Output: data/film/rough_cut.mp4 (1080p30, captions burned in) and data/film/rough_cut.srt (voice-over as
-subtitles, for timing the read). APP shots are placeholders naming the recording to capture; replace them with
-OBS captures of the console replaying the golden runs. No music or voice: the team adds those.
+subtitles, for timing the read). APP shots use captures from scripts/capture_app.py (data/film/app_<pair>_<preset>.mp4),
+stretched to fit; a missing capture leaves a placeholder slate naming it. No music or voice: the team adds those.
 """
 
 from __future__ import annotations
@@ -33,26 +33,26 @@ SHOTS = [
                                 "One engineer. A few hours to decide."),
     ("S4", 6, "title", None, "CRIC\nCosmic Response & Intelligence Console",
      "This is CRIC. It does the work, and it knows when to ask."),
-    ("S5", 12, "app", "imaging run: space-weather step", "NOAA Kp · Nemotron 3.5 Super VL (context)",
+    ("S5", 12, "app", "app_60454-61786_imaging", "NOAA Kp · Nemotron 3.5 Super VL (context)",
      "It starts with the Sun. NOAA's numbers set the physics; NVIDIA Nemotron 3.5 Super VL reads today's solar "
      "image as a second opinion, and flags when the two disagree."),
-    ("S6", 13, "app", "imaging run: risk and verified options", "Pc (simulated precise data) · verified burns",
+    ("S6", 13, "app", "app_60454-61786_imaging", "Pc (simulated precise data) · verified burns",
      "The physics is code. Real orbits, a collision probability, and burn options that an optimiser has already "
      "checked against every other object in the catalog."),
-    ("S7", 17, "app", "imaging run: dossiers, Tavily sources, quote", "Tavily Search + Extract · quote verified",
+    ("S7", 17, "app", "app_60454-61786_imaging", "Tavily Search + Extract · quote verified",
      "Can the other satellite move? Tavily searches the web. Nemotron 3 Super writes a dossier where every fact "
      "carries a source and an exact quote, and our code checks each one. Tonight, nobody can confirm it."),
-    ("S8", 23, "app", "imaging run: decision card, 3 votes", "Nemotron 3 Super × 3 votes · MANEUVER O2",
+    ("S8", 23, "app", "app_60454-61786_imaging", "Nemotron 3 Super × 3 votes · MANEUVER O2",
      "Then three independent Nemotron 3 Super runs vote. They read what a rule engine can't: a disaster-response "
      "imaging pass rules out the cheapest burn, so they take the later one."),
-    ("S9a", 5, "app", "imaging run: validator accepted, Approve pressed", "Safety validator · approved by a person",
+    ("S9a", 5, "app", "app_60454-61786_imaging", "Safety validator · approved by a person",
      "A safety validator, written in code, checks every decision, and a person approves it."),
     ("S9b", 10, "cine", "go-to-burn", "Nebius Token Factory",
      "When a person has to act, Nemotron 3 Ultra writes the brief. Every model runs on Nebius Token Factory."),
-    ("S10", 20, "app", "SDO May 2024 frames + storm_2024 run", "May 2024 · G5 · Kp 9 · 3 of 3 burns stopped (eval)",
+    ("S10", 20, "app", "app_60454-61786_storm_2024", "May 2024 · G5 · Kp 9 · 3 of 3 burns stopped (eval)",
      "We replayed real storms, researched with Tavily. In twenty runs the model tried to burn on storm-degraded "
      "data three times. All three times, code said: get better data first."),
-    ("S11", 15, "app", "korean_note run (or IRIDIUM 149 quiet → precise)", "Held-out 2: policy 5/8 · Nemotron + validator 40/40",
+    ("S11", 15, "app", "app_60454-61786_korean_note", "Held-out 2: policy 5/8 · Nemotron + validator 40/40",
      "Some of what matters lives only in an operator's note: Korean, Japanese, Spanish, ops jargon. On a held-out "
      "set written before any model saw it, a coded policy missed three of eight. Nemotron with the validator: "
      "forty runs out of forty."),
@@ -77,9 +77,25 @@ def _caption_filter(tmp: Path, sid: str, caption: str) -> str:
             f"x=(w-text_w)/2:y=h-150:box=1:boxcolor=black@0.45:boxborderw=18:line_spacing=10")
 
 
-def segment(tmp: Path, sid: str, seconds: float, kind: str, source: str | None, caption: str, vo: str) -> Path:
+def _duration(path: Path) -> float:
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                       capture_output=True, text=True, check=True)
+    return float(r.stdout.strip())
+
+
+def segment(tmp: Path, sid: str, seconds: float, kind: str, source: str | None, caption: str, vo: str,
+            group: tuple[float, float] = (0.0, 0.0)) -> Path:
+    """group = (offset of this shot inside a run of shots sharing one capture, total length of that run)."""
     out = tmp / f"{sid}.mp4"
     enc = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", str(FPS), "-an"]
+    capture = OUT / f"{source}.mp4" if kind == "app" and source else None
+    if capture and capture.exists():
+        offset, total = group
+        stretch = total / _duration(capture)
+        vf = (f"setpts={stretch:.4f}*PTS,fps={FPS},trim=start={offset}:duration={seconds},setpts=PTS-STARTPTS,"
+              f"scale={W}:{H}" + _caption_filter(tmp, sid, caption))
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(capture), "-vf", vf, *enc, str(out)], check=True)
+        return out
     if kind == "cine":
         frames = FRAMES / source
         if not frames.exists() or not any(frames.glob("*.png")):
@@ -134,7 +150,16 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
-        parts = [segment(tmp, *s) for s in SHOTS]
+        groups, i = {}, 0
+        while i < len(SHOTS):                      # runs of consecutive shots that share one capture
+            j = i
+            while j + 1 < len(SHOTS) and SHOTS[j + 1][2] == "app" and SHOTS[j + 1][3] == SHOTS[i][3]:
+                j += 1
+            total = sum(x[1] for x in SHOTS[i:j + 1])
+            for k in range(i, j + 1):
+                groups[k] = (sum(x[1] for x in SHOTS[i:k]), total)
+            i = j + 1
+        parts = [segment(tmp, *s, group=groups[n]) for n, s in enumerate(SHOTS)]
         (tmp / "list.txt").write_text("".join(f"file '{p}'\n" for p in parts))
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt"),
                         "-c", "copy", str(OUT / "rough_cut.mp4")], check=True)
