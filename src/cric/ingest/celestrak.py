@@ -53,8 +53,12 @@ def fetch_group(group: str, *, refresh: bool = True) -> Path:
     stale = not path.exists() or time.time() - path.stat().st_mtime > GP_MAX_AGE_S
     if stale and refresh:
         resp = requests.get(GP_URL.format(group=group), timeout=90)
-        resp.raise_for_status()
-        path.write_text(resp.text)
+        if resp.status_code == 403 and path.exists():
+            # CelesTrak answers 403 when this address already holds the current data (it updates every 2 h)
+            path.touch()
+        else:
+            resp.raise_for_status()
+            path.write_text(resp.text)
     if not path.exists():
         raise FileNotFoundError(f"{path} missing and refresh disabled")
     return path

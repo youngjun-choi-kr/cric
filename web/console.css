@@ -116,3 +116,4 @@
 #tour .card .n { font-size:10px; opacity:.6; margin-bottom:2px; }
 #tour .card .x { margin-top:4px; }
 body.cinema #tourBtn, body.cinema #tour { display:none !important; }
+#staticNote a { color: #6cc4ff; }

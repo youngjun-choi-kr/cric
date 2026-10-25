@@ -17,13 +17,31 @@ const pcTxt = (p) => (p > 0 ? p.toExponential(1) : '< 1e-300');
 // ---------- data ----------
 // Static mode (e.g. GitHub Pages): no API; replay recordings from demo/ and read orbits from the committed snapshot.
 const STATIC = !(await fetch('/api/incidents', { method: 'HEAD' }).then((r) => r.ok).catch(() => false));
-const DATA_BASE = STATIC ? '../fixtures/snapshot_20261025/' : '/data/';
-if (STATIC) $('staticNote').hidden = false;
+// Static mode prefers today's data from the `live` branch (refreshed daily by GitHub Actions); ?data=snapshot, a
+// cinema render, or live data older than two days falls back to the frozen snapshot the recorded runs belong to.
+const LIVE_BASE = 'https://raw.githubusercontent.com/youngjun-choi-kr/cric/live/';
+const QS0 = new URLSearchParams(location.search);
+let LIVE = null;
+if (STATIC && QS0.get('data') !== 'snapshot' && !QS0.get('cinema')) {
+  LIVE = await fetch(LIVE_BASE + 'live.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (LIVE && Date.now() - Date.parse(LIVE.generated_utc) > 48 * 3600e3) LIVE = null;
+}
+const DATA_BASE = LIVE ? LIVE_BASE : STATIC ? '../fixtures/snapshot_20261025/' : '/data/';
+const INCIDENT_BASE = LIVE ? LIVE_BASE + 'incidents/' : 'demo/incidents/';
+if (STATIC) {
+  $('staticNote').hidden = false;
+  $('staticNote').innerHTML = LIVE
+    ? `Live data: CelesTrak catalog of ${LIVE.generated_utc.slice(0, 16).replace('T', ' ')} UTC, screened for the next ${LIVE.hours} h.
+       ${LIVE.incidents.length ? 'Today\'s incident was decided by the real pipeline.' : 'No incident run today.'}
+       <a href="?data=snapshot">Recorded demo runs (24–25 Oct) →</a>`
+    : `Recorded demo: runs from 24–25 Oct 2026 on the frozen catalog; these encounters have passed.
+       ${QS0.get('data') === 'snapshot' ? '<a href="?">Today\'s orbits →</a>' : ''} Live decisions need the local server and keys (SETUP.md).`;
+}
 const [tleActive, tleDebris, conj, saved] = await Promise.all([
   fetch(DATA_BASE + 'celestrak_active.tle').then(r => r.text()),
   fetch(DATA_BASE + 'celestrak_debris.tle').then(r => (r.ok ? r.text() : '')).catch(() => ''),   // public debris clouds
   fetch(DATA_BASE + 'conjunctions.json').then(r => r.json()),
-  fetch(STATIC ? 'demo/manifest.json' : '/api/incidents').then(r => (r.ok ? r.json() : [])).catch(() => []),
+  LIVE ? Promise.resolve(LIVE.incidents) : fetch(STATIC ? 'demo/manifest.json' : '/api/incidents').then(r => (r.ok ? r.json() : [])).catch(() => []),
 ]);
 const tleText = tleActive + '\n' + tleDebris;
 const lines = tleText.split('\n').map(l => l.trimEnd()).filter(Boolean);
@@ -465,7 +483,7 @@ $('pauseBtn').onclick = () => {
 async function staticReplay(ours, other, presetName) {
   const m = saved.find((x) => x.ours === ours && x.other === other && x.preset === presetName);
   if (!m) { inc.queue.push({ kind: 'error', message: 'No recording for this pair and situation in the static demo.' }); pump(); return; }
-  const d = await fetch(`demo/incidents/${m.file}`).then((r) => r.json());
+  const d = await fetch(INCIDENT_BASE + m.file).then((r) => r.json());
   inc.queue.push({ kind: 'start', mode: 'replay' }, ...d.trace, d.result, { kind: 'end' }); pump();
 }
 function runIncident(mode) {
