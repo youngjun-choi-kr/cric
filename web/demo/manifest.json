@@ -1,5 +1,89 @@
 [
  {
+  "file": "60454_61786_20261025T003427_2134_korean_note.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "korean_note",
+  "action": "COORDINATE",
+  "final": "COORDINATE",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_2134_storm_2024.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "storm_2024",
+  "action": "REQUEST_PRECISE_DATA",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_2134_safe_mode.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "safe_mode",
+  "action": "ESCALATE",
+  "final": "ESCALATE",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_2134_imaging.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "imaging",
+  "action": "MANEUVER",
+  "final": "MANEUVER",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_2134_precise.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "precise",
+  "action": "MANEUVER",
+  "final": "MANEUVER",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
+  "file": "60454_61786_20261025T003427_2134_quiet.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "quiet",
+  "action": "REQUEST_PRECISE_DATA",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
   "file": "43677_48423_20261025T061937_0415_quiet.json",
   "ours": 43677,
   "other": 48423,
@@ -53,90 +137,6 @@
   "names": [
    "IRIDIUM 149",
    "COSMOS 2251 DEB"
-  ]
- },
- {
-  "file": "60454_61786_20261025T003427_1624_korean_note.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "korean_note",
-  "action": "MANEUVER",
-  "final": "MANEUVER",
-  "has_trace": true,
-  "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
-  ]
- },
- {
-  "file": "60454_61786_20261025T003427_1624_storm_2024.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "storm_2024",
-  "action": "MANEUVER",
-  "final": "REQUEST_PRECISE_DATA",
-  "has_trace": true,
-  "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
-  ]
- },
- {
-  "file": "60454_61786_20261025T003427_1531_safe_mode.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "safe_mode",
-  "action": "ESCALATE",
-  "final": "ESCALATE",
-  "has_trace": true,
-  "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
-  ]
- },
- {
-  "file": "60454_61786_20261025T003427_1531_imaging.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "imaging",
-  "action": "MANEUVER",
-  "final": "MANEUVER",
-  "has_trace": true,
-  "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
-  ]
- },
- {
-  "file": "60454_61786_20261025T003427_1531_precise.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "precise",
-  "action": "COORDINATE",
-  "final": "COORDINATE",
-  "has_trace": true,
-  "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
-  ]
- },
- {
-  "file": "60454_61786_20261025T003427_1531_quiet.json",
-  "ours": 60454,
-  "other": 61786,
-  "tca_utc": "2026-10-25T00:34:27.156166Z",
-  "preset": "quiet",
-  "action": "REQUEST_PRECISE_DATA",
-  "final": "REQUEST_PRECISE_DATA",
-  "has_trace": true,
-  "names": [
-   "EOS-08",
-   "SITRO-AIS 38"
   ]
  }
 ]

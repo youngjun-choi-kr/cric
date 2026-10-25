@@ -42,6 +42,12 @@ CRIC is a research prototype for decision support. It is not an operational coll
   not from separate 3-call runs. Demo recordings were not re-recorded to get a preferred answer; the IRIDIUM 149
   quiet run was re-recorded once, after adding the satellite to the demo fleet (the first run escalated
   correctly because its propulsion was unknown).
+- Retakes: during development the EOS-08 "imaging" situation was recorded three times on 2026-10-24 with
+  different results (ESCALATE, ESCALATE, MANEUVER) while the dossier and fleet-registry code was being fixed, and
+  the demo showed the last. On 2026-10-25 every EOS-08 situation was re-recorded once on the final pipeline
+  (3 votes, debris snapshot, TLE rule) and those single takes replaced all earlier ones: quiet -> request data,
+  precise -> manoeuvre O1, imaging -> manoeuvre O2, safe mode -> escalate, May 2024 storm -> request data,
+  Korean note -> coordinate on O2.
 - A constraint that exists only in free text cannot be enforced by the validator. On tuning scenario S11 one of
   five runs burned above a 0.1 m/s approval limit written in a mission note; voting removes it (no 3-run
   majority burns), but a single run can still make that mistake.
