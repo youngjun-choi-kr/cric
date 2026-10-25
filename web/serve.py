@@ -84,10 +84,27 @@ def eval_sets() -> dict:
     return {"sets": out}
 
 
+def _execution(d: dict) -> dict | None:
+    """Execution check for recordings made before it existed (pure physics, no model call)."""
+    opt = next((o for o in d["context"]["burn_options"]["options"] if o["id"] == d["validation"]["final_option_id"]), None)
+    if not opt:
+        return None
+    from cric.ingest.celestrak import snapshot_catalog
+    from cric.physics.execute import execute
+    from cric.physics.maneuver import Encounter
+
+    global _CAT
+    _CAT = globals().get("_CAT") or snapshot_catalog()
+    pair = d["pair"]
+    if pair["ours"] not in _CAT.sats or pair["other"] not in _CAT.sats:
+        return None
+    return execute(Encounter(_CAT.sats[pair["ours"]], _CAT.sats[pair["other"]], parse_utc(pair["tca_utc"])), opt)
+
+
 def _result_event(d: dict, file: str | None = None) -> dict:
     ctx = d["context"]
     return {"kind": "result", "pair": d.get("pair"), "decision": d["decision"], "validation": d["validation"],
-            "trajectory": d.get("trajectory"), "report": d.get("report"), "usage": d["usage"], "seconds": d["seconds"], "model": d["model"],
+            "trajectory": d.get("trajectory"), "execution": d.get("execution") or _execution(d), "report": d.get("report"), "usage": d["usage"], "seconds": d["seconds"], "model": d["model"],
             "options": ctx["burn_options"]["options"], "risk": ctx["risk"], "conjunction": ctx["conjunction"],
             "ours": ctx["our_satellite"], "other": ctx["other_object"], "mission": ctx["mission"],
             "space_weather": ctx.get("space_weather"), "now_utc": ctx.get("now_utc"),

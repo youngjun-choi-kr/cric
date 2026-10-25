@@ -218,16 +218,19 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
         except Exception as exc:  # a missing report must not lose the decision
             emit("report_error", message=str(exc)[:300])
 
-    trajectory = None
+    trajectory = execution = None
     opt = next((o for o in ctx["burn_options"]["options"] if o["id"] == check["final_option_id"]), None)
     if opt:
+        from .physics.execute import execute
+
         enc = Encounter(cat.sats[ours], cat.sats[other], tca)
         trajectory = trajectory_series(enc, opt)
+        execution = execute(enc, opt)      # shown once a person approves: flown with errors, then re-checked
     emit("done", usage=usage.as_dict(), seconds=round(time.time() - t0, 1))
 
     result = {"pair": {"ours": ours, "other": other, "tca_utc": iso(tca)}, "context": ctx,
               "decision": decision, "individual_decisions": individual, "reasoning": reasoning, "validation": check,
-              "report": report, "trajectory": trajectory, "usage": usage.as_dict(), "seconds": round(time.time() - t0, 1),
+              "report": report, "trajectory": trajectory, "execution": execution, "usage": usage.as_dict(), "seconds": round(time.time() - t0, 1),
               "model": model, "trace": trace}
     INCIDENTS.mkdir(exist_ok=True)
     path = INCIDENTS / f"{ours}_{other}_{tca.strftime('%Y%m%dT%H%M%S')}_{now.strftime('%H%M')}_{tag}.json"

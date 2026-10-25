@@ -83,3 +83,14 @@ def test_split_vote_escalates_and_gets_a_brief(monkeypatch, tmp_path, small_cata
                                 data_quality="cdm")
     assert res["decision"]["action"] == "ESCALATE" and res["validation"]["final_action"] == "ESCALATE"
     assert res["report"]["kind"] == "escalation_brief"
+
+
+def test_execution_check_clears_the_planned_burn(small_catalog):
+    from cric.physics.execute import execute
+    from cric.physics.maneuver import Encounter
+    enc = Encounter(small_catalog.sats[OURS], small_catalog.sats[OTHER], parse_utc(TCA))
+    opt = {"id": "O1", "direction": "retrograde", "dv_ms": 0.92, "lead_s": 1506.0}
+    x = execute(enc, opt, samples=60)
+    assert x["miss_before_km"] < 1 and x["miss_nominal_km"] > 1.5 and x["verdict"] == "cleared"
+    weak = execute(enc, {**opt, "dv_ms": 0.2}, samples=60)
+    assert weak["verdict"] != "cleared"

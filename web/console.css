@@ -117,3 +117,4 @@
 #tour .card .x { margin-top:4px; }
 body.cinema #tourBtn, body.cinema #tour { display:none !important; }
 #staticNote a { color: #6cc4ff; }
+.appr .exec { margin-top:8px; padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-size:11.5px; line-height:1.5; }

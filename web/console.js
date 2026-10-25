@@ -345,6 +345,15 @@ function renderReport(r) {
     ${r.asks?.length ? `<div class="factor"><b>Asks:</b> ${esc(r.asks.join(' · '))}</div>` : ''}
     ${r.decision_deadline_utc ? `<div class="lim">Decision needed by ${esc(r.decision_deadline_utc)}</div>` : ''}`;
 }
+// After approval: the burn flown in simulation with execution errors, then the conjunction re-checked.
+function execBlock(x) {
+  const ok = x.verdict === 'cleared';
+  return `<div class="exec"><b>Executed in simulation</b> (${x.samples} runs, 1σ errors: ${x.errors_1sigma.magnitude_pct}% Δv,
+    ${x.errors_1sigma.pointing_deg}° pointing, ${x.errors_1sigma.timing_s} s timing) · re-checked:
+    <div>miss ${fmtDist(x.miss_before_km)} → <b>${fmtDist(x.miss_nominal_km)}</b> planned · worst 5% ${fmtDist(x.miss_p5_km)} · minimum ${fmtDist(x.miss_min_km)}</div>
+    <span class="tag ${ok ? 'ok' : 'bad'}">${ok ? 'conjunction cleared' : esc(x.verdict)}</span>
+    <span class="lim">${Math.round(x.share_above_clear_km * 100)}% of runs stay beyond ${x.clear_km} km</span></div>`;
+}
 // The agent proposes; a person approves or rejects. Nothing is commanded from here: CRIC has no uplink.
 function renderApproval(e) {
   const v = e.validation, act = v.final_action, opt = (e.options || []).find((o) => o.id === v.final_option_id);
@@ -382,7 +391,8 @@ function renderApproval(e) {
     $('apprYes').disabled = $('apprNo').disabled = true;
     $('apprLog').innerHTML = `<span class="tag ${verdict === 'approve' ? 'ok' : 'bad'}">${verdict === 'approve' ? 'approved' : 'rejected'}</span>
       ${esc(res.logged_utc || '')} · ${esc(res.note)}${reason ? `<div class="lim">reason: ${esc(reason)}</div>` : ''}
-      <div class="lim">Simulated hand-off. In operations an approved burn goes to the operator's own command system; CRIC never uplinks.</div>`;
+      <div class="lim">Simulated hand-off. In operations an approved burn goes to the operator's own command system; CRIC never uplinks.</div>
+      ${verdict === 'approve' && e.execution ? execBlock(e.execution) : ''}`;
   };
   $('apprYes').onclick = () => send('approve');
   $('apprNo').onclick = () => { if ($('apprWhy').hidden) { $('apprWhy').hidden = false; $('apprWhy').focus(); } else send('reject'); };
