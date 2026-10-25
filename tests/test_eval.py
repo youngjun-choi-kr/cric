@@ -59,3 +59,18 @@ def test_wilson_interval():
     lo, hi = wilson(18, 20)
     assert 0.68 < lo < 0.72 and 0.96 < hi < 0.98
     assert wilson(0, 0) == [0.0, 0.0]
+
+
+def test_report_checker_flags_invented_numbers_and_missing_ids():
+    from cric.eval.reports import check_report
+    ctx = _ctx()
+    ctx["our_satellite"]["norad_id"], ctx["other_object"]["norad_id"] = 60454, 61786
+    ctx["risk"] |= {"pc": 0.0729, "assumption": "SIMULATED precise ephemeris"}
+    ctx["operator_policy"] = {"min_command_upload_min": 30}
+    v = {"final_action": "ESCALATE", "final_option_id": None, "overrides": []}
+    good = {"kind": "escalation_brief", "subject": "Conjunction 60454 / 61786", "decision_deadline_utc": "x",
+            "body": "Pc 7.3% (simulated precise ephemeris) for 60454 vs 61786, miss 0.1 km. Burn O1 0.33 m/s."}
+    assert check_report(good, ctx, v, NOW)["pass"]
+    bad = good | {"subject": "Conjunction alert for 60454", "body": "Pc 7.3% (simulated) for 60454, miss 0.4 km after a 1.7 m/s burn."}
+    c = check_report(bad, ctx, v, NOW)
+    assert "both NORAD IDs" in c["missing"] and set(c["unsupported_numbers"]) >= {"0.4", "1.7"}

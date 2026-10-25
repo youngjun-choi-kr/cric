@@ -30,7 +30,7 @@ from .scenarios import HELDOUT, HELDOUT2, SCENARIOS
 
 MODELS = {"super": MODEL_SUPER, "ultra": MODEL_ULTRA}
 _NUM = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?:[eE][-+]?\d+|\s?[x×]\s?10\^?[-−]?\d+)?")
-_TIME = re.compile(r"\b([01]\d|2[0-3]):([0-5]\d)(?::\d\d)?\b")
+_TIME = re.compile(r"(?<!\d)([01]\d|2[0-3]):([0-5]\d)(?::\d\d)?(?!\d)")
 
 
 def _numbers(obj, out: set) -> set:
@@ -78,8 +78,8 @@ def _grounded(v: float, known: set) -> bool:
     for k in known:
         if k == v or (k and abs(v - k) / abs(k) < 0.051) or (k and abs(round(k, 2) - v) < 1e-9):
             return True
-        if k and abs(v - k * 1000) / abs(k * 1000) < 0.051 or k and abs(v - k / 1000) / abs(k / 1000) < 0.051:
-            return True                       # km <-> m
+        if k and any(abs(v - k * f) / abs(k * f) < 0.051 for f in (1000, 1e-3, 100)):
+            return True                       # km <-> m, and Pc as a percentage
     return False
 
 
@@ -161,12 +161,31 @@ def run(models: list[str], repeats: int = 1) -> dict:
     return out
 
 
+def regrade(path: str) -> dict:
+    """Re-check saved reports with the current checker; no model calls."""
+    d = json.loads(open(path).read())
+    by_id = {c[0]: c for c in cases()}
+    for r in d["rows"]:
+        if "report" in r:
+            _, ctx, dv, now = by_id[r["scenario"]]
+            r["check"] = check_report(r["report"], ctx, dv["validation"], now)
+    for m in d["summary"]:
+        rs = [r for r in d["rows"] if r["model"] == m]
+        d["summary"][m] |= {"pass_rate": round(sum(r["check"]["pass"] for r in rs) / len(rs), 3),
+                            "unsupported_per_report": round(sum(len(r["check"]["unsupported_numbers"]) for r in rs) / len(rs), 2),
+                            "missing_per_report": round(sum(len(r["check"]["missing"]) for r in rs) / len(rs), 2)}
+    open(path, "w").write(json.dumps(d, indent=2, ensure_ascii=False, default=str))
+    d["path"] = path
+    return d
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="+", default=["super", "ultra"], choices=list(MODELS))
     ap.add_argument("--repeats", type=int, default=1)
+    ap.add_argument("--regrade", help="re-check a saved reports_*.json without model calls")
     a = ap.parse_args()
-    res = run(a.models, a.repeats)
+    res = regrade(a.regrade) if a.regrade else run(a.models, a.repeats)
     print(f"{len(res['cases'])} cases: {' '.join(res['cases'])}")
     for m, s in res["summary"].items():
         print(m, s)
