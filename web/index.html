@@ -468,7 +468,9 @@ function renderRisk(r, c, sw) {
   const assumed = /SIMULATED/.test(r.assumption) ? '<span class="tag blue">simulated precise data</span>' : '<span class="tag mid">assumed covariance</span>';
   $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${r.level}">Pc ${pcTxt(r.pc)}</span>
     <span class="tag ${r.level === 'red' ? 'bad' : r.level === 'yellow' ? 'mid' : 'ok'}">${r.level.toUpperCase()}</span>${assumed}
-    ${r.diluted ? `<span class="tag mid">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}</div>
+    ${r.diluted ? `<span class="tag mid">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}
+    ${r.data_quality === 'tle' ? '<span class="tag mid">TLE: screening grade, not for burn decisions</span>' : ''}
+    ${r.sensitivity ? `<span class="tag ${r.sensitivity.robust ? 'ok' : 'mid'}" title="${esc(r.sensitivity.sweep)}">${r.sensitivity.robust ? 'robust' : 'sensitive'} · range ${pcTxt(r.sensitivity.pc_min)}–${pcTxt(r.sensitivity.pc_max)}</span>` : ''}</div>
     <div class="lim">${c ? `${esc(c.data)} · miss ${fmtDist(c.miss_km)} · ${c.hours_to_tca} h to TCA · ` : ''}thresholds: red ≥ 1e-4, yellow ≥ 1e-5${sw ? ` · Kp ${sw.kp}${sw.noaa ? ' (NOAA live)' : ' (scenario)'}` : ''}</div>`;
 }
 function renderOptions(opts, chosen) {

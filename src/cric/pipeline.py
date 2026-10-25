@@ -20,7 +20,9 @@ from .safety.validator import validate
 
 DEFAULT_POLICY = {
     "text": ("Manoeuvre when Pc >= 1e-4 and a verified option exists. Between 1e-5 and 1e-4, or when Pc is diluted, "
-             "prefer getting precise data if there is time before the latest safe burn. Never manoeuvre if our "
+             "prefer getting precise data if there is time before the latest safe burn. On public TLE data, do not "
+             "decide a burn while there is time to get precise ephemeris; TLE screening finds candidates, it does not "
+             "decide manoeuvres. Never manoeuvre if our "
              "propulsion status is unverified. If the other object is an active satellite that can manoeuvre, "
              "contact its operator before moving; if it is an operational satellite whose capability is unknown, notify "
              "its operator. Keep at least 30 minutes for command upload. Max 1.0 m/s per burn."),
@@ -86,7 +88,8 @@ def physics_block(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
                         "orbital_period_min": round(enc.period / 60, 1),
                         "data": ("precise ephemeris (simulated CDM)" if data_quality == "cdm"
                                  else "public GP/TLE, accuracy about 1 km")},
-        "risk": {k: risk[k] for k in ("pc", "pc_max_if_better_data", "diluted", "level", "sigma_rtn_km")}
+        "risk": {k: risk[k] for k in ("pc", "pc_max_if_better_data", "diluted", "level", "sigma_rtn_km", "sensitivity")}
+                | {"data_quality": data_quality}
                 | {"assumption": risk["assumptions"]["covariance"], "tle_age_days": risk["assumptions"]["tle_age_days"]},
         "burn_options": opts,
     }

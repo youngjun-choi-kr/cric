@@ -15,6 +15,13 @@ Model
   from poor knowledge, not from a safe geometry, and better data is needed.
 
 Thresholds follow common practice (e.g. NASA CARA): >= 1e-4 red, 1e-5 to 1e-4 yellow.
+
+Basis for the default sigmas: published assessments of TLE accuracy for LEO (e.g. Flohrer et al. 2008,
+"Assessment and categorization of TLE orbit errors for the US SSN catalogue") report along-track errors of
+hundreds of metres to a few kilometres, radial and cross-track errors several times smaller, growing with
+epoch age. The defaults sit in that range but are not fitted to any object. Because of that, every Pc comes
+with a sensitivity sweep (sigmas x0.5..x2, hard-body radius 10..40 m): the level is "robust" only when it
+does not change anywhere in the sweep.
 """
 
 from __future__ import annotations
@@ -93,10 +100,17 @@ def collision_probability(enc: Encounter, age_days: tuple[float, float], *, kp: 
     miss2 = np.array([np.linalg.norm(perp), 0.0])
 
     pc = _pc_2d(miss2, cov2, hbr_km)
+
+    def level_of(p: float) -> str:
+        return "red" if p >= PC_RED else "yellow" if p >= PC_YELLOW else "green"
+
+    # Sensitivity: how far the answer moves when the assumptions move within a plausible range.
+    sweep = [_pc_2d(miss2, cov2 * k ** 2, h) for k in (0.5, 0.71, 1.0, 1.41, 2.0) for h in (0.01, 0.02, 0.04)]
+    sweep_levels = {level_of(p) for p in sweep}
     scales = np.geomspace(0.05, 1.0, 30)
     pcs = [_pc_2d(miss2, cov2 * s ** 2, hbr_km) for s in scales]
     pc_max = max(pcs)
-    level = "red" if pc >= PC_RED else "yellow" if pc >= PC_YELLOW else "green"
+    level = level_of(pc)
     return {
         "pc": pc,
         "pc_max_if_better_data": pc_max,
@@ -104,6 +118,8 @@ def collision_probability(enc: Encounter, age_days: tuple[float, float], *, kp: 
         "level": level,
         "miss_km": float(np.linalg.norm(perp)),
         "sigma_rtn_km": {"maneuvering": sig_m.round(3).tolist(), "other": sig_o.round(3).tolist()},
+        "sensitivity": {"pc_min": min(sweep), "pc_max": max(sweep), "levels": sorted(sweep_levels),
+                        "robust": len(sweep_levels) == 1, "sweep": "sigma x0.5-x2, hard-body radius 10-40 m"},
         "assumptions": {"covariance": "ASSUMED from TLE age and Kp; no CDM", "hbr_km": hbr_km, "kp": kp,
                         "tle_age_days": [round(a, 2) for a in age_days], "model": asdict(model)},
     }

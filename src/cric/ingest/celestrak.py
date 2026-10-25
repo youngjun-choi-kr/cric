@@ -17,6 +17,9 @@ from sgp4.api import Satrec
 from ..config import DATA
 
 GP_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP={group}&FORMAT=tle"
+# Public debris CelesTrak distributes: the large breakup clouds, plus uncatalogued "analyst" objects.
+# The full debris catalog needs Space-Track access and cannot be redistributed (see LIMITATIONS.md).
+DEBRIS_GROUPS = ("fengyun-1c-debris", "cosmos-2251-debris", "iridium-33-debris", "cosmos-1408-debris", "analyst")
 SATCAT_URL = "https://celestrak.org/satcat/records.php?CATNR={norad}&FORMAT=json"
 GP_MAX_AGE_S = 2 * 3600
 SATCAT_MAX_AGE_S = 7 * 86400
@@ -45,25 +48,42 @@ def _tle_path(group: str) -> Path:
     return DATA / f"celestrak_{group}.tle"
 
 
-def load_catalog(group: str = "active", *, refresh: bool = True, path: Path | None = None) -> Catalog:
-    """GP catalog from the live cache (refreshed when older than 2 h) or from an explicit file (never refreshed)."""
-    if path is not None:
-        refresh = False
-    path = path or _tle_path(group)
+def fetch_group(group: str, *, refresh: bool = True) -> Path:
+    path = _tle_path(group)
     stale = not path.exists() or time.time() - path.stat().st_mtime > GP_MAX_AGE_S
     if stale and refresh:
-        resp = requests.get(GP_URL.format(group=group), timeout=60)
+        resp = requests.get(GP_URL.format(group=group), timeout=90)
         resp.raise_for_status()
         path.write_text(resp.text)
     if not path.exists():
         raise FileNotFoundError(f"{path} missing and refresh disabled")
-    lines = [ln.rstrip() for ln in path.read_text().splitlines() if ln.strip()]
+    return path
+
+
+def _parse(paths: list[Path]) -> tuple[dict, dict]:
     sats, names = {}, {}
-    for i in range(0, len(lines) - 2, 3):
-        rec = Satrec.twoline2rv(lines[i + 1], lines[i + 2])
-        sats[int(rec.satnum)] = rec
-        names[int(rec.satnum)] = lines[i].strip()
-    return Catalog(sats, names, f"CelesTrak GP {path.parent.name}/{path.name}", path.stat().st_mtime)
+    for path in paths:
+        lines = [ln.rstrip() for ln in path.read_text().splitlines() if ln.strip()]
+        for i in range(0, len(lines) - 2, 3):
+            rec = Satrec.twoline2rv(lines[i + 1], lines[i + 2])
+            sats.setdefault(int(rec.satnum), rec)   # first file wins if an object appears twice
+            names.setdefault(int(rec.satnum), lines[i].strip())
+    return sats, names
+
+
+def load_catalog(group: str = "active", *, refresh: bool = True, path: Path | None = None,
+                 with_debris: bool = False) -> Catalog:
+    """GP catalog from the live cache (refreshed when older than 2 h) or from explicit files (never refreshed).
+    with_debris adds the public debris groups to the active satellites."""
+    if path is not None:
+        paths = [path]
+    else:
+        paths = [fetch_group(group, refresh=refresh)]
+        if with_debris:
+            paths += [fetch_group(g, refresh=refresh) for g in DEBRIS_GROUPS]
+    sats, names = _parse(paths)
+    label = " + ".join(p.stem for p in paths)
+    return Catalog(sats, names, f"CelesTrak GP {label}", max(p.stat().st_mtime for p in paths))
 
 
 def satcat(norad: int) -> dict:
@@ -84,6 +104,12 @@ def satcat(norad: int) -> dict:
 
 
 def snapshot_catalog() -> Catalog:
+    """Frozen catalog for eval and demo: active satellites plus public debris when the snapshot has it."""
     from ..config import SNAPSHOT
 
-    return load_catalog(path=SNAPSHOT / "celestrak_active.tle")
+    paths = [SNAPSHOT / "celestrak_active.tle"]
+    if (SNAPSHOT / "celestrak_debris.tle").exists():
+        paths.append(SNAPSHOT / "celestrak_debris.tle")
+    sats, names = _parse(paths)
+    return Catalog(sats, names, "CelesTrak GP snapshot " + " + ".join(p.stem for p in paths),
+                   max(p.stat().st_mtime for p in paths))

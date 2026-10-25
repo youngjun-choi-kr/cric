@@ -29,7 +29,7 @@ def _find_event(ours: int, other: int) -> dict:
 
 
 def cmd_screen(args) -> None:
-    cat = load_catalog(args.group)
+    cat = load_catalog(args.group, with_debris=not args.no_debris)
     start = datetime.now(timezone.utc).replace(microsecond=0)
     events = screen(cat, start, args.hours, threshold_km=args.threshold)
     (DATA / "conjunctions.json").write_text(json.dumps(
@@ -85,6 +85,7 @@ def main() -> None:
     s.add_argument("--group", default="active")
     s.add_argument("--hours", type=float, default=6.0)
     s.add_argument("--threshold", type=float, default=5.0)
+    s.add_argument("--no-debris", action="store_true", help="screen active satellites only")
     s.set_defaults(func=cmd_screen)
 
     i = sub.add_parser("incident")

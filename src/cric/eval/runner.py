@@ -141,7 +141,7 @@ def policy_rule(ctx: dict, now) -> dict:
         allowed.append(o)
     latest = max((parse_utc(o["burn_utc"]) for o in allowed), default=None)
     time_for_data = latest is not None and latest - now > timedelta(minutes=pol["min_command_upload_min"] + 60)
-    if risk["level"] == "yellow" or risk["diluted"]:
+    if risk["level"] == "yellow" or risk["diluted"] or risk.get("data_quality") == "tle":
         if time_for_data:
             return {"action": "REQUEST_PRECISE_DATA", **no_msg}
         if risk["level"] != "red":

@@ -112,3 +112,12 @@ def test_operational_other_with_unknown_propulsion_requires_notice():
     ctx["other_object"]["satcat"] = {"type": "payload", "status": "operational"}
     assert validate(_decision(), ctx, now)["final_action"] == "COORDINATE"
     assert validate(_decision(msg="We will burn O1 at 09:18Z."), ctx, now)["final_action"] == "MANEUVER"
+
+
+def test_manoeuvre_on_tle_grade_red_pc_with_time_is_sent_for_data():
+    ctx, now = _ctx()
+    ctx["risk"]["data_quality"] = "tle"
+    ctx["burn_options"]["options"].append({"id": "O3", "burn_utc": "2026-01-01T11:00:00Z", "dv_ms": 0.8})
+    out = validate(_decision(), ctx, now)
+    assert out["final_action"] == "REQUEST_PRECISE_DATA"
+    assert "TLE" in out["overrides"][0]["reason"]

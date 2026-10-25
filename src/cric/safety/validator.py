@@ -49,14 +49,16 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
                 override("ESCALATE", f"dv {opt['dv_ms']} m/s exceeds policy limit {policy['max_dv_ms']} m/s")
 
     risk = ctx["risk"]
-    if action == "MANEUVER" and (risk["diluted"] or risk["level"] == "yellow"):
+    weak_data = risk["diluted"] or risk["level"] == "yellow" or risk.get("data_quality") == "tle"
+    if action == "MANEUVER" and weak_data:
         # Policy: on weak data, get precise data first when there is time before the latest allowed burn.
         upload = timedelta(minutes=policy["min_command_upload_min"])
         allowed = [parse_utc(o["burn_utc"]) for o in options.values() if parse_utc(o["burn_utc"]) >= now + upload]
         slack = (max(allowed) - now - upload) if allowed else timedelta(0)
         if slack > timedelta(minutes=DATA_REQUEST_SLACK_MIN):
-            override("REQUEST_PRECISE_DATA", f"Pc is {'diluted' if risk['diluted'] else 'yellow'} and the latest allowed "
-                                             f"burn leaves {int(slack.total_seconds() // 60)} min to get precise data")
+            why = "diluted" if risk["diluted"] else "yellow" if risk["level"] == "yellow" else "from TLE data (screening grade)"
+            override("REQUEST_PRECISE_DATA", f"Pc is {why} and the latest allowed burn leaves "
+                                             f"{int(slack.total_seconds() // 60)} min to get precise data")
 
     other_active_unknown = (other.get("satcat", {}).get("type") == "payload"
                             and other.get("satcat", {}).get("status") in ("operational", "partially operational")

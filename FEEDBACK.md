@@ -22,7 +22,7 @@ messages and LIMITATIONS.md have the details.
 - **`reasoning_content` is returned separately.** We show it in the console as the decision trace; judges and
   operators can see why the model decided, not only what.
 - **Nemotron Super reads plain-language constraints well.** On held-out scenarios where the deciding fact was only
-  in free text (including notes written in Korean), Super was right 20/20 times; a coded policy could not read them.
+  in free text (including notes written in Korean), Super was right 18 of 20 times (0.90) against 0.75 for a coded policy that cannot read them.
 - **Super VL kept "observed" and "inferred" apart** and volunteered that one EUV image cannot confirm an
   Earth-directed CME, and that high-energy electron flux is a charging issue rather than drag.
 - **Tavily Extract with a `query` made the difference** between snippets that miss the number and page text that
