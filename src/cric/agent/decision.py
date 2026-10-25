@@ -71,3 +71,38 @@ def decide(context: dict, *, model: str = MODEL_SUPER, usage: Usage | None = Non
     messages = [{"role": "system", "content": SYSTEM},
                 {"role": "user", "content": "Incident:\n" + json.dumps(context, indent=1, ensure_ascii=False)}]
     return structured_call(model, messages, Decision, usage=usage)
+
+
+def majority(decisions: list[dict]) -> dict:
+    """Combine independent decisions: majority action (and option), otherwise escalate.
+
+    A safety tool should not hand back a different answer each time it is asked. When most runs agree, that
+    answer stands; when they split, the disagreement itself is the finding and a person decides.
+    """
+    from collections import Counter
+
+    actions = Counter(d["action"] for d in decisions)
+    action, n = actions.most_common(1)[0]
+    if n * 2 <= len(decisions):
+        votes = ", ".join(f"{a} x{c}" for a, c in actions.most_common())
+        return {"action": "ESCALATE", "option_id": None, "message_to_other_operator": None,
+                "rationale": f"Independent runs disagreed ({votes}); a person should decide.",
+                "key_factors": [{"factor": "model disagreement", "evidence": votes, "effect": "escalate"},
+                                {"factor": "policy", "evidence": "majority required", "effect": "no automatic action"}],
+                "mission_conflicts": [], "recheck_at_utc": None, "confidence": 0.0,
+                "unknowns": ["which of the split answers is right"], "votes": dict(actions)}
+    agreeing = [d for d in decisions if d["action"] == action]
+    options = Counter(d.get("option_id") for d in agreeing)
+    option = options.most_common(1)[0][0]
+    chosen = next(d for d in agreeing if d.get("option_id") == option)
+    return {**chosen, "votes": dict(actions)}
+
+
+def decide_votes(context: dict, *, n: int = 3, model: str = MODEL_SUPER, usage: Usage | None = None) -> tuple[dict, list[dict], str]:
+    """Run n independent decisions in parallel and return (combined, individual, first reasoning)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        runs = list(pool.map(lambda _: decide(context, model=model, usage=usage), range(n)))
+    individual = [d.model_dump() for d, _ in runs]
+    return majority(individual), individual, runs[0][1]

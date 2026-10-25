@@ -17,7 +17,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
-from ..agent.decision import decide
+from ..agent.decision import decide, majority
 from ..config import DATA, MODEL_NANO, MODEL_SUPER
 from ..config import SNAPSHOT
 from ..ingest.celestrak import snapshot_catalog
@@ -190,6 +190,7 @@ def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = No
     pool_ = {"heldout": HELDOUT, "heldout2": HELDOUT2, "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
     chosen = [s for s in pool_ if not scenario_ids or s.id in scenario_ids]
     contexts = build_contexts(chosen, log=log)
+    _CTX_CACHE.update(contexts)
     rows = []
     for s in chosen:
         ctx, now = contexts[s.id]
@@ -232,6 +233,7 @@ def regrade(path) -> dict:
     pool = {s.id: s for s in SCENARIOS + HELDOUT + HELDOUT2 + forged_scenarios()}
     chosen = [pool[i] for i in sc if i in pool]
     contexts = build_contexts(chosen, log=lambda *_: None)
+    _CTX_CACHE.update(contexts)
     for r in d["rows"]:
         if r["decision"]["action"] == "ERROR" or r["scenario"] not in contexts:
             continue
@@ -255,6 +257,35 @@ def wilson(k: int, n: int, z: float = 1.96) -> list[float]:
     return [round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)]
 
 
+def _vote3(rs: list[dict], scenarios: list[Scenario]) -> dict | None:
+    """Accuracy of a majority vote over 3 independent runs, averaged over every 3-run combination per scenario.
+    Uses the repeats already collected, so it costs no model calls. None for single-run arms (rules)."""
+    from itertools import combinations
+
+    from ..safety.validator import validate as _validate
+
+    sc = {s.id: s for s in scenarios}
+    raw = fin = n = 0
+    for sid in sc:
+        runs = [r for r in rs if r["scenario"] == sid and r["decision"]["action"] != "ERROR"]
+        if len(runs) < 3:
+            return None
+        ctx_now = _CTX_CACHE.get(sid)
+        for combo in combinations(runs, 3):
+            m = majority([r["decision"] for r in combo])
+            g = grade(m, ctx_now[0], sc[sid]) if ctx_now else None
+            if g is None:
+                continue
+            v = _validate(m, *ctx_now)
+            raw += g["correct"]
+            fin += grade({**m, "action": v["final_action"], "option_id": v["final_option_id"]}, ctx_now[0], sc[sid])["correct"]
+            n += 1
+    return {"accuracy_raw": round(raw / n, 3), "accuracy_after_validator": round(fin / n, 3), "combinations": n} if n else None
+
+
+_CTX_CACHE: dict[str, tuple] = {}
+
+
 def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
     arms = sorted({r["arm"] for r in rows}, key=lambda a: (a not in ("naive_rule", "policy_rule"), a))
     text_ids = {s.id for s in scenarios if s.signal == "text"}
@@ -273,6 +304,7 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
             "accuracy_text_signal": round(sum(r["raw"]["correct"] for r in txt) / len(txt), 3) if txt else None,
             "median_seconds": statistics.median(r["seconds"] for r in rs),
             "cost_usd_total": round(sum(r["cost_usd"] for r in rs), 4),
+            "vote3": _vote3(rs, scenarios),
             "by_scenario": {s.id: f"{sum(r['raw']['correct'] for r in rs if r['scenario'] == s.id)}/"
                                   f"{sum(1 for r in rs if r['scenario'] == s.id)}" for s in scenarios},
         }

@@ -6,7 +6,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-from .agent.decision import decide
+from .agent.decision import decide_votes
 from .agent.report import write_report
 from .config import DATA, FLEET, MODEL_SUPER, MODEL_ULTRA, MODEL_VL
 from .ingest.celestrak import Catalog, snapshot_catalog
@@ -148,7 +148,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                  space_weather_note: str = "Quiet geomagnetic conditions.", mission: dict | None = None,
                  policy: dict | None = None, use_tavily: bool = True, cat: Catalog | None = None,
                  data_quality: str = "tle", model: str = MODEL_SUPER, tag: str = "custom", with_report: bool = True,
-                 live_space_weather: bool = False, emit=_noop) -> dict:
+                 live_space_weather: bool = False, votes: int = 3, emit=_noop) -> dict:
     """Assess one conjunction from OUR satellite's point of view. now_utc lets a recorded
     encounter be replayed as if the decision were made at that moment."""
     t0 = time.time()
@@ -188,17 +188,18 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                                                    ("leo_drag_risk_72h", "orbit_prediction_impact", "unknowns")}}
     emit("context", now_utc=ctx["now_utc"], conjunction=ctx["conjunction"], risk=ctx["risk"],
          space_weather=ctx["space_weather"], mission=ctx["mission"], policy_text=policy["text"])
-    emit("decision_start", model=model)
-    decision, reasoning = decide(ctx, model=model, usage=usage)
-    emit("decision", decision=decision.model_dump(), reasoning=reasoning[:1500], model=model)
-    check = validate(decision.model_dump(), ctx, now)
+    emit("decision_start", model=model, votes=votes)
+    decision, individual, reasoning = decide_votes(ctx, n=votes, model=model, usage=usage)
+    emit("decision", decision=decision, individual=[{k: d.get(k) for k in ("action", "option_id", "confidence")}
+                                                    for d in individual], reasoning=reasoning[:1500], model=model)
+    check = validate(decision, ctx, now)
     emit("validation", **check)
 
     report = None
     if with_report and check["final_action"] in ("COORDINATE", "ESCALATE"):
         emit("report_start", model=MODEL_ULTRA, for_action=check["final_action"])
         try:
-            r = write_report(ctx, decision.model_dump(), check, usage=usage)
+            r = write_report(ctx, decision, check, usage=usage)
             report = r.model_dump() if r else None
             emit("report", report=report, model=MODEL_ULTRA)
         except Exception as exc:  # a missing report must not lose the decision
@@ -212,7 +213,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     emit("done", usage=usage.as_dict(), seconds=round(time.time() - t0, 1))
 
     result = {"pair": {"ours": ours, "other": other, "tca_utc": iso(tca)}, "context": ctx,
-              "decision": decision.model_dump(), "reasoning": reasoning, "validation": check,
+              "decision": decision, "individual_decisions": individual, "reasoning": reasoning, "validation": check,
               "report": report, "trajectory": trajectory, "usage": usage.as_dict(), "seconds": round(time.time() - t0, 1),
               "model": model, "trace": trace}
     INCIDENTS.mkdir(exist_ok=True)

@@ -121,3 +121,13 @@ def test_manoeuvre_on_tle_grade_red_pc_with_time_is_sent_for_data():
     out = validate(_decision(), ctx, now)
     assert out["final_action"] == "REQUEST_PRECISE_DATA"
     assert "TLE" in out["overrides"][0]["reason"]
+
+
+def test_majority_vote_and_split():
+    from cric.agent.decision import majority
+    a = {"action": "MANEUVER", "option_id": "O1"}
+    b = {"action": "MANEUVER", "option_id": "O1"}
+    c = {"action": "MONITOR", "option_id": None}
+    assert majority([a, b, c])["action"] == "MANEUVER"
+    split = majority([a, c, {"action": "ESCALATE", "option_id": None}])
+    assert split["action"] == "ESCALATE" and "disagreed" in split["rationale"]
