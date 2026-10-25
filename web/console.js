@@ -417,6 +417,21 @@ function handle(e) {
     }
     renderRisk(e.risk, e.conjunction, e.space_weather); spotlight($('riskSec'));
   }
+  else if (k === 'constraints_start') step('con', 'run', `<span class="who">Mission notes</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> turning the notes into constraints code can enforce…`);
+  else if (k === 'constraints') {
+    const c = e.constraints || {}, items = [];
+    if (c.propulsion_unavailable?.value) items.push('propulsion unavailable');
+    (c.burn_blackouts || []).forEach((w) => items.push(`no burns ${fmtUTC(w.start_utc)}–${w.end_utc ? fmtUTC(w.end_utc) : 'until further notice'}`));
+    if (c.max_dv_ms) items.push(`max ${c.max_dv_ms.value} m/s`);
+    if (c.allowed_axes) items.push(`only ${c.allowed_axes.allowed.join(', ').replace(/_/g, '-')}`);
+    if (c.no_commands_after) items.push(`no commands after ${fmtUTC(c.no_commands_after.time_utc)}`);
+    if (c.other_operator_will_maneuver?.value) items.push('the other operator will move');
+    const quotes = Object.values(c).flat().filter((x) => x && x.quote).map((x) => `“${esc(x.quote)}”`);
+    step('con', items.length ? 'warn' : 'ok', `<span class="who">Mission notes</span> ${items.length ? `${items.length} constraint(s), now enforced in code: <b>${esc(items.join(' · '))}</b>` : 'no constraint in force'}
+      ${e.excluded?.length ? `<div class="sub2">excluded: ${e.excluded.map((x) => esc(x.id)).join(', ')}</div>` : ''}
+      ${quotes.length ? `<div class="think">${quotes.join('<br>')}</div>` : ''}${e.problems?.length ? `<div class="sub2">dropped (quote not in notes): ${e.problems.length}</div>` : ''}`);
+  }
+  else if (k === 'constraints_error') step('con', 'warn', `<span class="who">Mission notes</span> extraction failed; the decision model still reads them: ${esc(e.message)}`);
   else if (k === 'decision_start') step('dec', 'run', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> weighing risk, options, dossiers, policy and mission notes…`);
   else if (k === 'decision') {
     step('dec', 'ok', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> <b>${e.decision.action.replace(/_/g, ' ')}</b>${e.decision.option_id ? ' · ' + esc(e.decision.option_id) : ''}`);

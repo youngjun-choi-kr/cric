@@ -177,15 +177,23 @@ def grade(dec: dict, ctx: dict, s: Scenario) -> dict:
 # ---------------------------------------------------------------- run
 def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
     usage, t0 = Usage(), time.time()
+    base, _, variant = model.partition("+")
     try:
-        if model.endswith("+vote3"):   # the pipeline's own decision: 3 independent calls, majority or escalate
-            dec, _, _ = decide_votes(ctx, n=3, model=model.removesuffix("+vote3"), usage=usage)
+        if variant in ("extract", "vote3+constraints"):   # read the notes into structured constraints first
+            from ..agent.constraints import apply, extract
+            c, problems = extract(ctx, model=base, usage=usage)
+            ctx = apply(ctx, c, problems)
+        if variant == "extract":                          # then let the coded policy decide: no model judgement
+            from ..agent.constraints import coded_policy
+            dec = coded_policy(ctx, now)
+        elif variant.startswith("vote3"):                 # the pipeline's decision: 3 independent calls
+            dec, _, _ = decide_votes(ctx, n=3, model=base, usage=usage)
         else:
-            d, _ = decide(ctx, model=model, usage=usage)
+            d, _ = decide(ctx, model=base, usage=usage)
             dec = d.model_dump()
     except Exception as exc:  # a failed call counts as a wrong answer, not a crash
         dec = {"action": "ERROR", "option_id": None, "message_to_other_operator": None, "error": str(exc)[:200]}
-    return {"decision": dec, "seconds": round(time.time() - t0, 1), "cost_usd": usage.cost_usd}
+    return {"decision": dec, "seconds": round(time.time() - t0, 1), "cost_usd": usage.cost_usd, "ctx": ctx}
 
 
 def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = None, workers: int = 4,
@@ -210,11 +218,13 @@ def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = No
             res = fut.result()
             ctx, now = contexts[s.id]
             dec = res["decision"]
-            v = validate(dec, ctx, now) if dec["action"] != "ERROR" else {"final_action": "ERROR", "final_option_id": None,
+            v = validate(dec, res["ctx"], now) if dec["action"] != "ERROR" else {"final_action": "ERROR", "final_option_id": None,
                                                                            "overrides": [], "warnings": []}
             rows.append({"scenario": s.id, "arm": m.split("/")[-1], "rep": r, "decision": dec, "raw": grade(dec, ctx, s),
                          "final": grade({**dec, "action": v["final_action"], "option_id": v["final_option_id"]}, ctx, s),
-                         "validation": v, "seconds": res["seconds"], "cost_usd": res["cost_usd"]})
+                         "validation": v, "seconds": res["seconds"], "cost_usd": res["cost_usd"],
+                         "constraints": res["ctx"]["mission"].get("extracted_constraints"),
+                         "excluded_options": res["ctx"]["mission"].get("excluded_options")})
             log(f"  {s.id} {m.split('/')[-1]} #{r}: {dec['action']} {dec.get('option_id') or ''} -> "
                 f"{'OK' if rows[-1]['raw']['correct'] else 'WRONG ' + rows[-1]['raw']['reason']}")
 
@@ -239,6 +249,9 @@ def regrade(path) -> dict:
         if r["decision"]["action"] == "ERROR" or r["scenario"] not in contexts:
             continue
         ctx, now = contexts[r["scenario"]]
+        if r.get("constraints") is not None:              # constraint arms decided on the notes turned into fields
+            from ..agent.constraints import Constraints, apply
+            ctx = apply(ctx, Constraints(**r["constraints"]))
         v = validate(r["decision"], ctx, now)
         r["validation"] = v
         r["final"] = grade({**r["decision"], "action": v["final_action"], "option_id": v["final_option_id"]},
@@ -313,7 +326,9 @@ def main_cli(args) -> None:
         summary = regrade(Path(args.regrade)) | {"saved_to": args.regrade}
         _print(summary)
         return
-    models = {"super": MODEL_SUPER, "nano": MODEL_NANO, "super+vote3": MODEL_SUPER + "+vote3"}
+    models = {"super": MODEL_SUPER, "nano": MODEL_NANO, "super+vote3": MODEL_SUPER + "+vote3",
+              "super+extract": MODEL_SUPER + "+extract", "nano+extract": MODEL_NANO + "+extract",
+              "super+vote3+constraints": MODEL_SUPER + "+vote3+constraints"}
     summary = run([models[m] for m in args.models.split(",")], repeats=args.repeats,
                   scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers,
                   scenario_set=args.set, log=lambda *a: print(*a, flush=True))

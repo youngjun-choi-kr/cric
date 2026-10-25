@@ -119,7 +119,8 @@ def main() -> None:
     i.set_defaults(func=cmd_incident)
 
     e = sub.add_parser("eval", help="decision scenarios: rule baselines vs Nemotron")
-    e.add_argument("--models", default="super", help="comma list: super,nano,super+vote3 (the pipeline's 3-vote decision)")
+    e.add_argument("--models", default="super", help="comma list: super, nano, super+vote3 (3-vote decision), super+extract / nano+extract (notes -> "
+                        "constraints -> coded policy), super+vote3+constraints (the full pipeline)")
     e.add_argument("--repeats", type=int, default=3)
     e.add_argument("--scenarios", help="comma list of scenario ids, e.g. S01,S07")
     e.add_argument("--workers", type=int, default=4)

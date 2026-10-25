@@ -87,3 +87,25 @@ def test_scenario_level_interval_counts_scenarios_not_runs():
     assert m["scenarios_passed_raw"] == "1/2" and m["scenarios_passed_after_validator"] == "2/2"
     assert m["scenario_ci95_after_validator"][0] < 0.35        # 2 of 2 scenarios is weak evidence
     assert m["stability_raw"] == 0.5
+
+
+def test_constraints_need_quotes_and_become_fields():
+    from cric.agent.constraints import Constraints, apply, coded_policy, verify
+    from cric.safety.validator import validate
+    ctx = _ctx()
+    ctx["now_utc"] = NOW.isoformat()
+    ctx["conjunction"]["tca_utc"] = (NOW + timedelta(hours=3)).isoformat()
+    ctx["operator_policy"] = {"text": DEFAULT_POLICY["text"], "max_dv_ms": 1.0, "min_command_upload_min": 30}
+    for o in ctx["burn_options"]["options"]:
+        o["direction"] = "prograde" if o["id"] == "O1" else "radial_out"
+    notes = "Thruster 2 leak: fire only along-track. Any burn above 0.5 m/s needs the ops lead."
+    raw = Constraints(max_dv_ms={"value": 0.5, "quote": "Any burn above 0.5 m/s needs the ops lead"},
+                      allowed_axes={"allowed": ["along_track"], "quote": "fire only along-track"},
+                      propulsion_unavailable={"value": True, "quote": "propulsion is dead"})   # not in the notes
+    c, problems = verify(raw, notes)
+    assert c.propulsion_unavailable is None and len(problems) == 1
+    out = apply(ctx, c, problems)
+    assert out["operator_policy"]["max_dv_ms"] == 0.5 and [e["id"] for e in out["mission"]["excluded_options"]] == ["O2"]
+    assert ctx["operator_policy"]["max_dv_ms"] == 1.0                     # the original is untouched
+    assert validate({"action": "MANEUVER", "option_id": "O2"}, out, NOW)["final_action"] == "ESCALATE"
+    assert coded_policy(out, NOW)["option_id"] == "O1"

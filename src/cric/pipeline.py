@@ -189,6 +189,18 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                                  "vl_role": sw["vl_role"], "vl_noaa_disagreement": sw["vl_noaa_disagreement"]}
     emit("context", now_utc=ctx["now_utc"], conjunction=ctx["conjunction"], risk=ctx["risk"],
          space_weather=ctx["space_weather"], mission=ctx["mission"], policy_text=policy["text"])
+    if (ctx["mission"].get("notes") or "").strip() not in ("", "No mission constraints today."):
+        from .agent.constraints import apply, extract
+
+        emit("constraints_start", model=model)
+        try:
+            found, problems = extract(ctx, model=model, usage=usage)
+            ctx = apply(ctx, found, problems)
+            emit("constraints", constraints=ctx["mission"]["extracted_constraints"],
+                 excluded=ctx["mission"]["excluded_options"], problems=problems,
+                 max_dv_ms=ctx["operator_policy"]["max_dv_ms"], blackouts=ctx["mission"]["blackouts"])
+        except Exception as exc:  # the decision model still reads the notes; the validator just knows less
+            emit("constraints_error", message=str(exc)[:300])
     emit("decision_start", model=model, votes=votes)
     decision, individual, reasoning = decide_votes(ctx, n=votes, model=model, usage=usage)
     emit("decision", decision=decision, individual=[{k: d.get(k) for k in ("action", "option_id", "confidence")}

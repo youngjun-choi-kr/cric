@@ -29,6 +29,10 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
     if action in ("MANEUVER", "COORDINATE") and option_id is not None and option_id not in options:
         override("ESCALATE", f"option {option_id!r} is not one of the verified options")
 
+    excluded = {e["id"]: e["reason"] for e in ctx["mission"].get("excluded_options", [])}
+    if action in ("MANEUVER", "COORDINATE") and option_id in excluded:
+        override("ESCALATE", f"option {option_id} is excluded by a constraint from the mission notes: {excluded[option_id]}")
+
     if action == "MANEUVER":
         if option_id is None:
             override("ESCALATE", "MANEUVER without an option id")
