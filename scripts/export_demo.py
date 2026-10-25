@@ -36,7 +36,7 @@ def main() -> None:
             continue
         seen.add(key)
         d = json.loads(path.read_text())
-        (DEMO / "incidents" / path.name).write_text(json.dumps({"trace": d["trace"], "result": _result_event(d)},
+        (DEMO / "incidents" / path.name).write_text(json.dumps({"trace": d["trace"], "result": _result_event(d, path.name)},
                                                               ensure_ascii=False, default=str))
         manifest.append(b)
     (DEMO / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False))

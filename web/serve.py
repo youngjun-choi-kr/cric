@@ -75,13 +75,14 @@ def eval_sets() -> dict:
     return {"sets": out}
 
 
-def _result_event(d: dict) -> dict:
+def _result_event(d: dict, file: str | None = None) -> dict:
     ctx = d["context"]
     return {"kind": "result", "pair": d.get("pair"), "decision": d["decision"], "validation": d["validation"],
             "trajectory": d.get("trajectory"), "report": d.get("report"), "usage": d["usage"], "seconds": d["seconds"], "model": d["model"],
             "options": ctx["burn_options"]["options"], "risk": ctx["risk"], "conjunction": ctx["conjunction"],
             "ours": ctx["our_satellite"], "other": ctx["other_object"], "mission": ctx["mission"],
-            "space_weather": ctx.get("space_weather")}
+            "space_weather": ctx.get("space_weather"), "now_utc": ctx.get("now_utc"),
+            "upload_min": ctx["operator_policy"]["min_command_upload_min"], "file": file or (d.get("saved_to") or "").split("/")[-1] or None}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -100,7 +101,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def log_message(self, fmt, *args) -> None:
-        if "/api/" in (args[0] if args else ""):
+        if "/api/" in str(args[0] if args else "") or "code" in fmt:
             super().log_message(fmt, *args)
 
     def do_HEAD(self) -> None:
@@ -111,8 +112,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().do_HEAD()
 
     def do_POST(self) -> None:
-        """POST /api/frame?shot=NAME&i=N with a PNG body: one cinema-mode frame, saved to data/frames/NAME/."""
+        """POST /api/frame?shot=NAME&i=N with a PNG body: one cinema-mode frame, saved to data/frames/NAME/.
+        POST /api/approval with JSON: the operator's approve / reject, appended to data/approvals.jsonl."""
         url = urlparse(self.path)
+        if url.path == "/api/approval":
+            return self._approval()
         if url.path != "/api/frame":
             return self.send_error(404)
         if not self._local_request():
@@ -134,6 +138,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 old.unlink()
         (out / f"{int(i):05d}.png").write_bytes(body)
         self._json(200, {"saved": f"data/frames/{shot}/{int(i):05d}.png"})
+
+    def _approval(self) -> None:
+        """Record a human decision on the agent's proposal. Nothing is sent anywhere: CRIC has no uplink, and a
+        real deployment would hand an approved burn to the operator's own command system."""
+        if not self._local_request():
+            return self.send_error(403, "local requests only")
+        size = int(self.headers.get("Content-Length", 0))
+        if not 0 < size < 20_000:
+            return self.send_error(413)
+        try:
+            body = json.loads(self.rfile.read(size))
+        except ValueError:
+            return self.send_error(400, "JSON body expected")
+        verdict = body.get("verdict")
+        if verdict not in ("approve", "reject") or not isinstance(body.get("action"), str):
+            return self.send_error(400, "need verdict approve|reject and action")
+        if verdict == "reject" and not str(body.get("reason", "")).strip():
+            return self.send_error(400, "a rejection needs a reason")
+        entry = {"logged_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                 **{k: str(body.get(k, ""))[:1000] for k in ("file", "action", "option_id", "verdict", "reason", "operator")},
+                 "sent": False}
+        with (DATA / "approvals.jsonl").open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+        self._json(200, entry | {"note": "logged; simulated hand-off, no command was sent"})
 
     def do_GET(self) -> None:
         url = urlparse(self.path)
@@ -194,7 +222,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 d = json.loads(files[0].read_text())
                 for e in d.get("trace", []):
                     self._send({**e, "replay": True})
-                self._send(_result_event(d))
+                self._send(_result_event(d, files[0].name))
             else:
                 tca = _find_tca(ours, other)
                 real_now = datetime.now(timezone.utc)

@@ -70,6 +70,9 @@
   #readout .head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
   #rNames { font-weight:600; } #rDist { font-size:24px; font-weight:700; color:var(--warn); font-variant-numeric:tabular-nums; }
   #rSub { color:var(--dim); font-size:11px; font-variant-numeric:tabular-nums; }
+  .appr .what { font-size:12.5px; margin:2px 0 6px; }
+  .appr textarea { width:100%; box-sizing:border-box; background:rgba(255,255,255,.05); color:inherit; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:11.5px; padding:5px; margin-top:6px; }
+  .appr .logged { margin-top:6px; font-size:11.5px; }
   .sec { border-top:1px solid var(--line); margin-top:8px; padding-top:8px; }
   .sec h3 { margin:0 0 4px; font-size:11px; letter-spacing:.08em; color:var(--dim); font-weight:600; }
   .riskline { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
@@ -179,6 +182,7 @@
   <div class="sec" id="decSec" hidden><h3>DECISION · NEMOTRON SUPER</h3><div id="decBody"></div></div>
   <div class="sec" id="valSec" hidden><h3>SAFETY VALIDATOR · RULES IN CODE</h3><div id="valBody"></div></div>
   <div class="sec" id="repSec" hidden><h3 id="repTitle">REPORT · NEMOTRON ULTRA</h3><div id="repBody"></div></div>
+  <div class="sec" id="apprSec" hidden><h3>OPERATOR · A PERSON DECIDES</h3><div id="apprBody"></div></div>
   <div class="sec" id="trajSec" hidden><div class="btns"><button id="goBurn">Go to burn</button><button id="kBtn">Path difference ×200</button></div>
     <div class="lim">Green = path after the burn, red = before, yellow dot = burn point. The km-scale difference is exaggerated so it is visible.</div></div>
 </div>
@@ -452,7 +456,7 @@ function incReset() {
   inc.es?.close(); inc.es = null; clearTimeout(inc.timer); inc.timer = null; inc.queue = []; inc.rows = {}; inc.dossierStep = {};
   inc.running = false; inc.streamDone = false; inc.tavily = { search: 0, extract: 0, credits: 0 };
   $('incBody').innerHTML = ''; $('incState').textContent = 'idle'; incStats();
-  ['riskSec', 'optSec', 'decSec', 'valSec', 'repSec'].forEach((id) => ($(id).hidden = true));
+  ['riskSec', 'optSec', 'decSec', 'valSec', 'repSec', 'apprSec'].forEach((id) => ($(id).hidden = true));
   $('runLive').disabled = $('runReplay').disabled = !sel;
   if (STATIC) { $('runLive').disabled = true; $('runLive').title = 'Live runs need the local server (web/serve.py) and API keys'; }
 }
@@ -505,6 +509,48 @@ function renderReport(r) {
   $('repBody').innerHTML = `<div><b>${esc(r.subject)}</b></div><div style="white-space:pre-wrap;margin-top:4px;font-size:11.5px">${esc(r.body)}</div>
     ${r.asks?.length ? `<div class="factor"><b>Asks:</b> ${esc(r.asks.join(' · '))}</div>` : ''}
     ${r.decision_deadline_utc ? `<div class="lim">Decision needed by ${esc(r.decision_deadline_utc)}</div>` : ''}`;
+}
+// The agent proposes; a person approves or rejects. Nothing is commanded from here: CRIC has no uplink.
+function renderApproval(e) {
+  const v = e.validation, act = v.final_action, opt = (e.options || []).find((o) => o.id === v.final_option_id);
+  const upload = e.upload_min ?? 30;
+  const what = {
+    MANEUVER: opt ? `Approve burn <b>${esc(opt.id)}</b>: ${esc(opt.direction)} ${opt.dv_ms.toFixed(3)} m/s at ${fmtUTC(opt.burn_utc)}` : 'Approve the manoeuvre',
+    COORDINATE: 'Send the coordination message to the other operator' + (opt ? ` (our fallback: burn ${esc(opt.id)})` : ''),
+    ESCALATE: 'Page the on-call flight dynamics engineer with the brief',
+    REQUEST_PRECISE_DATA: 'Request precise ephemeris (CDM) for this conjunction',
+    MONITOR: `Acknowledge: keep watching${e.decision?.recheck_at_utc ? `, recheck at ${fmtUTC(e.decision.recheck_at_utc)}` : ''}`,
+  }[act] || esc(act);
+  let deadline = '';
+  if (opt && e.now_utc) {
+    const by = Date.parse(opt.burn_utc) - upload * 60e3, left = Math.round((by - Date.parse(e.now_utc)) / 60e3);
+    deadline = `Commands must be uploaded by <b>${fmtUTC(new Date(by).toISOString())}</b> (${left} min after the decision time).`;
+  }
+  const passed = e.pair?.tca_utc && Date.parse(e.pair.tca_utc) < Date.now();
+  $('apprSec').hidden = false;
+  $('apprBody').innerHTML = `<div class="appr"><div class="what">${what}</div>
+    ${deadline ? `<div class="lim">${deadline}</div>` : ''}
+    ${passed ? '<div class="lim">Recorded run: this TCA has passed. Your choice is logged, nothing is sent.</div>' : ''}
+    <div class="btns"><button id="apprYes">Approve</button><button id="apprNo">Reject…</button></div>
+    <textarea id="apprWhy" rows="2" placeholder="Why reject? (required; it goes into the log next to the agent's reasoning)" hidden></textarea>
+    <div class="logged" id="apprLog"></div></div>`;
+  const send = async (verdict) => {
+    const reason = $('apprWhy').value.trim();
+    if (verdict === 'reject' && !reason) { $('apprWhy').hidden = false; $('apprWhy').focus(); return; }
+    const body = { file: e.file, action: act, option_id: v.final_option_id, verdict, reason, operator: 'console' };
+    let res;
+    if (STATIC) res = { ...body, logged_utc: new Date().toISOString().slice(0, 19), note: 'static demo: kept in this page only' };
+    else {
+      const r = await fetch('/api/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      res = r.ok ? await r.json() : { note: `not logged: HTTP ${r.status}` };
+    }
+    $('apprYes').disabled = $('apprNo').disabled = true;
+    $('apprLog').innerHTML = `<span class="tag ${verdict === 'approve' ? 'ok' : 'bad'}">${verdict === 'approve' ? 'approved' : 'rejected'}</span>
+      ${esc(res.logged_utc || '')} · ${esc(res.note)}${reason ? `<div class="lim">reason: ${esc(reason)}</div>` : ''}
+      <div class="lim">Simulated hand-off. In operations an approved burn goes to the operator's own command system; CRIC never uplinks.</div>`;
+  };
+  $('apprYes').onclick = () => send('approve');
+  $('apprNo').onclick = () => { if ($('apprWhy').hidden) { $('apprWhy').hidden = false; $('apprWhy').focus(); } else send('reject'); };
 }
 function finish(ok, msg) {
   inc.running = false; inc.es?.close(); inc.es = null;
@@ -567,7 +613,7 @@ function handle(e) {
   else if (k === 'done') incStats(` · <b>$${e.usage.cost_usd.toFixed(4)}</b> · ${e.usage.calls} model calls · ${e.seconds}s`);
   else if (k === 'result') {
     renderRisk(e.risk, e.conjunction, e.space_weather); renderOptions(e.options, e.validation.final_option_id);
-    renderDecision(e.decision, e.model); renderValidation(e.validation); renderReport(e.report);
+    renderDecision(e.decision, e.model); renderValidation(e.validation); renderReport(e.report); renderApproval(e);
     if (e.trajectory) { traj.data = e.trajectory; $('trajSec').hidden = false; trajDraw(); }
   }
   else if (k === 'error') finish(false, e.message);
