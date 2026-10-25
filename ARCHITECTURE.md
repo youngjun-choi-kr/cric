@@ -72,6 +72,7 @@ flowchart TB
 | Choosing the burn parameters | Optimiser | The first spike let Nemotron search with tools: valid burn, 45% more delta-v, 116 s |
 | Collision probability | Code, assumed covariance | No CDMs in public data; labelled "assumed" or "simulated" everywhere |
 | Kp used for the covariance | NOAA numbers | The VL model's read is context, not an input to physics |
+| Image read vs NOAA | Code (`perception.cross_check`) | If the image reads higher drag risk than Kp implies, flag it and require a recheck time; never changes Pc |
 | Sun image + NOAA read | Nemotron 3.5 Super VL | Qualitative read with observed / inferred / unknown |
 | Who can manoeuvre (other object) | Nemotron Super + Tavily, claim-checked | Facts are scattered across operator pages and papers |
 | Who can manoeuvre (our satellite) | Fleet registry | An operator knows this from telemetry, not the web |

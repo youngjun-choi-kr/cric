@@ -156,3 +156,12 @@ def test_claim_checker_rejects_instruction_quotes():
                 propulsion_type=unk, can_maneuver_now=unk, mission_status=unk, contact_channel=unk, summary="")
     problems = check_claims(d, [{"url": "https://a.example", "text": q}], {"OBJECT_TYPE": "PAY"})
     assert any("instruction" in p for p in problems)
+
+
+def test_vl_read_is_context_only():
+    from cric.agent.perception import cross_check, noaa_level
+    assert noaa_level(3) == "low" and noaa_level(9) == "severe"
+    assert cross_check("low", 2.0) is None and cross_check("unknown", 9) is None
+    d = cross_check("high", 2.0)
+    assert d["direction"] == "vl_higher" and "recheck" in d["effect"]
+    assert cross_check("low", 8)["direction"] == "vl_lower"

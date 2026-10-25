@@ -11,7 +11,7 @@ Pick a situation in the left panel and press *Replay recorded run*. Architecture
 
 | Piece | Model / service | Role |
 |---|---|---|
-| Space-weather perception | NVIDIA Nemotron 3.5 Super VL on Nebius Token Factory | read the latest SDO image with NOAA Kp and alerts; observed / inferred / unknown |
+| Space-weather perception | NVIDIA Nemotron 3.5 Super VL on Nebius Token Factory | read the latest SDO image with NOAA Kp and alerts; observed / inferred / unknown. Context and a second opinion only: Pc uses NOAA Kp, and a disagreement can trigger a recheck, never a burn |
 | Decisions | NVIDIA Nemotron 3 Super | choose among physics-verified burn options, ask for data, coordinate or escalate |
 | Satellite dossiers, real-event records | NVIDIA Nemotron 3 Super + Tavily | capability facts and storm records, every fact cited with a verbatim quote |
 | Human-facing documents | NVIDIA Nemotron 3 Ultra | coordination message or escalation brief, only when a person must act |

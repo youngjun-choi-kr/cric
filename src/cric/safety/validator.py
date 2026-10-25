@@ -77,6 +77,11 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
     if action == "COORDINATE" and not decision.get("message_to_other_operator"):
         warnings.append("COORDINATE without a message to the other operator")
 
+    sw = ctx.get("space_weather") or {}
+    if (sw.get("vl_noaa_disagreement") or {}).get("direction") == "vl_higher" and action in ("MONITOR", "REQUEST_PRECISE_DATA") \
+            and not decision.get("recheck_at_utc"):
+        warnings.append("the Sun image reads higher drag risk than NOAA Kp; this decision should name a recheck time")
+
     if action == "MANEUVER" and risk["level"] == "green" and not risk["diluted"]:
         warnings.append("manoeuvre on a green, non-diluted Pc: likely unnecessary")
     if action == "MONITOR" and risk["level"] == "red" and not risk["diluted"]:

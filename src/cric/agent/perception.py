@@ -1,9 +1,13 @@
-"""T2: Nemotron Super VL reads the Sun and NOAA data; the result feeds the incident.
+"""T2: Nemotron Super VL reads the Sun and NOAA data. Context, not physics.
 
-What reaches the physics is the Kp value from NOAA (observed and forecast), never a
-number the model guessed from a picture. The VL assessment adds the qualitative read
-(active regions, coronal holes, what cannot be known from one image) that the
-decision agent and the operator see. Cached for an hour per image.
+What reaches the physics is the Kp value from NOAA (observed and forecast), never a number the model guessed from
+a picture. The VL read has two jobs:
+1. explain the conditions in plain language for the operator (active regions, coronal holes, what one image
+   cannot show), with every observation labelled observed / inferred / unknown;
+2. act as a second opinion. If its drag-risk read is higher than NOAA's Kp implies (for example a fresh eruption
+   the forecast has not caught up with), that disagreement is flagged by code and the decision must name a
+   recheck time. It can make CRIC look again sooner; it can never change a Pc or approve a burn.
+Cached for an hour per image.
 """
 
 from __future__ import annotations
@@ -50,6 +54,28 @@ You get one SDO AIA 193 angstrom image of the Sun plus NOAA Kp (observed and for
 Return one JSON object."""
 
 
+LEVELS = ("low", "moderate", "high", "severe")
+
+
+def noaa_level(kp: float) -> str:
+    """NOAA G-scale bands mapped to the VL vocabulary: Kp<5 quiet/unsettled, 5-6 G1-G2, 7 G3, 8-9 G4-G5."""
+    return "low" if kp < 4 else "moderate" if kp < 6 else "high" if kp < 8 else "severe"
+
+
+def cross_check(vl_level: str, kp: float) -> dict | None:
+    """None when the image read agrees with NOAA (or is unknown); otherwise what to do about it."""
+    if vl_level not in LEVELS:
+        return None
+    n = noaa_level(kp)
+    gap = LEVELS.index(vl_level) - LEVELS.index(n)
+    if gap == 0:
+        return None
+    if gap > 0:
+        return {"vl": vl_level, "noaa": n, "direction": "vl_higher",
+                "effect": "physics keeps NOAA Kp; set a recheck before the latest burn and after the next NOAA forecast"}
+    return {"vl": vl_level, "noaa": n, "direction": "vl_lower", "effect": "physics keeps NOAA Kp (the more cautious input)"}
+
+
 def assess(now: datetime, until: datetime, *, usage: Usage | None = None) -> dict:
     """Space weather block for an incident: NOAA numbers + VL assessment (cached)."""
     kp = kp_summary(now, until)
@@ -79,4 +105,9 @@ def assess(now: datetime, until: datetime, *, usage: Usage | None = None) -> dic
     a = vl["assessment"]
     note = (f"NOAA Kp max {kp['kp_observed_max_24h']} observed (24 h), {kp['kp_forecast_max_to_tca']} forecast to TCA. "
             f"VL read of the Sun: LEO drag risk {a['leo_drag_risk_72h']}. {a['orbit_prediction_impact']}")
-    return {"kp": effective, "note": note, "noaa": kp, "alerts": alerts, "vl": vl, "source": "live"}
+    disagreement = cross_check(a["leo_drag_risk_72h"], effective)
+    if disagreement:
+        note += (f" Image read ({disagreement['vl']}) differs from NOAA ({disagreement['noaa']}); "
+                 f"{disagreement['effect']}.")
+    return {"kp": effective, "note": note, "noaa": kp, "alerts": alerts, "vl": vl, "source": "live",
+            "vl_role": "context only: Pc uses NOAA Kp", "vl_noaa_disagreement": disagreement}

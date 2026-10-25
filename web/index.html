@@ -16,6 +16,7 @@
   button:disabled { opacity:.45; cursor:default; }
   button.on { background:var(--accent); color:#001224; border-color:var(--accent); font-weight:600; }
   button.primary { background:rgba(79,227,161,.18); border-color:rgba(79,227,161,.5); }
+  .tag.warn { background:rgba(255,170,60,.22); color:#ffc56b; }
   .tag { display:inline-block; padding:1px 7px; border-radius:99px; font-size:10px; margin-right:4px; background:rgba(255,255,255,.1); vertical-align:1px; }
   .tag.ok { background:rgba(79,227,161,.2); color:var(--ok); } .tag.mid { background:rgba(255,200,87,.18); color:var(--mid); }
   .tag.bad { background:rgba(255,107,87,.2); color:var(--warn); } .tag.blue { background:rgba(90,176,255,.2); color:var(--accent); }
@@ -542,8 +543,9 @@ function handle(e) {
     spotlight(inc.rows['d' + d.norad_id]?.querySelector('.think') || inc.rows['d' + d.norad_id]);
   }
   else if (k === 'space_weather_start') step('sw', 'run', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> reading the Sun (SDO) and NOAA Kp…`);
-  else if (k === 'space_weather') step('sw', e.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> Kp ${e.kp} used for covariance · drag risk <b>${esc(e.assessment.leo_drag_risk_72h)}</b>
-      <div class="sub2">${esc(e.assessment.orbit_prediction_impact)}</div>`);
+  else if (k === 'space_weather') step('sw', e.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> NOAA Kp <b>${e.kp}</b> sets the covariance · <span class="model">Nemotron 3.5 Super VL</span> image read (context only): drag risk <b>${esc(e.assessment.leo_drag_risk_72h)}</b>
+      ${e.disagreement ? `<span class="tag warn">image ≠ NOAA: recheck</span>` : ''}
+      <div class="sub2">${esc(e.assessment.orbit_prediction_impact)}${e.disagreement ? ' · ' + esc(e.disagreement.effect) : ''}</div>`);
   else if (k === 'space_weather_error') step('sw', 'warn', `<span class="who">Space weather</span> unavailable, using Kp ${e.kp_used}: ${esc(e.message)}`);
   else if (k === 'context') {
     if (!inc.rows.sw && e.space_weather?.note) {  // scenario weather (e.g. a real storm researched with Tavily)

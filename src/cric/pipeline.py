@@ -176,7 +176,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
             sw = assess(now, tca, usage=usage)
             kp, space_weather_note = sw["kp"], sw["note"]
             emit("space_weather", kp=kp, noaa=sw["noaa"], alerts=sw["alerts"], assessment=sw["vl"]["assessment"],
-                 image=sw["vl"]["image"], model=sw["vl"]["model"])
+                 image=sw["vl"]["image"], model=sw["vl"]["model"], disagreement=sw["vl_noaa_disagreement"])
         except Exception as exc:  # weather must not block a conjunction decision; fall back to the given Kp
             emit("space_weather_error", message=str(exc)[:300], kp_used=kp)
 
@@ -185,7 +185,8 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     if sw:
         ctx["space_weather"] |= {"noaa": sw["noaa"], "alerts": sw["alerts"],
                                  "vl_assessment": {k: sw["vl"]["assessment"][k] for k in
-                                                   ("leo_drag_risk_72h", "orbit_prediction_impact", "unknowns")}}
+                                                   ("leo_drag_risk_72h", "orbit_prediction_impact", "unknowns")},
+                                 "vl_role": sw["vl_role"], "vl_noaa_disagreement": sw["vl_noaa_disagreement"]}
     emit("context", now_utc=ctx["now_utc"], conjunction=ctx["conjunction"], risk=ctx["risk"],
          space_weather=ctx["space_weather"], mission=ctx["mission"], policy_text=policy["text"])
     emit("decision_start", model=model, votes=votes)
