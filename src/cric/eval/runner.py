@@ -189,7 +189,8 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
         elif variant == "hybrid":                         # coded policy and 3 votes must agree, else escalate
             from ..agent.constraints import agree, coded_policy
             voted, _, _ = decide_votes(ctx, n=3, model=base, usage=usage)
-            dec = agree(coded_policy(ctx, now), voted)
+            v = validate(voted, ctx, now)                 # the model route is the vote after the hard rules
+            dec = agree(coded_policy(ctx, now), {**voted, "action": v["final_action"], "option_id": v["final_option_id"]})
         elif variant.startswith("vote3"):                 # 3 independent calls, majority or escalate
             dec, _, _ = decide_votes(ctx, n=3, model=base, usage=usage)
         else:

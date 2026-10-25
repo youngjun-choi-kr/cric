@@ -464,11 +464,13 @@ function handle(e) {
   else if (k === 'constraints_error') step('con', 'warn', `<span class="who">Mission notes</span> extraction failed; the decision model still reads them: ${esc(e.message)}`);
   else if (k === 'decision_start') step('dec', 'run', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> weighing risk, options, dossiers, policy and mission notes…`);
   else if (k === 'decision') {
-    step('dec', 'ok', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))}</span> <b>${e.decision.action.replace(/_/g, ' ')}</b>${e.decision.option_id ? ' · ' + esc(e.decision.option_id) : ''}`);
+    const votes = (e.individual || []).map((d) => d.action.replace(/_/g, ' ') + (d.option_id ? ' ' + d.option_id : '')).join(' · ');
+    step('dec', 'ok', `<span class="who">Decision</span> <span class="model">${esc(MODEL_SHORT(e.model))} × ${(e.individual || []).length || 1}</span> <b>${e.decision.action.replace(/_/g, ' ')}</b>${e.decision.option_id ? ' · ' + esc(e.decision.option_id) : ''}${votes ? `<div class="sub2">votes: ${esc(votes)}</div>` : ''}`);
     if (e.reasoning) $('incBody').insertAdjacentHTML('beforeend', `<details class="think"><summary>model reasoning (excerpt)</summary>${esc(e.reasoning.slice(0, 900))}${e.reasoning.length > 900 ? '…' : ''}</details>`);
     renderDecision(e.decision, e.model); spotlight($('decSec'));
   }
   else if (k === 'validation') { step('val', e.accepted_as_is ? 'ok' : 'warn', `<span class="who">Safety validator</span> ${e.accepted_as_is ? 'accepted' : 'overrode'} → <b>${e.final_action.replace(/_/g, ' ')}</b>`); renderValidation(e); spotlight($('valSec')); }
+  else if (k === 'agreement') step('agr', e.agree ? 'ok' : 'warn', `<span class="who">Second route</span> operator policy in code says <b>${esc(e.coded.action.replace(/_/g, ' '))}${e.coded.option_id ? ' ' + esc(e.coded.option_id) : ''}</b> → ${e.agree ? 'agrees with the model' : '<b>disagrees: a person decides</b>'}`);
   else if (k === 'report_start') step('rep', 'run', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> writing the ${e.for_action === 'COORDINATE' ? 'coordination message' : 'escalation brief'} (runs only when a person must act)`);
   else if (k === 'report') { step('rep', 'ok', `<span class="who">Report</span> <span class="model">Nemotron 3 Ultra</span> ${esc(e.report.subject)}`); renderReport(e.report); spotlight($('repSec')); }
   else if (k === 'report_error') step('rep', 'warn', `<span class="who">Report</span> failed: ${esc(e.message)}`);

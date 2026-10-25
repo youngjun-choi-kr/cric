@@ -209,6 +209,19 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                                                     for d in individual], reasoning=reasoning[:1500], model=model)
     check = validate(decision, ctx, now)
     emit("validation", **check)
+    # Second, independent route: the operator policy in code over the same fields (including those read from
+    # the notes). The model's vote after the hard rules must agree with it, or a person decides.
+    from .agent.constraints import agree, coded_policy
+
+    coded = coded_policy(ctx, now)
+    final = agree(coded, {**decision, "action": check["final_action"], "option_id": check["final_option_id"]})
+    emit("agreement", coded={k: coded.get(k) for k in ("action", "option_id")},
+         model={"action": check["final_action"], "option_id": check["final_option_id"]},
+         agree=final.get("agreement") != "disagree", final={"action": final["action"], "option_id": final.get("option_id")})
+    if final.get("agreement") == "disagree":
+        check = {**check, "final_action": "ESCALATE", "final_option_id": None, "accepted_as_is": False,
+                 "overrides": check["overrides"] + [{"from": check["final_action"], "to": "ESCALATE",
+                                                     "reason": final["rationale"]}]}
 
     report = None
     if with_report and check["final_action"] in ("COORDINATE", "ESCALATE"):
@@ -231,7 +244,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     emit("done", usage=usage.as_dict(), seconds=round(time.time() - t0, 1))
 
     result = {"pair": {"ours": ours, "other": other, "tca_utc": iso(tca)}, "context": ctx,
-              "decision": decision, "individual_decisions": individual, "reasoning": reasoning, "validation": check,
+              "decision": decision, "individual_decisions": individual, "coded_policy": coded, "reasoning": reasoning, "validation": check,
               "report": report, "trajectory": trajectory, "execution": execution, "usage": usage.as_dict(), "seconds": round(time.time() - t0, 1),
               "model": model, "trace": trace}
     INCIDENTS.mkdir(exist_ok=True)
