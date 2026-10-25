@@ -59,6 +59,7 @@ Each cycle logs one line (`objects screened, encounters, for our fleet`) and one
 docker run --env-file .env -v "$PWD/data:/data" cric watch --cycles 1 --dry-run
 ```
 
-`--dry-run` screens and selects without model calls. Status: the image builds and the loop runs locally; we
+`--dry-run` screens and selects without model calls. Status: the loop runs locally (`cric watch --dry-run`
+found the IRIDIUM 149 encounter from the snapshot); the Docker image has not been built yet, and we
 have not run it on Nebius AI Cloud (it needs an AI Cloud account and VM quota, beyond the hackathon's Token
 Factory credits).
