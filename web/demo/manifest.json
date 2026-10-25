@@ -1,5 +1,33 @@
 [
  {
+  "file": "43677_48423_20261025T061937_0415_quiet.json",
+  "ours": 43677,
+  "other": 48423,
+  "tca_utc": "2026-10-25T06:19:37.954166Z",
+  "preset": "quiet",
+  "action": "ESCALATE",
+  "final": "ESCALATE",
+  "has_trace": true,
+  "names": [
+   "TEN-KOH",
+   "YAOGAN-30 09A"
+  ]
+ },
+ {
+  "file": "52939_67291_20261025T060356_0303_quiet.json",
+  "ours": 52939,
+  "other": 67291,
+  "tca_utc": "2026-10-25T06:03:56.704864Z",
+  "preset": "quiet",
+  "action": "REQUEST_PRECISE_DATA",
+  "final": "REQUEST_PRECISE_DATA",
+  "has_trace": true,
+  "names": [
+   "POEM",
+   "QMR-KWT-2 (RS95S)"
+  ]
+ },
+ {
   "file": "43250_34430_20261025T125605_0344_precise.json",
   "ours": 43250,
   "other": 34430,

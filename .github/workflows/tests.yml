@@ -13,5 +13,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]" pyflakes
-      - run: python -m pyflakes src/cric web/serve.py scripts
+      - run: python -m pyflakes src/cric web/serve.py scripts tests
       - run: python -m pytest -q   # physics, safety rules and eval grading; no network, no API keys

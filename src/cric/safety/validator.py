@@ -90,5 +90,7 @@ def validate(decision: dict, ctx: dict, now: datetime) -> dict:
     elif action == "MONITOR" and risk["level"] == "red":
         warnings.append("MONITOR on a red but diluted Pc")
 
+    if action not in ("MANEUVER", "COORDINATE"):
+        option_id = None              # only a burn or a coordinated burn carries an option
     return {"final_action": action, "final_option_id": option_id, "overrides": overrides, "warnings": warnings,
             "accepted_as_is": not overrides}

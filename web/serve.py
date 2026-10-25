@@ -62,11 +62,13 @@ def _brief(path: pathlib.Path) -> dict:
 
 
 def eval_sets() -> dict:
-    """Latest run of each eval set (tuning, heldout, forged), summary only."""
+    """Latest run of each eval set, summary only."""
     out = {}
     folder = DATA / "eval"
-    for name in ("heldout", "tuning", "forged"):
-        files = sorted(folder.glob(f"eval_{name}_*.json"), key=lambda p: p.stat().st_mtime, reverse=True) if folder.exists() else []
+    for name in ("heldout", "heldout2", "tuning", "forged"):
+        # eval_<name>_<digits>: "heldout_*" alone would also match heldout2 files
+        files = sorted((f for f in folder.glob(f"eval_{name}_*.json") if re.fullmatch(rf"eval_{name}_\d+_\d+", f.stem)),
+                       key=lambda p: p.stat().st_mtime, reverse=True) if folder.exists() else []
         files = [f for f in files if not f.stem.endswith("revalidated")]
         if files:
             d = json.loads(files[0].read_text())

@@ -212,7 +212,7 @@ function renderList() {
   $('list').innerHTML = evs.map(e => `
     <div class="ev" data-id="${evKey(e)}">
       <div class="n">${esc(e.object_a.name)} ↔ ${esc(e.object_b.name)}${recordedPair(e) ? '<span class="rec">● recorded</span>' : ''}${e.involves_debris ? '<span class="tag">debris</span>' : ''}</div>
-      <div class="m">${Date.parse(e.tca_utc) - Date.now() >= 2 * 3600e3 ? '<span class="tag ok">ahead</span>' : ''}<span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · alt ${e.altitude_km.toFixed(0)} km · TCA ${fmtUTC(e.tca_utc)}</div>
+      <div class="m">${Date.parse(e.tca_utc) - Date.now() >= 2 * 3600e3 ? '<span class="tag ok">ahead</span>' : ''}<span class="d">${(e.miss_distance_km * 1000).toFixed(0)} m</span> · ${e.relative_speed_kms.toFixed(1)} km/s · alt ${e.altitude_km.toFixed(0)} km · <span data-gl="tca">TCA</span> ${fmtUTC(e.tca_utc)}</div>
     </div>`).join('');
   document.querySelectorAll('.ev').forEach((el, i) => el.onclick = () => select(evs[i]));
   if (sel) document.querySelector(`.ev[data-id="${evKey(sel)}"]`)?.classList.add('sel');
@@ -287,18 +287,18 @@ function step(key, state, html) {
 const nameOf = (norad) => bySat.get(String(norad))?.name || `NORAD ${norad}`;
 function renderRisk(r, c, sw) {
   $('riskSec').hidden = false;
-  const assumed = /SIMULATED/.test(r.assumption) ? '<span class="tag blue">simulated precise data</span>' : '<span class="tag mid">assumed covariance</span>';
-  $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${r.level}">Pc ${pcTxt(r.pc)}</span>
+  const assumed = /SIMULATED/.test(r.assumption) ? '<span class="tag blue" data-gl="cdm">simulated precise data</span>' : '<span class="tag mid" data-gl="covariance">assumed covariance</span>';
+  $('riskBody').innerHTML = `<div class="riskline"><span class="pc ${r.level}" data-gl="pc">Pc ${pcTxt(r.pc)}</span>
     <span class="tag ${r.level === 'red' ? 'bad' : r.level === 'yellow' ? 'mid' : 'ok'}">${r.level.toUpperCase()}</span>${assumed}
-    ${r.diluted ? `<span class="tag mid">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}
-    ${r.data_quality === 'tle' ? '<span class="tag mid">TLE: screening grade, not for burn decisions</span>' : ''}
-    ${r.sensitivity ? `<span class="tag ${r.sensitivity.robust ? 'ok' : 'mid'}" title="${esc(r.sensitivity.sweep)}">${r.sensitivity.robust ? 'robust' : 'sensitive'} · range ${pcTxt(r.sensitivity.pc_min)}–${pcTxt(r.sensitivity.pc_max)}</span>` : ''}</div>
+    ${r.diluted ? `<span class="tag mid" data-gl="diluted">diluted · up to ${pcTxt(r.pc_max_if_better_data)} with better data</span>` : ''}
+    ${r.data_quality === 'tle' ? '<span class="tag mid" data-gl="tle">TLE: screening grade, not for burn decisions</span>' : ''}
+    ${r.sensitivity ? `<span class="tag ${r.sensitivity.robust ? 'ok' : 'mid'}" data-gl="sensitivity">${r.sensitivity.robust ? 'robust' : 'sensitive'} · range ${pcTxt(r.sensitivity.pc_min)}–${pcTxt(r.sensitivity.pc_max)}</span>` : ''}</div>
     <div class="lim">${c ? `${esc(c.data)} · miss ${fmtDist(c.miss_km)} · ${c.hours_to_tca} h to TCA · ` : ''}thresholds: red ≥ 1e-4, yellow ≥ 1e-5${sw ? ` · Kp ${sw.kp}${sw.noaa ? ' (NOAA live)' : ' (scenario)'}` : ''}</div>`;
 }
 function renderOptions(opts, chosen) {
   $('optSec').hidden = false;
   if (!opts.length) { $('optBody').innerHTML = '<div class="dim">No verified option within limits.</div>'; return; }
-  $('optBody').innerHTML = `<table class="t"><tr><th>id</th><th>kind</th><th>direction</th><th>Δv m/s</th><th>burn</th><th>re-screen</th></tr>
+  $('optBody').innerHTML = `<table class="t"><tr><th>id</th><th>kind</th><th>direction</th><th data-gl="dv">Δv m/s</th><th>burn</th><th data-gl="rescreen">re-screen</th></tr>
     ${opts.map((o) => `<tr class="${o.id === chosen ? 'me' : ''}"><td>${o.id}</td><td>${esc([o.kind, ...(o.also || [])].join(', '))}</td><td>${esc(o.direction)}</td>
       <td>${o.dv_ms.toFixed(3)}</td><td>${fmtUTC(o.burn_utc)}</td><td>${o.rescreen.objects_checked.toLocaleString()} ok</td></tr>`).join('')}</table>`;
 }
@@ -468,9 +468,10 @@ $('runReplay').onclick = () => runIncident('replay');
 
 // ---------- eval panel ----------
 const ARM = { naive_rule: 'Rule of thumb (miss < 1 km)', policy_rule: 'Coded policy, fields only' };
-const SET_LABEL = { heldout: 'Held-out', tuning: 'Tuning', forged: 'Real events (Tavily)' };
+const SET_LABEL = { heldout: 'Held-out', heldout2: 'Held-out 2', tuning: 'Tuning', forged: 'Real events (Tavily)' };
 const SET_NOTE = {
   heldout: 'Expected answers committed before any model ran on them.',
+  heldout2: 'A second held-out set, committed after the design was frozen and before any model ran on it.',
   tuning: 'Used while designing the validator rules; optimistic.',
   forged: 'Real storms researched with Tavily, replayed as current conditions.',
 };
@@ -479,16 +480,22 @@ function renderEval(sets, name) {
   const rows = Object.entries(d.summary).filter(([k]) => k !== 'saved_to');
   const label = (k) => ARM[k] || 'Nemotron ' + (k.toLowerCase().includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k);
   const reps = rows.find(([k]) => !ARM[k])?.[1].n / d.scenarios.length;
+  const pct = (x) => (x == null ? '—' : Math.round(x * 100) + '%');
+  const sup = rows.find(([k]) => k.toLowerCase().includes('super'))?.[1], pol = d.summary.policy_rule;
+  const ci = sup?.accuracy_after_validator_ci95;
+  const headline = sup ? `<div class="headline"><b>Nemotron Super + validator: ${pct(sup.accuracy_after_validator)}</b>${ci ? ` (95% CI ${pct(ci[0])}–${pct(ci[1])})` : ''}
+    ${sup.vote3 ? ` · <b>${pct(sup.vote3.accuracy_after_validator)}</b> with 3 votes` : ''} · coded policy ${pct(pol?.accuracy_after_validator)} · policy-violating burns after validator: <b>${sup.unsafe_after_validator}</b></div>` : '';
   $('evalBody').innerHTML = `<div class="ctl" style="margin:0 0 6px">${Object.keys(sets).map((k) => `<button class="${k === name ? 'on' : ''}" data-set="${k}">${SET_LABEL[k] || k}</button>`).join('')}</div>
-    <table class="t"><tr><th>arm</th><th>correct</th><th>+validator</th><th>policy-violating burns</th><th>text-only</th></tr>
-    ${rows.map(([k, m]) => `<tr class="${k.toLowerCase().includes('super') ? 'me' : ''}"><td>${esc(label(k))}</td><td>${Math.round(m.accuracy_raw * 100)}%</td>
-      <td>${Math.round(m.accuracy_after_validator * 100)}%</td><td>${m.unsafe_raw} → ${m.unsafe_after_validator}</td><td>${m.accuracy_text_signal == null ? '—' : Math.round(m.accuracy_text_signal * 100) + '%'}</td></tr>`).join('')}</table>
+    ${headline}
+    <table class="t"><tr><th>arm</th><th>correct</th><th>+validator</th><th data-gl="vote3">3 votes</th><th data-gl="violating">policy-violating burns</th><th data-gl="textonly">text-only</th></tr>
+    ${rows.map(([k, m]) => `<tr class="${k.toLowerCase().includes('super') ? 'me' : ''}"><td>${esc(label(k))}</td><td>${pct(m.accuracy_raw)}</td>
+      <td>${pct(m.accuracy_after_validator)}</td><td>${m.vote3 ? pct(m.vote3.accuracy_after_validator) : '—'}</td><td>${m.unsafe_raw} → ${m.unsafe_after_validator}</td><td>${pct(m.accuracy_text_signal)}</td></tr>`).join('')}</table>
     <div class="lim">${d.scenarios.length} scenarios on real encounters${reps ? `, ${reps} runs each per model` : ''}. ${SET_NOTE[name] || ''} Burn counts are before → after the safety validator.</div>`;
   document.querySelectorAll('[data-set]').forEach((b) => (b.onclick = () => renderEval(sets, b.dataset.set)));
 }
 fetch(STATIC ? 'demo/eval.json' : '/api/eval').then((r) => (r.ok ? r.json() : null)).then((d) => {
   const sets = d?.sets || {};
-  const first = ['heldout', 'tuning', 'forged'].find((k) => sets[k]);
+  const first = ['heldout2', 'heldout', 'tuning', 'forged'].find((k) => sets[k]);
   if (!first) { $('evalBody').textContent = 'No eval run yet.'; return; }
   renderEval(sets, first);
 }).catch(() => ($('evalBody').textContent = 'Eval unavailable.'));
@@ -543,6 +550,7 @@ const evs = renderList();
 $('loading').classList.add('done'); setTimeout(() => $('loading').remove(), 800);
 const first = evs.find((e) => recordedPair(e)) || evs[0];
 if (first) select(first);
+{ const { initGlossary, initTour } = await import('./tour.js'); initGlossary(); initTour(); }
 
 // ---------- cinema mode ----------
 let cinemaOn = false;
