@@ -74,3 +74,16 @@ def test_report_checker_flags_invented_numbers_and_missing_ids():
     bad = good | {"subject": "Conjunction alert for 60454", "body": "Pc 7.3% (simulated) for 60454, miss 0.4 km after a 1.7 m/s burn."}
     c = check_report(bad, ctx, v, NOW)
     assert "both NORAD IDs" in c["missing"] and set(c["unsupported_numbers"]) >= {"0.4", "1.7"}
+
+
+def test_scenario_level_interval_counts_scenarios_not_runs():
+    from cric.eval.runner import _scenario_level
+    scen = [_s({"MANEUVER"}) for _ in range(2)]
+    scen[1] = Scenario("U", "u", "kompsat", {"MANEUVER"}, "structured", "why")
+    ok, bad = {"correct": True}, {"correct": False}
+    rows = [{"scenario": "T", "raw": ok, "final": ok}] * 5 + [{"scenario": "U", "raw": bad, "final": ok}] * 3 \
+        + [{"scenario": "U", "raw": ok, "final": ok}] * 2
+    m = _scenario_level(rows, scen)
+    assert m["scenarios_passed_raw"] == "1/2" and m["scenarios_passed_after_validator"] == "2/2"
+    assert m["scenario_ci95_after_validator"][0] < 0.35        # 2 of 2 scenarios is weak evidence
+    assert m["stability_raw"] == 0.5

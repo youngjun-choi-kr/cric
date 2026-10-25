@@ -15,7 +15,8 @@ export const GLOSSARY = {
   kp: 'Kp: NOAA\'s 0–9 index of geomagnetic activity. Storms heat the upper atmosphere, increase drag and make orbit predictions worse.',
   rescreen: 'Every burn option is checked against the whole catalog so the new orbit does not create another close approach.',
   validator: 'Hard rules in code that every decision passes through. They can only make a decision safer, never riskier.',
-  vote3: 'Three independent model runs; the majority answer stands, a split goes to a person. Computed from the repeated runs.',
+  runacc: 'Share of all individual runs that were correct after the validator, across repeats.',
+  stability: 'Share of scenarios where every repeat gave the same verdict (right or wrong). Low means the model is not consistent.',
   violating: 'Burns the rules forbid: unverified propulsion, a blackout, over the Δv cap, or deciding on screening-grade data with time left.',
   textonly: 'Scenarios where the deciding fact is only in free-text notes (several languages). A coded policy cannot read them.',
 };

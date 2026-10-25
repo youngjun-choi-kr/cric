@@ -17,7 +17,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
-from ..agent.decision import decide, majority
+from ..agent.decision import decide, decide_votes
 from ..config import DATA, MODEL_NANO, MODEL_SUPER
 from ..config import SNAPSHOT
 from ..ingest.celestrak import snapshot_catalog
@@ -178,8 +178,11 @@ def grade(dec: dict, ctx: dict, s: Scenario) -> dict:
 def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
     usage, t0 = Usage(), time.time()
     try:
-        d, _ = decide(ctx, model=model, usage=usage)
-        dec = d.model_dump()
+        if model.endswith("+vote3"):   # the pipeline's own decision: 3 independent calls, majority or escalate
+            dec, _, _ = decide_votes(ctx, n=3, model=model.removesuffix("+vote3"), usage=usage)
+        else:
+            d, _ = decide(ctx, model=model, usage=usage)
+            dec = d.model_dump()
     except Exception as exc:  # a failed call counts as a wrong answer, not a crash
         dec = {"action": "ERROR", "option_id": None, "message_to_other_operator": None, "error": str(exc)[:200]}
     return {"decision": dec, "seconds": round(time.time() - t0, 1), "cost_usd": usage.cost_usd}
@@ -190,7 +193,6 @@ def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = No
     pool_ = {"heldout": HELDOUT, "heldout2": HELDOUT2, "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
     chosen = [s for s in pool_ if not scenario_ids or s.id in scenario_ids]
     contexts = build_contexts(chosen, log=log)
-    _CTX_CACHE.update(contexts)
     rows = []
     for s in chosen:
         ctx, now = contexts[s.id]
@@ -233,7 +235,6 @@ def regrade(path) -> dict:
     pool = {s.id: s for s in SCENARIOS + HELDOUT + HELDOUT2 + forged_scenarios()}
     chosen = [pool[i] for i in sc if i in pool]
     contexts = build_contexts(chosen, log=lambda *_: None)
-    _CTX_CACHE.update(contexts)
     for r in d["rows"]:
         if r["decision"]["action"] == "ERROR" or r["scenario"] not in contexts:
             continue
@@ -257,33 +258,29 @@ def wilson(k: int, n: int, z: float = 1.96) -> list[float]:
     return [round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)]
 
 
-def _vote3(rs: list[dict], scenarios: list[Scenario]) -> dict | None:
-    """Accuracy of a majority vote over 3 independent runs, averaged over every 3-run combination per scenario.
-    Uses the repeats already collected, so it costs no model calls. None for single-run arms (rules)."""
-    from itertools import combinations
 
-    from ..safety.validator import validate as _validate
 
-    sc = {s.id: s for s in scenarios}
-    raw = fin = n = 0
-    for sid in sc:
-        runs = [r for r in rs if r["scenario"] == sid and r["decision"]["action"] != "ERROR"]
-        if len(runs) < 3:
-            return None
-        ctx_now = _CTX_CACHE.get(sid)
-        for combo in combinations(runs, 3):
-            m = majority([r["decision"] for r in combo])
-            g = grade(m, ctx_now[0], sc[sid]) if ctx_now else None
-            if g is None:
+def _scenario_level(rs: list[dict], scenarios: list[Scenario]) -> dict:
+    """Pass/fail per scenario (a majority of its runs correct) with a Wilson interval over scenarios.
+
+    Repeated runs of one scenario are not independent samples: putting 40 runs of 8 scenarios into a binomial
+    interval would claim far more certainty than 8 scenarios can give. The interval is therefore over scenarios;
+    run-to-run agreement is reported separately as stability."""
+    out = {}
+    for stage in ("raw", "final"):
+        passed = stable = n = 0
+        for s in scenarios:
+            runs = [r[stage]["correct"] for r in rs if r["scenario"] == s.id]
+            if not runs:
                 continue
-            v = _validate(m, *ctx_now)
-            raw += g["correct"]
-            fin += grade({**m, "action": v["final_action"], "option_id": v["final_option_id"]}, ctx_now[0], sc[sid])["correct"]
             n += 1
-    return {"accuracy_raw": round(raw / n, 3), "accuracy_after_validator": round(fin / n, 3), "combinations": n} if n else None
-
-
-_CTX_CACHE: dict[str, tuple] = {}
+            passed += sum(runs) * 2 > len(runs)
+            stable += len(set(runs)) == 1
+        key = "raw" if stage == "raw" else "after_validator"
+        out[f"scenarios_passed_{key}"] = f"{passed}/{n}"
+        out[f"scenario_ci95_{key}"] = wilson(passed, n)
+        out[f"stability_{key}"] = round(stable / n, 3) if n else None
+    return out
 
 
 def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
@@ -296,15 +293,13 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
         out[a] = {
             "n": len(rs),
             "accuracy_raw": round(sum(r["raw"]["correct"] for r in rs) / len(rs), 3),
-            "accuracy_raw_ci95": wilson(sum(r["raw"]["correct"] for r in rs), len(rs)),
-            "accuracy_after_validator_ci95": wilson(sum(r["final"]["correct"] for r in rs), len(rs)),
             "accuracy_after_validator": round(sum(r["final"]["correct"] for r in rs) / len(rs), 3),
             "unsafe_raw": sum(r["raw"]["unsafe"] for r in rs),
             "unsafe_after_validator": sum(r["final"]["unsafe"] for r in rs),
             "accuracy_text_signal": round(sum(r["raw"]["correct"] for r in txt) / len(txt), 3) if txt else None,
             "median_seconds": statistics.median(r["seconds"] for r in rs),
             "cost_usd_total": round(sum(r["cost_usd"] for r in rs), 4),
-            "vote3": _vote3(rs, scenarios),
+            **_scenario_level(rs, scenarios),
             "by_scenario": {s.id: f"{sum(r['raw']['correct'] for r in rs if r['scenario'] == s.id)}/"
                                   f"{sum(1 for r in rs if r['scenario'] == s.id)}" for s in scenarios},
         }
@@ -318,7 +313,7 @@ def main_cli(args) -> None:
         summary = regrade(Path(args.regrade)) | {"saved_to": args.regrade}
         _print(summary)
         return
-    models = {"super": MODEL_SUPER, "nano": MODEL_NANO}
+    models = {"super": MODEL_SUPER, "nano": MODEL_NANO, "super+vote3": MODEL_SUPER + "+vote3"}
     summary = run([models[m] for m in args.models.split(",")], repeats=args.repeats,
                   scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers,
                   scenario_set=args.set, log=lambda *a: print(*a, flush=True))

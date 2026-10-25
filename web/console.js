@@ -477,20 +477,24 @@ const SET_NOTE = {
 };
 function renderEval(sets, name) {
   const d = sets[name]; if (!d) return;
-  const rows = Object.entries(d.summary).filter(([k]) => k !== 'saved_to');
-  const label = (k) => ARM[k] || 'Nemotron ' + (k.toLowerCase().includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k);
-  const reps = rows.find(([k]) => !ARM[k])?.[1].n / d.scenarios.length;
+  const order = (k) => (ARM[k] ? 0 : k.includes('vote3') ? 2 : 1);
+  const rows = Object.entries(d.summary).filter(([k, m]) => m && typeof m === 'object').sort((a, b) => order(a[0]) - order(b[0]));
+  const label = (k) => ARM[k] || 'Nemotron ' + (k.toLowerCase().includes('super') ? 'Super' : k.includes('Nano') ? 'Nano' : k) + (k.includes('vote3') ? ' · 3 votes (pipeline)' : ' · single call');
   const pct = (x) => (x == null ? '—' : Math.round(x * 100) + '%');
-  const sup = rows.find(([k]) => k.toLowerCase().includes('super'))?.[1], pol = d.summary.policy_rule;
-  const ci = sup?.accuracy_after_validator_ci95;
-  const headline = sup ? `<div class="headline"><b>Nemotron Super + validator: ${pct(sup.accuracy_after_validator)}</b>${ci ? ` (95% CI ${pct(ci[0])}–${pct(ci[1])})` : ''}
-    ${sup.vote3 ? ` · <b>${pct(sup.vote3.accuracy_after_validator)}</b> with 3 votes` : ''} · coded policy ${pct(pol?.accuracy_after_validator)} · policy-violating burns after validator: <b>${sup.unsafe_after_validator}</b></div>` : '';
+  const ci = (c) => (c ? `${pct(c[0])}–${pct(c[1])}` : '');
+  const best = rows.find(([k]) => k.includes('vote3')) || rows.find(([k]) => !ARM[k]);
+  const pol = d.summary.policy_rule;
+  const headline = best ? `<div class="headline">Scenarios handled correctly: <b>${esc(label(best[0]))} + validator ${best[1].scenarios_passed_after_validator}</b>
+    (95% CI ${ci(best[1].scenario_ci95_after_validator)}) · coded policy ${pol?.scenarios_passed_after_validator ?? '—'} ·
+    policy-violating burns after validator: <b>${best[1].unsafe_after_validator}</b>
+    <div class="lim">Sets are small: intervals are over scenarios, not runs, and overlapping intervals mean the difference is indicative, not proven.</div></div>` : '';
   $('evalBody').innerHTML = `<div class="ctl" style="margin:0 0 6px">${Object.keys(sets).map((k) => `<button class="${k === name ? 'on' : ''}" data-set="${k}">${SET_LABEL[k] || k}</button>`).join('')}</div>
     ${headline}
-    <table class="t"><tr><th>arm</th><th>correct</th><th>+validator</th><th data-gl="vote3">3 votes</th><th data-gl="violating">policy-violating burns</th><th data-gl="textonly">text-only</th></tr>
-    ${rows.map(([k, m]) => `<tr class="${k.toLowerCase().includes('super') ? 'me' : ''}"><td>${esc(label(k))}</td><td>${pct(m.accuracy_raw)}</td>
-      <td>${pct(m.accuracy_after_validator)}</td><td>${m.vote3 ? pct(m.vote3.accuracy_after_validator) : '—'}</td><td>${m.unsafe_raw} → ${m.unsafe_after_validator}</td><td>${pct(m.accuracy_text_signal)}</td></tr>`).join('')}</table>
-    <div class="lim">${d.scenarios.length} scenarios on real encounters${reps ? `, ${reps} runs each per model` : ''}. ${SET_NOTE[name] || ''} Burn counts are before → after the safety validator.</div>`;
+    <table class="t"><tr><th>arm</th><th>scenarios</th><th>+validator</th><th data-gl="runacc">runs correct</th><th data-gl="stability">stable</th><th data-gl="violating">policy-violating burns</th></tr>
+    ${rows.map(([k, m]) => `<tr class="${k === best?.[0] ? 'me' : ''}"><td>${esc(label(k))}</td><td>${m.scenarios_passed_raw}</td>
+      <td>${m.scenarios_passed_after_validator}</td><td>${pct(m.accuracy_after_validator)}</td><td>${ARM[k] ? '—' : pct(m.stability_raw)}</td>
+      <td>${m.unsafe_raw} → ${m.unsafe_after_validator}</td></tr>`).join('')}</table>
+    <div class="lim">${d.scenarios.length} scenarios on real encounters. ${SET_NOTE[name] || ''} A scenario counts as passed when most of its runs are correct. Burn counts are before → after the safety validator.</div>`;
   document.querySelectorAll('[data-set]').forEach((b) => (b.onclick = () => renderEval(sets, b.dataset.set)));
 }
 fetch(STATIC ? 'demo/eval.json' : '/api/eval').then((r) => (r.ok ? r.json() : null)).then((d) => {

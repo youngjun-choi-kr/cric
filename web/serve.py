@@ -62,18 +62,25 @@ def _brief(path: pathlib.Path) -> dict:
 
 
 def eval_sets() -> dict:
-    """Latest run of each eval set, summary only."""
+    """Per eval set, the newest result for every arm across saved runs (a 3-vote run and a 5-repeat run are
+    separate files), summary only."""
     out = {}
     folder = DATA / "eval"
     for name in ("heldout", "heldout2", "tuning", "forged"):
         # eval_<name>_<digits>: "heldout_*" alone would also match heldout2 files
         files = sorted((f for f in folder.glob(f"eval_{name}_*.json") if re.fullmatch(rf"eval_{name}_\d+_\d+", f.stem)),
-                       key=lambda p: p.stat().st_mtime, reverse=True) if folder.exists() else []
-        files = [f for f in files if not f.stem.endswith("revalidated")]
-        if files:
-            d = json.loads(files[0].read_text())
-            out[name] = {"file": files[0].name, "summary": d.get("summary_revalidated") or d["summary"],
-                         "scenarios": [{k: sc[k] for k in ("id", "title", "signal", "expected")} for sc in d["scenarios"]]}
+                       key=lambda p: p.stat().st_mtime) if folder.exists() else []
+        summary, scenarios, used = {}, None, []
+        for f in files:                                    # oldest first, so newer runs overwrite an arm
+            d = json.loads(f.read_text())
+            arms = d.get("summary_revalidated") or d["summary"]
+            if not all("scenarios_passed_after_validator" in m for k, m in arms.items() if isinstance(m, dict)):
+                continue                                   # summaries from before scenario-level statistics
+            summary |= {k: m for k, m in arms.items() if isinstance(m, dict)}
+            scenarios = [{k: sc[k] for k in ("id", "title", "signal", "expected")} for sc in d["scenarios"]]
+            used.append(f.name)
+        if summary:
+            out[name] = {"files": used, "summary": summary, "scenarios": scenarios}
     return {"sets": out}
 
 
