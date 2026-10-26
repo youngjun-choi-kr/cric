@@ -235,10 +235,11 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     emit("agreement", coded={k: coded.get(k) for k in ("action", "option_id")},
          model={"action": check["final_action"], "option_id": check["final_option_id"]},
          agree=final.get("agreement") != "disagree", final={"action": final["action"], "option_id": final.get("option_id")})
-    if final.get("agreement") == "disagree":
-        check = {**check, "final_action": "ESCALATE", "final_option_id": None, "accepted_as_is": False,
-                 "overrides": check["overrides"] + [{"from": check["final_action"], "to": "ESCALATE",
-                                                     "reason": final["rationale"]}]}
+    if (final["action"], final.get("option_id")) != (check["final_action"], check["final_option_id"]):
+        reason = final["rationale"] if final.get("agreement") == "disagree" else f"second route: {final['agreement']}"
+        check = {**check, "final_action": final["action"], "final_option_id": final.get("option_id"),
+                 "accepted_as_is": False, "overrides": check["overrides"] + [
+                     {"from": check["final_action"], "to": final["action"], "reason": reason}]}
 
     report = None
     if with_report and check["final_action"] in ("COORDINATE", "ESCALATE"):

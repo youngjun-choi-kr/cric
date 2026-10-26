@@ -4,10 +4,5 @@
     "name": "EOS-08",
     "can_maneuver": "yes",
     "basis": "fleet registry (demo assumption): propulsion nominal at last pass"
-  },
-  "43250": {
-    "name": "IRIDIUM 149",
-    "can_maneuver": "yes",
-    "basis": "fleet registry (demo assumption): propulsion nominal at last pass"
   }
 }

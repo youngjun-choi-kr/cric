@@ -59,6 +59,10 @@ def _patch(monkeypatch, tmp_path, votes):
                                                       "OBJECT_TYPE_LABEL": {"PAY": "payload", "DEB": "debris"}[rows[n][1]],
                                                       "OPS_STATUS_LABEL": "operational" if rows[n][2] == "+" else "nonoperational"})
     monkeypatch.setattr(dossier, "DOSSIER_CACHE", tmp_path / "dossiers")
+    fleet = tmp_path / "fleet.json"                       # in these tests we play IRIDIUM 149's operator
+    fleet.write_text(json.dumps({str(OURS): {"name": "IRIDIUM 149", "can_maneuver": "yes",
+                                             "basis": "fleet registry (test assumption)"}}))
+    monkeypatch.setattr(pipeline, "FLEET", fleet)
     monkeypatch.setattr(pipeline, "INCIDENTS", tmp_path / "incidents")
     return calls
 
@@ -94,3 +98,21 @@ def test_execution_check_clears_the_planned_burn(small_catalog):
     assert x["miss_before_km"] < 1 and x["miss_nominal_km"] > 1.5 and x["verdict"] == "cleared"
     weak = execute(enc, {**opt, "dv_ms": 0.2}, samples=60)
     assert weak["verdict"] != "cleared"
+
+
+def test_agreement_result_is_applied_not_only_disagreements(monkeypatch, tmp_path, small_catalog):
+    # Debris on the other side -> coded policy MANEUVER; votes COORDINATE on the same option -> notify first.
+    calls = _patch(monkeypatch, tmp_path, ["COORDINATE", "COORDINATE", "COORDINATE"])
+    import cric.agent.decision as dec_mod
+    orig = dec_mod.structured_call
+    def with_option(model, messages, schema, usage=None, max_tokens=16000):
+        d, r = orig(model, messages, schema, usage, max_tokens)
+        if schema is dec_mod.Decision:
+            d = d.model_copy(update={"option_id": "O1", "message_to_other_operator": "We plan to burn; please hold."})
+        return d, r
+    monkeypatch.setattr(dec_mod, "structured_call", with_option)
+    now = iso(parse_utc(TCA) - timedelta(hours=9))
+    res = pipeline.run_incident(OURS, OTHER, TCA, now_utc=now, use_tavily=False, cat=small_catalog, data_quality="cdm")
+    assert calls["decide"] == 3
+    assert res["validation"]["final_action"] in ("COORDINATE", "ESCALATE")
+    assert res["validation"]["final_action"] == res["coded_policy"]["action"] or res["validation"]["final_action"] != "MANEUVER"
