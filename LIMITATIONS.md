@@ -75,6 +75,11 @@ CRIC is a research prototype for decision support. It is not an operational coll
   re-selected there, note times became relative to the burn options, and H01's burn cap was made relative so its
   intent holds; expected answers did not change. Numbers in README come from runs on this snapshot.
 
+## Speed
+- Screening the 24 h window for 18,806 objects takes about 70 s on an 8-core laptop (coarse pass in parallel, and
+  only passes whose straight-line prediction comes within 4 km are refined with SGP4; same 2,067 encounters as the
+  full refinement). "Real time" in CRIC means a fresh 24 h screen every 30 minutes, not a continuous stream.
+
 ## Fixed physical assumptions
 - Storm drag assumes F10.7 = 150 sfu and B = 0.02 m^2/kg; the execution check assumes 3% / 1° / 2 s errors (1 sigma,
   our assumption, not a thruster datasheet). `results/sensitivity.md` varies them: the storm term moves by more

@@ -22,6 +22,7 @@ from .timeutil import iso, jdfr
 
 EARTH_RADIUS_KM = 6378.137
 MAX_REL_SPEED_KMS = 16.0
+PREFILTER_MARGIN_KM = 2.0  # allowance for curvature over half a coarse step; refinement decides
 
 
 def _coarse(sats: list[Satrec], start: datetime, hours: float, step_s: float, radius_km: float, chunk=120):
@@ -30,18 +31,22 @@ def _coarse(sats: list[Satrec], start: datetime, hours: float, step_s: float, ra
     for c0 in range(0, n_steps, chunk):
         ks = np.arange(c0, min(c0 + chunk, n_steps))
         jd, fr = jdfr(start, ks * step_s)
-        err, pos, _ = arr.sgp4(jd, fr)
+        err, pos, vel = arr.sgp4(jd, fr)
         pos[err != 0] = np.nan
         for t_local, k in enumerate(ks):
-            p = pos[:, t_local, :]
+            p, v = pos[:, t_local, :], vel[:, t_local, :]
             ok = np.where(np.isfinite(p).all(axis=1))[0]
             pairs = cKDTree(p[ok]).query_pairs(radius_km, output_type="ndarray")
             if len(pairs) == 0:
                 continue
             a, b = ok[pairs[:, 0]], ok[pairs[:, 1]]
-            d = np.linalg.norm(p[a] - p[b], axis=1)
-            for i, j, dist in zip(a, b, d):
-                yield int(i), int(j), int(k), float(dist)
+            rel, rv = p[a] - p[b], v[a] - v[b]
+            # straight-line closest approach within half a step of this sample: the predicted miss
+            t = np.clip(-np.einsum("ij,ij->i", rel, rv) / np.maximum(np.einsum("ij,ij->i", rv, rv), 1e-12),
+                        -step_s / 2, step_s / 2)
+            est = np.linalg.norm(rel + rv * t[:, None], axis=1)
+            for i, j, e in zip(a, b, est):
+                yield int(i), int(j), int(k), float(e)
 
 
 def closest_approach(sat_a: Satrec, sat_b: Satrec, t_center: datetime, half_window_s: float, step_s=0.5):
@@ -61,24 +66,57 @@ def closest_approach(sat_a: Satrec, sat_b: Satrec, t_center: datetime, half_wind
     return t_center + timedelta(seconds=float(offsets[k]) + dt), miss, float(np.sqrt(v2)), alt
 
 
+_SATS: list = []          # set before forking, so worker processes inherit the catalog instead of pickling it
+
+
+def _coarse_chunk(args) -> list[tuple[int, int, int, float]]:
+    start, hours, step_s, radius, k0 = args
+    return [(i, j, k + k0, d) for i, j, k, d in _coarse(_SATS, start, hours, step_s, radius)]
+
+
+def _coarse_parallel(sats, start: datetime, hours: float, step_s: float, radius: float, workers: int):
+    """The coarse pass split into time chunks, one process each (fork: SGP4 objects are inherited, not copied)."""
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor
+
+    global _SATS
+    _SATS = sats
+    n_steps = int(hours * 3600 / step_s) + 1
+    per = -(-n_steps // workers)
+    chunks = [(start + timedelta(seconds=k0 * step_s), (min(per, n_steps - k0) - 1) * step_s / 3600, step_s, radius, k0)
+              for k0 in range(0, n_steps, per)]
+    with ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork")) as pool:
+        for part in pool.map(_coarse_chunk, chunks):
+            yield from part
+
+
 def screen(cat: Catalog, start: datetime, hours: float = 6.0, *, step_s: float = 10.0,
-           threshold_km: float = 5.0, min_vrel_kms: float = 1.0) -> list[dict]:
-    """Crossing encounters closer than threshold_km in [start, start + hours], closest first."""
+           threshold_km: float = 5.0, min_vrel_kms: float = 1.0, workers: int | None = None) -> list[dict]:
+    """Crossing encounters closer than threshold_km in [start, start + hours], closest first.
+    workers: processes for the coarse pass (default: all cores; 1 = in-process)."""
+    import os
+
     ids = list(cat.sats)
     sats = [cat.sats[i] for i in ids]
     radius = threshold_km + MAX_REL_SPEED_KMS * step_s / 2
+    workers = workers or os.cpu_count() or 1
+    coarse = (_coarse(sats, start, hours, step_s, radius) if workers == 1 or hours < 1
+              else _coarse_parallel(sats, start, hours, step_s, radius, workers))
     # One candidate per pass, not per pair: a pair can come within the search radius on several passes, and the
     # pass with the smallest sampled distance is not necessarily the one with the smallest miss. Keeping only one
     # sample per pair once hid a 548 m encounter behind a later, wider pass of the same two objects.
+    # Each coarse sample carries a straight-line prediction of the miss (position and velocity from SGP4). Over half
+    # a step the path is nearly straight, so only passes predicted within the threshold plus a margin are refined.
     best: dict[tuple[int, int, int], tuple[int, float]] = {}
     last: dict[tuple[int, int], tuple[int, int]] = {}
-    for i, j, k, dist in _coarse(sats, start, hours, step_s, radius):
+    for i, j, k, est in sorted(coarse, key=lambda x: x[2]):   # time order: chunks may arrive out of order
         prev = last.get((i, j))
         episode = prev[1] if prev and k - prev[0] <= 2 else k
         last[(i, j)] = (k, episode)
         key = (i, j, episode)
-        if key not in best or dist < best[key][1]:
-            best[key] = (k, dist)
+        if key not in best or est < best[key][1]:
+            best[key] = (k, est)
+    best = {key: kv for key, kv in best.items() if kv[1] <= threshold_km + PREFILTER_MARGIN_KM}
 
     found: dict[tuple[int, int], list] = {}
     for (i, j, _), (k, _) in best.items():
