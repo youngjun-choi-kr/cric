@@ -75,6 +75,12 @@ CRIC is a research prototype for decision support. It is not an operational coll
   re-selected there, note times became relative to the burn options, and H01's burn cap was made relative so its
   intent holds; expected answers did not change. Numbers in README come from runs on this snapshot.
 
+## Fixed physical assumptions
+- Storm drag assumes F10.7 = 150 sfu and B = 0.02 m^2/kg; the execution check assumes 3% / 1° / 2 s errors (1 sigma,
+  our assumption, not a thruster datasheet). `results/sensitivity.md` varies them: the storm term moves by more
+  than an order of magnitude but stays far above the TLE error, and the recorded burns stay cleared at 4x the
+  default execution errors.
+
 ## Space-weather image read
 - Retrospective test (`scripts/eval_vl.py`, `results/vl_eval.json`): on 10 calm days before G3-G5 storms and 10
   calm days with no storm, both in 2023-2026, Nemotron 3.5 Super VL rated LEO drag risk "moderate" for all 20
