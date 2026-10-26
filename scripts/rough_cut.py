@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -33,7 +34,7 @@ SHOTS = [
                                 "One engineer. A few hours to decide."),
     ("S4", 6, "title", None, "CRIC\nCosmic Response & Intelligence Console",
      "This is CRIC. It does the work, and it knows when to ask."),
-    ("S5", 12, "app", "app_60454-61786_imaging", "NOAA Kp → MSIS drag · Nemotron 3.5 Super VL (context)",
+    ("S5", 14, "app", "app_60454-61786_imaging", "NOAA Kp → MSIS drag · Nemotron 3.5 Super VL (context)",
      "It starts with the Sun. NVIDIA Nemotron 3.5 Super VL describes today's solar image for the operator; "
      "NOAA's numbers, run through NASA's thermosphere model, set the physics."),
     ("S6", 13, "app", "app_60454-61786_imaging", "Pc (simulated precise data) · verified burns",
@@ -42,18 +43,18 @@ SHOTS = [
     ("S7", 17, "app", "app_60454-61786_imaging", "Tavily Search + Extract · quote verified",
      "Can the other satellite move? Tavily searches the web. Nemotron 3 Super writes a dossier where every fact "
      "carries a source and an exact quote, and our code checks each one. Tonight, nobody can confirm it."),
-    ("S8", 23, "app", "app_60454-61786_imaging", "Nemotron 3 Super × 3 votes · coordinate, burn O2",
+    ("S8", 20, "app", "app_60454-61786_imaging", "Nemotron 3 Super × 3 votes · coordinate, burn O2",
      "Then three independent Nemotron 3 Super runs vote. They read what a rule engine can't: a disaster-response "
      "imaging pass rules out the cheapest burn, so they plan the later one and tell the other operator first."),
-    ("S9a", 5, "app", "app_60454-61786_imaging", "Validator · routes agree · approved by a person",
+    ("S9a", 6, "app", "app_60454-61786_imaging", "Validator · routes agree · approved by a person",
      "Code checks every decision, a second route in code must agree, and a person approves."),
     ("S9b", 10, "cine", "go-to-burn", "Flown with errors: conjunction cleared · Nebius Token Factory",
      "The burn is flown in simulation with real-world errors and checked again. Every model runs on Nebius "
      "Token Factory."),
-    ("S10a", 10, "app", "app_27844-37920_quiet", "CUTE-1 (university CubeSat) · Fengyun-1C debris · public data: red",
+    ("S10a", 13, "app", "app_27844-37920_quiet", "CUTE-1 (university CubeSat) · Fengyun-1C debris · public data: red",
      "A university CubeSat and debris from the 2007 anti-satellite test. On public data it looks dangerous, and "
      "nobody can confirm the satellite can move. CRIC tells a person and asks for precise data."),
-    ("S10b", 10, "app", "app_27844-37920_precise", "Precise data: Pc ≈ 1e-8 · monitor, no burn",
+    ("S10b", 7, "app", "app_27844-37920_precise", "Precise data: Pc ≈ 1e-8 · monitor, no burn",
      "With precise data, the risk is gone. Nothing to do, and nothing spent."),
     ("S11", 15, "app", "app_60454-61786_korean_note", "Held-out 2: coded policy 5/8 · Nemotron 8/8",
      "Some of what matters lives only in an operator's note: Korean, Japanese, Spanish, ops jargon. On a held-out "
@@ -152,6 +153,29 @@ def _ts(t: float) -> str:
     return f"{int(h):02d}:{int(m):02d}:{int(s):02d},{int(round((s % 1) * 1000)):03d}"
 
 
+def scratch_vo() -> None:
+    """Timing aid only: macOS `say` reads each line at the start of its shot; reports lines that overrun.
+    Writes data/film/rough_cut_scratch_vo.mp4. The real narration is recorded by the team."""
+    t, inputs, filters, report = 0.0, [], [], []
+    with tempfile.TemporaryDirectory() as d:
+        for sid, sec, _, _, _, vo in SHOTS:
+            if vo:
+                wav = Path(d) / f"{sid}.aiff"
+                subprocess.run(["say", "-v", "Samantha", "-r", "165", "-o", str(wav), vo], check=True)
+                dur = _duration(wav)
+                report.append((sid, round(dur, 1), sec, "OVERRUN" if dur > sec - 0.3 else ""))
+                inputs += ["-i", str(wav)]
+                filters.append(f"[{len(inputs) // 2}:a]adelay={int((t + 0.3) * 1000)}|{int((t + 0.3) * 1000)}[a{sid}]")
+            t += sec
+        labels = "".join(f"[a{sid}]" for sid, *_ in SHOTS if _[-1])
+        mix = ";".join(filters) + f";{labels}amix=inputs={len(filters)}:normalize=0[vo]"
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(OUT / "rough_cut.mp4"), *inputs,
+                        "-filter_complex", mix, "-map", "0:v", "-map", "[vo]", "-c:v", "copy", "-c:a", "aac",
+                        "-shortest", str(OUT / "rough_cut_scratch_vo.mp4")], check=True)
+    for r in report:
+        print(f"  {r[0]:5} read {r[1]:5}s in a {r[2]}s shot {r[3]}")
+
+
 def main() -> None:
     if not shutil.which("ffmpeg"):
         raise SystemExit("ffmpeg not found")
@@ -177,6 +201,8 @@ def main() -> None:
             srt.append(f"{len(srt) + 1}\n{_ts(t + 0.3)} --> {_ts(t + sec - 0.3)}\n{vo}\n")
         t += sec
     (OUT / "rough_cut.srt").write_text("\n".join(srt))
+    if "--scratch-vo" in sys.argv:
+        scratch_vo()
     words = sum(len(s[5].split()) for s in SHOTS)
     print(f"{OUT / 'rough_cut.mp4'}  {t:.0f} s, {len(SHOTS)} shots, voice-over {words} words "
           f"({words / t:.1f} words/s; aim for <= 2.6)")
