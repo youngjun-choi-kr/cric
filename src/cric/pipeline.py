@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import time
 from datetime import datetime, timedelta, timezone
 
 from .agent.decision import decide_votes
 from .agent.report import write_report
-from .config import DATA, FLEET, MODEL_SUPER, MODEL_ULTRA, MODEL_VL
+from .config import DATA, FLEET, MODEL_SUPER, MODEL_ULTRA, MODEL_VL, ROOT
 from .ingest.celestrak import Catalog, snapshot_catalog
 from .llm import Usage
 from .physics.maneuver import Encounter, trajectory_series
@@ -150,7 +151,8 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                  space_weather_note: str = "Quiet geomagnetic conditions.", mission: dict | None = None,
                  policy: dict | None = None, use_tavily: bool = True, cat: Catalog | None = None,
                  data_quality: str = "tle", model: str = MODEL_SUPER, tag: str = "custom", with_report: bool = True,
-                 live_space_weather: bool = False, votes: int = 3, emit=_noop) -> dict:
+                 live_space_weather: bool = False, votes: int = 3, screenshots: list[str] | None = None,
+                 explain_sun: bool = False, emit=_noop) -> dict:
     """Assess one conjunction from OUR satellite's point of view. now_utc lets a recorded
     encounter be replayed as if the decision were made at that moment."""
     t0 = time.time()
@@ -175,10 +177,11 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
 
         emit("space_weather_start", model=MODEL_VL)
         try:
-            sw = assess(now, tca, usage=usage)
+            sw = assess(now, tca, usage=usage, vl=explain_sun)
             kp, space_weather_note = sw["kp"], sw["note"]
-            emit("space_weather", kp=kp, noaa=sw["noaa"], alerts=sw["alerts"], assessment=sw["vl"]["assessment"],
-                 image=sw["vl"]["image"], model=sw["vl"]["model"], disagreement=sw["vl_noaa_disagreement"])
+            emit("space_weather", kp=kp, noaa=sw["noaa"], alerts=sw["alerts"],
+                 assessment=(sw["vl"] or {}).get("assessment"), image=(sw["vl"] or {}).get("image"),
+                 model=(sw["vl"] or {}).get("model"), disagreement=sw["vl_noaa_disagreement"])
         except Exception as exc:  # weather must not block a conjunction decision; fall back to the given Kp
             emit("space_weather_error", message=str(exc)[:300], kp_used=kp)
 
@@ -187,10 +190,24 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     if sw:
         ctx["space_weather"] |= {"noaa": sw["noaa"], "alerts": sw["alerts"],
                                  "vl_assessment": {k: sw["vl"]["assessment"][k] for k in
-                                                   ("leo_drag_risk_72h", "orbit_prediction_impact", "unknowns")},
+                                                   ("leo_drag_risk_72h", "orbit_prediction_impact", "unknowns")}
+                                 if sw["vl"] else None,
                                  "vl_role": sw["vl_role"], "vl_noaa_disagreement": sw["vl_noaa_disagreement"]}
     emit("context", now_utc=ctx["now_utc"], conjunction=ctx["conjunction"], risk=ctx["risk"],
          space_weather=ctx["space_weather"], mission=ctx["mission"], policy_text=policy["text"])
+    for shot in screenshots or []:      # screenshots the team shared: VL transcribes, the notes path does the rest
+        from .agent.screens import as_note, read_screen
+
+        emit("screen_start", model=MODEL_VL, image=shot)
+        try:
+            read = read_screen((ROOT / shot).read_bytes() if not Path(shot).is_absolute() else Path(shot).read_bytes(),
+                               usage=usage)
+            ctx["mission"]["notes"] = (ctx["mission"].get("notes") or "").replace("No mission constraints today.", "").strip()
+            ctx["mission"]["notes"] = (ctx["mission"]["notes"] + "\n" + as_note(read)).strip()
+            emit("screen", model=MODEL_VL, image=shot, kind=read.kind, transcript=read.transcript,
+                 affects=read.affects_manoeuvres)
+        except Exception as exc:  # an unreadable screenshot must not block the decision
+            emit("screen_error", image=shot, message=str(exc)[:300])
     if (ctx["mission"].get("notes") or "").strip() not in ("", "No mission constraints today."):
         from .agent.constraints import apply, extract
 
@@ -278,6 +295,9 @@ def preset(name: str, tca_utc: str) -> dict:
             raise RuntimeError("run `cric forge --event \"10-11 May 2024 G5 extreme geomagnetic storm NOAA SWPC\"` first")
         return {"data_quality": "tle", "kp": kp_from(rec), "space_weather_note": weather_note(rec),
                 "live_space_weather": False, "mission": {"notes": "No mission constraints today.", "blackouts": []}}
+    if name == "screenshot":   # the planning calendar from scripts/eval_screens.py, drawn for EOS-08's options
+        return {"data_quality": "cdm", "screenshots": ["web/demo/screens/calendar.png"],
+                "mission": {"notes": "No mission constraints today.", "blackouts": []}}
     if name == "safe_mode":
         return {"data_quality": "cdm", "mission": {"notes": (
             "Spacecraft entered safe mode at {safe_since} UTC after a reaction-wheel fault. Thrusters are inhibited "
@@ -285,4 +305,4 @@ def preset(name: str, tca_utc: str) -> dict:
     raise ValueError(f"unknown preset {name!r}")
 
 
-PRESETS = ("quiet", "precise", "imaging", "safe_mode", "storm_2024", "korean_note")
+PRESETS = ("quiet", "precise", "imaging", "safe_mode", "storm_2024", "korean_note", "screenshot")

@@ -435,10 +435,14 @@ function handle(e) {
        ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
     spotlight(inc.rows['d' + d.norad_id]?.querySelector('.think') || inc.rows['d' + d.norad_id]);
   }
-  else if (k === 'space_weather_start') step('sw', 'run', `<span class="who">Space weather</span> <span class="model">Nemotron 3.5 Super VL</span> reading the Sun (SDO) and NOAA Kp…`);
-  else if (k === 'space_weather') step('sw', e.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> NOAA Kp <b>${e.kp}</b> sets the covariance · <span class="model">Nemotron 3.5 Super VL</span> image read (context only): drag risk <b>${esc(e.assessment.leo_drag_risk_72h)}</b>
-      ${e.disagreement ? `<span class="tag warn">image ≠ NOAA: recheck</span>` : ''}
-      <div class="sub2">${esc(e.assessment.orbit_prediction_impact)}${e.disagreement ? ' · ' + esc(e.disagreement.effect) : ''}</div>`);
+  else if (k === 'space_weather_start') step('sw', 'run', `<span class="who">Space weather</span> NOAA Kp and alerts…`);
+  else if (k === 'screen_start') step('scr' + e.image, 'run', `<span class="who">Shared screenshot</span> <span class="model">Nemotron 3.5 Super VL</span> reading it…`);
+  else if (k === 'screen') step('scr' + e.image, 'ok', `<span class="who">Shared screenshot</span> <span class="model">Nemotron 3.5 Super VL</span> ${esc(e.kind)}
+      <div><img src="${STATIC ? '' : '/'}${esc(e.image.replace(/^web\//, ''))}" alt="shared screenshot" style="max-width:100%;border-radius:6px;margin-top:4px"></div>
+      <div class="think">${esc(e.transcript).replace(/\n/g, '<br>')}</div><div class="sub2">${esc(e.affects)}</div>`);
+  else if (k === 'screen_error') step('scr' + e.image, 'warn', `<span class="who">Shared screenshot</span> unreadable: ${esc(e.message)}`);
+  else if (k === 'space_weather') step('sw', e.kp >= 5 ? 'warn' : 'ok', `<span class="who">Space weather</span> NOAA Kp <b>${e.kp}</b> → storm drag from NASA MSIS in the covariance${e.assessment ? ` · <span class="model">Nemotron 3.5 Super VL</span> Sun image (explanation only): ${esc(e.assessment.leo_drag_risk_72h)}
+      <div class="sub2">${esc(e.assessment.orbit_prediction_impact)}</div>` : ''}`);
   else if (k === 'space_weather_error') step('sw', 'warn', `<span class="who">Space weather</span> unavailable, using Kp ${e.kp_used}: ${esc(e.message)}`);
   else if (k === 'context') {
     if (!inc.rows.sw && e.space_weather?.note) {  // scenario weather (e.g. a real storm researched with Tavily)

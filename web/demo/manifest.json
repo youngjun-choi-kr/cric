@@ -1,5 +1,19 @@
 [
  {
+  "file": "60454_61786_20261025T003427_2134_screenshot.json",
+  "ours": 60454,
+  "other": 61786,
+  "tca_utc": "2026-10-25T00:34:27.156166Z",
+  "preset": "screenshot",
+  "action": "COORDINATE",
+  "final": "COORDINATE",
+  "has_trace": true,
+  "names": [
+   "EOS-08",
+   "SITRO-AIS 38"
+  ]
+ },
+ {
   "file": "43677_48423_20261025T061937_0319_quiet.json",
   "ours": 43677,
   "other": 48423,

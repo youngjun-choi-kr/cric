@@ -1,0 +1,242 @@
+{
+ "summary": {
+  "with_vl": "8/8",
+  "without_image": "2/4 screens (always burns O1)",
+  "cost_usd": 0.0171,
+  "o1_burn_utc": "22:11",
+  "time_window_minutes": 24,
+  "now_utc": "21:34"
+ },
+ "rows": [
+  {
+   "screen": "calendar",
+   "repeat": 0,
+   "transcript": "Mission planning — Sat EOS-08 — tonight (UTC)\nStart End Activity Constraints\n20:40 20:52 Ground pass SVALBARD TT&C\n21:59 22:23 DISASTER RESPONSE IMAGING NO THRUSTER FIRING · nadir lock\n23:30 23:41 Ground pass INUVIK TT&C",
+   "affects": "The DISASTER RESPONSE IMAGING activity includes the constraint NO THRUSTER FIRING.",
+   "constraints": {
+    "propulsion_unavailable": null,
+    "burn_blackouts": [
+     {
+      "quote": "21:59 22:23 DISASTER RESPONSE IMAGING NO THRUSTER FIRING · nadir lock",
+      "start_utc": "2026-10-24T21:59:00Z",
+      "end_utc": "2026-10-24T22:23:00Z"
+     }
+    ],
+    "max_dv_ms": null,
+    "allowed_axes": null,
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "MANEUVER",
+    "O2"
+   ],
+   "expected": [
+    [
+     "MANEUVER"
+    ],
+    "O2"
+   ],
+   "correct": true
+  },
+  {
+   "screen": "calendar",
+   "repeat": 1,
+   "transcript": "Mission planning — Sat EOS-08 — tonight (UTC)\nStart End Activity Constraints\n20:40 20:52 Ground pass SVALBARD TT&C\n21:59 22:23 DISASTER RESPONSE IMAGING NO THRUSTER FIRING · nadir lock\n23:30 23:41 Ground pass INUVIK TT&C",
+   "affects": "The DISASTER RESPONSE IMAGING activity includes the constraint NO THRUSTER FIRING.",
+   "constraints": {
+    "propulsion_unavailable": null,
+    "burn_blackouts": [
+     {
+      "quote": "NO THRUSTER FIRING",
+      "start_utc": "2026-10-24T21:59:00Z",
+      "end_utc": "2026-10-24T22:23:00Z"
+     }
+    ],
+    "max_dv_ms": null,
+    "allowed_axes": null,
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "MANEUVER",
+    "O2"
+   ],
+   "expected": [
+    [
+     "MANEUVER"
+    ],
+    "O2"
+   ],
+   "correct": true
+  },
+  {
+   "screen": "telemetry",
+   "repeat": 0,
+   "transcript": "EOS-08 • subsystem status\nSubsystem Status Note\nPower NOMINAL Battery 88%\nADCS NOMINAL Sun-pointing\nPropulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board\nPayload NOMINAL Idle",
+   "affects": "all ΔV operations on hold pending review board",
+   "constraints": {
+    "propulsion_unavailable": {
+     "quote": "Propulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board",
+     "value": true
+    },
+    "burn_blackouts": [],
+    "max_dv_ms": {
+     "quote": "Propulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board",
+     "value": 0.0
+    },
+    "allowed_axes": {
+     "quote": "Propulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board",
+     "allowed": []
+    },
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "ESCALATE",
+    null
+   ],
+   "expected": [
+    [
+     "ESCALATE"
+    ],
+    null
+   ],
+   "correct": true
+  },
+  {
+   "screen": "telemetry",
+   "repeat": 1,
+   "transcript": "EOS-08 • subsystem status\nSubsystem Status Note\nPower NOMINAL Battery 88%\nADCS NOMINAL Sun-pointing\nPropulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board\nPayload NOMINAL Idle",
+   "affects": "all ΔV operations on hold pending review board",
+   "constraints": {
+    "propulsion_unavailable": {
+     "quote": "Propulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board",
+     "value": true
+    },
+    "burn_blackouts": [],
+    "max_dv_ms": {
+     "quote": "all ΔV operations on hold pending review board",
+     "value": 0.0
+    },
+    "allowed_axes": {
+     "quote": "Propulsion NO-GO Tank pressure anomaly — all ΔV operations on hold pending review board",
+     "allowed": []
+    },
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "ESCALATE",
+    null
+   ],
+   "expected": [
+    [
+     "ESCALATE"
+    ],
+    null
+   ],
+   "correct": true
+  },
+  {
+   "screen": "chat_ko",
+   "repeat": 0,
+   "transcript": "#eos08-ops\n김민지 (탑재체 운영) 20:31\n오늘 밤 촬영 일정 취소됐습니다. 위성 자세나 추력기 사용에 제약 없어요.\n박준호 (비행역학) 20:33\n확인했습니다, 감사합니다!",
+   "affects": "No, the message states there are no constraints on satellite attitude or thruster usage.",
+   "constraints": {
+    "propulsion_unavailable": null,
+    "burn_blackouts": [],
+    "max_dv_ms": null,
+    "allowed_axes": null,
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "MANEUVER",
+    "O1"
+   ],
+   "expected": [
+    [
+     "MANEUVER"
+    ],
+    "O1"
+   ],
+   "correct": true
+  },
+  {
+   "screen": "chat_ko",
+   "repeat": 1,
+   "transcript": "#eos08-ops\n김민지 (탑재체 운영) 20:31\n오늘 밤 촬영 일정 취소됐습니다. 위성 자세나 추력기 사용에 제약 없어요.\n박준호 (비행역학) 20:33\n확인했습니다, 감사합니다!",
+   "affects": "No, the message states there are no constraints on satellite attitude or thruster use.",
+   "constraints": {
+    "propulsion_unavailable": null,
+    "burn_blackouts": [],
+    "max_dv_ms": null,
+    "allowed_axes": null,
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "MANEUVER",
+    "O1"
+   ],
+   "expected": [
+    [
+     "MANEUVER"
+    ],
+    "O1"
+   ],
+   "correct": true
+  },
+  {
+   "screen": "dashboard",
+   "repeat": 0,
+   "transcript": "Ops dashboard\nBattery 92%\nDownlinked today 14.2 GB\nAntenna B maintenance tomorrow 03:00–04:00 UTC (no impact tonight)\nPropellant 31.4 kg (≈ 40 m/s)",
+   "affects": "no impact tonight",
+   "constraints": {
+    "propulsion_unavailable": null,
+    "burn_blackouts": [],
+    "max_dv_ms": null,
+    "allowed_axes": null,
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "MANEUVER",
+    "O1"
+   ],
+   "expected": [
+    [
+     "MANEUVER"
+    ],
+    "O1"
+   ],
+   "correct": true
+  },
+  {
+   "screen": "dashboard",
+   "repeat": 1,
+   "transcript": "Ops dashboard\nBattery 92%\nDownlinked today 14.2 GB\nAntenna B maintenance tomorrow 03:00–04:00 UTC (no impact tonight)\nPropellant 31.4 kg (≈ 40 m/s)",
+   "affects": "no impact tonight",
+   "constraints": {
+    "propulsion_unavailable": null,
+    "burn_blackouts": [],
+    "max_dv_ms": null,
+    "allowed_axes": null,
+    "no_commands_after": null,
+    "other_operator_will_maneuver": null
+   },
+   "final": [
+    "MANEUVER",
+    "O1"
+   ],
+   "expected": [
+    [
+     "MANEUVER"
+    ],
+    "O1"
+   ],
+   "correct": true
+  }
+ ]
+}

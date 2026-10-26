@@ -11,7 +11,7 @@ Pick a situation in the left panel and press *Replay recorded run*. Architecture
 
 | Piece | Model / service | Role |
 |---|---|---|
-| Space-weather perception | NVIDIA Nemotron 3.5 Super VL on Nebius Token Factory | read the latest SDO image with NOAA Kp and alerts in plain language for the operator; observed / inferred / unknown. It never sets Pc (NOAA Kp does). A retrospective test found no forecasting signal in the image read (see Results) |
+| Screen reading | NVIDIA Nemotron 3.5 Super VL on Nebius Token Factory | reads screenshots the team shares (planning calendars, telemetry panels, chats) into text that becomes enforceable constraints; 8/8 on our screenshot test. Its read of the Sun showed no forecasting signal, so it no longer runs by default |
 | Decisions | NVIDIA Nemotron 3 Super | choose among physics-verified burn options, ask for data, coordinate or escalate |
 | Satellite dossiers, real-event records | NVIDIA Nemotron 3 Super + Tavily | capability facts and storm records, every fact cited with a verbatim quote |
 | Human-facing documents | NVIDIA Nemotron 3 Ultra | coordination message or escalation brief, only when a person must act |
@@ -90,8 +90,11 @@ different covariance assumptions.
 
 **Does the Sun image add anything?** We tested Nemotron 3.5 Super VL on archived SDO images: 10 calm days before
 G3-G5 storms and 10 calm days with no storm (2023-2026). Given the image alone, it rated drag risk "moderate"
-for all 20. No forecasting signal, so the image read only explains conditions to the operator; the physics uses
-NOAA Kp through NASA's MSIS thermosphere model (`scripts/eval_vl.py`).
+for all 20. No forecasting signal, so CRIC no longer reads the Sun by default; the physics uses NOAA Kp through NASA's MSIS
+thermosphere model (`scripts/eval_vl.py`). VL's job is now reading screenshots the team shares: on four rendered
+screens (a planning calendar, a telemetry panel, a Korean chat, a dashboard) the transcript-to-constraints path
+reached the right decision 8/8 times, where ignoring the image is right on 2 of 4 (`scripts/eval_screens.py`;
+a small test we designed).
 
 **Who writes the human-facing documents.** Every ESCALATE / COORDINATE case gets a brief from Super and from
 Ultra (14 cases x 2 runs each). A code checker, not a model, verifies that every number comes from the context

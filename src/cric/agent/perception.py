@@ -81,11 +81,17 @@ def cross_check(vl_level: str, kp: float) -> dict | None:
     return {"vl": vl_level, "noaa": n, "direction": "vl_lower", "effect": "physics keeps NOAA Kp (the more cautious input)"}
 
 
-def assess(now: datetime, until: datetime, *, usage: Usage | None = None) -> dict:
-    """Space weather block for an incident: NOAA numbers + VL assessment (cached)."""
+def assess(now: datetime, until: datetime, *, usage: Usage | None = None, vl: bool = False) -> dict:
+    """Space weather block for an incident: NOAA numbers, plus (optionally) the VL read of the Sun as an
+    explanation for the operator. Off by default: it showed no forecasting signal (scripts/eval_vl.py)."""
     kp = kp_summary(now, until)
     alerts = recent_alerts()
     effective = max([k for k in (kp["kp_observed_max_24h"], kp["kp_forecast_max_to_tca"]) if k is not None], default=2.0)
+    if not vl:
+        note = (f"NOAA Kp max {kp['kp_observed_max_24h']} observed (24 h), {kp['kp_forecast_max_to_tca']} forecast "
+                "to TCA; storm drag from NASA MSIS.")
+        return {"kp": effective, "note": note, "noaa": kp, "alerts": alerts, "vl": None, "source": "live",
+                "vl_role": "not used", "vl_noaa_disagreement": None}
 
     CACHE.mkdir(parents=True, exist_ok=True)
     image = requests.get(SDO_LATEST, timeout=60).content
