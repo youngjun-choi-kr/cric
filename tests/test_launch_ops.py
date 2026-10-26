@@ -1,0 +1,98 @@
+"""Mission Studio steps 2 and 3: launch windows, LCOLA, the hand-over to CRIC, and the guards on the models."""
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pytest
+from sgp4.api import Satrec
+
+from cric.ingest.celestrak import Catalog
+from cric.launch import agents, deploy, windows
+from cric.launch.ascent import Guidance, simulate
+from cric.launch.geo import SITES
+from cric.launch.insertion import insertion_teme, satrec_from_state, tle_for
+from cric.launch.vehicles import PRESETS
+from cric.physics.timeutil import jdfr
+
+T0 = datetime(2026, 10, 27, 14, 0, tzinfo=timezone.utc)
+
+
+@pytest.fixture(scope="module")
+def flight():
+    s = SITES["mahia"]
+    r = simulate(PRESETS["electron"], 180, Guidance(35.5, 19.41, 10.88, 2.93), lat=s.lat, lon=s.lon, az=189.58,
+                 target_alt_km=500, record=False)
+    assert r["orbit"]
+    return r
+
+
+def test_tle_reproduces_the_insertion_state(flight):
+    r, v, epoch = insertion_teme(flight, T0)
+    sat = satrec_from_state(r, v, epoch)
+    jd, fr = jdfr(epoch, np.array([0.0]))
+    _, r2, v2 = sat.sgp4(jd[0], fr[0])
+    assert np.linalg.norm(np.array(r2) - r) < 0.01 and np.linalg.norm(np.array(v2) - v) < 1e-4
+    name, l1, l2 = tle_for(flight, T0, "JIMIN-1")
+    assert abs(Satrec.twoline2rv(l1, l2).inclo * 180 / np.pi - flight["inclination_deg"]) < 0.1
+
+
+def test_weather_grading_and_missing_kp_does_not_downgrade():
+    calm = {"wind_gusts_10m": 5, "wind_speed_10m": 3, "precipitation_probability": 0, "cape": 0, "wind_speed_250hPa": 20}
+    assert windows.assess_hour(calm, None)["status"] == "go"           # Kp not forecast that far: n/a
+    assert windows.assess_hour(calm | {"wind_gusts_10m": 16}, 2.0)["status"] == "nogo"
+    assert windows.assess_hour(calm | {"cape": 500}, 2.0)["status"] == "caution"
+
+
+def _catalog_with(objects: dict[int, Satrec]) -> Catalog:
+    return Catalog(objects, {k: f"OBJ-{k}" for k in objects}, "test", 0.0)
+
+
+def test_lcola_flags_an_object_sitting_on_the_insertion_orbit(flight):
+    r, v, epoch = insertion_teme(flight, T0)
+    twin = satrec_from_state(r + np.array([0.0, 0.0, 1.0]), v, epoch, satnum=11111)   # 1 km above our insertion
+    far = satrec_from_state(-r, -v, epoch, satnum=22222)                               # the other side of Earth
+    out = windows.lcola(flight, T0, _catalog_with({11111: twin, 22222: far}), minutes=3)
+    first = out["rows"][0]
+    assert first["status"] == "nogo" and first["norad_id"] == 11111 and first["closest_km"] < 2
+    assert out["objects_screened"] == 2
+
+
+def test_deploy_registers_screens_and_gives_a_dossier(flight, tmp_path, monkeypatch):
+    monkeypatch.setattr(deploy, "STUDIO", tmp_path)
+    monkeypatch.setattr(deploy, "REGISTRY", tmp_path / "fleet.json")
+    monkeypatch.setattr(deploy, "ENCOUNTERS", tmp_path / "conjunctions.json")
+    name, l1, l2 = tle_for(flight, T0, "JIMIN-1", satnum=12345)
+    n = deploy.register(name, l1, l2, owner="Jimin", can_maneuver="yes", mission="imaging", home=None, launch={})
+    assert n == deploy.FIRST_ID and Satrec.twoline2rv(*deploy.registry()[str(n)]["tle"]).satnum == n
+    assert deploy.register(name, l1, l2, owner="Jimin", can_maneuver="yes", mission="imaging", home=None, launch={}) == n
+    d = deploy.dossier(n)
+    assert d["capability"]["can_maneuver"] == "yes" and d["satcat"]["owner"] == "Jimin"
+    r, v, epoch = insertion_teme(flight, T0)
+    cat = _catalog_with({7: satrec_from_state(r * 1.0 + np.array([0, 0, 0.5]), -v, epoch, satnum=7)})  # head-on
+    deploy.add_to_catalog(cat)
+    ev = deploy.screen_one(cat, n, epoch, hours=0.5)
+    assert ev and ev[0]["object_b"]["norad_id"] == 7 and ev[0]["miss_distance_km"] < 1
+    deploy.save_encounters(n, ev, epoch, 0.5, len(cat))
+    assert deploy.find_tca(n, 7) == ev[0]["tca_utc"]
+
+
+def test_director_cannot_pick_a_vetoed_window(monkeypatch):
+    def fake(model, msgs, schema, **kw):
+        return agents.Brief(decision="go", liftoff_utc="2026-10-27T14:02:00Z", summary="go", watch_items=[]), ""
+
+    monkeypatch.setattr(agents, "structured_call", fake)
+    cands = [{"liftoff_utc": "2026-10-27T14:02:00Z", "status": "nogo"}, {"liftoff_utc": "2026-10-27T14:09:00Z", "status": "go"}]
+    votes = {c["liftoff_utc"]: {"orbital": {"vote": "go", "reason": ""}} for c in cands}
+    b = agents.director(cands, votes)
+    assert b["liftoff_utc"] == "2026-10-27T14:09:00Z" and b["guard"]
+    votes["2026-10-27T14:09:00Z"]["orbital"]["vote"] = "no-go"
+    assert agents.director(cands, votes)["decision"] == "hold"
+
+
+def test_static_presets_match_the_api():
+    from cric.launch.api import presets
+
+    path = Path(__file__).resolve().parents[1] / "web" / "launch" / "presets.json"
+    assert json.loads(path.read_text()) == json.loads(json.dumps(presets({})))

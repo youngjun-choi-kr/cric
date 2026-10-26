@@ -37,6 +37,7 @@ class Sheet(BaseModel):
     name: str
     diameter_m: float | None = None
     payload_kg: float | None = None
+    fairing_kg: float | None = Field(None, description="payload fairing mass, kg")
     liftoff_mass_kg: float | None = None
     stages: list[SheetStage]
     notes: str = Field("", description="anything on the sheet that the fields cannot hold, or what was unreadable")
@@ -102,8 +103,10 @@ def to_vehicle_dict(sheet: Sheet) -> dict:
         d.update(prop_kg=prop, dry_kg=dry, thrust_vac_n=thrust, isp_vac_s=isp_v, isp_sl_s=isp_s, source=src)
         stages.append(d)
     out = {"id": "sheet", "name": sheet.name or "Rocket from spec sheet", "stages": stages,
-           "diameter_m": sheet.diameter_m or 1.2, "payload_kg": sheet.payload_kg or 100.0, "fairing_kg": 50.0,
+           "diameter_m": sheet.diameter_m or 1.2, "payload_kg": sheet.payload_kg or 100.0,
+           "fairing_kg": sheet.fairing_kg if sheet.fairing_kg is not None else 50.0,
            "notes": sheet.notes, "missing": [f"{st['name']}: {k}" for st in stages for k, v in st["source"].items() if v == "missing"],
            "source_overall": {"diameter_m": "read" if sheet.diameter_m else "assumed",
-                              "payload_kg": "read" if sheet.payload_kg else "assumed", "fairing_kg": "assumed"}}
+                              "payload_kg": "read" if sheet.payload_kg else "assumed",
+                              "fairing_kg": "read" if sheet.fairing_kg is not None else "assumed"}}
     return json.loads(json.dumps(out))

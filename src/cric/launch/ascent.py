@@ -354,6 +354,10 @@ def optimise(veh: Vehicle, payload_kg: float, *, lat: float, lon: float, az: flo
     return g, simulate(veh, payload_kg, g, lat=lat, lon=lon, az=az, target_alt_km=target_alt_km, dt=0.5, record=True)
 
 
+RESERVE_MS = 50.0   # a fix must leave this much delta-v in the last stage: with none, half of real flights miss
+                    # (thrust and Isp scatter alone are worth about that much; see dispersion)
+
+
 def _reaches(job) -> tuple[float, dict | None]:
     """Worker: does the modified vehicle reach the target? Returns (factor, result summary or None)."""
     veh, payload_kg, factor, kind, k, site = job
@@ -369,15 +373,17 @@ def _reaches(job) -> tuple[float, dict | None]:
         if kind == "stage+thrust":
             stg.thrust_vac_n *= factor                    # a bigger stage needs proportionally more thrust
     _, r = optimise(v2, pay, maxiter=10, seeds=(0,), **site)
-    return factor, ({k_: r[k_] for k_ in ("perigee_km", "apogee_km", "margin_dv_ms")} if r["target_reached"] else None)
+    ok = r["target_reached"] and (r["margin_dv_ms"] or 0) >= RESERVE_MS
+    return factor, ({k_: r[k_] for k_ in ("perigee_km", "apogee_km", "margin_dv_ms")} if ok else None)
 
 
 def advise(veh: Vehicle, payload_kg: float, base: dict, *, lat: float, lon: float, az: float,
            target_alt_km: float) -> list[dict]:
     """Code-computed fixes, each verified by flying the changed rocket: the smallest lighter payload, and the
-    smallest propellant increase per stage that reaches the target orbit. Runs the searches in parallel."""
+    smallest propellant increase per stage that reaches the target orbit with RESERVE_MS to spare. Runs the
+    searches in parallel."""
     site = {"lat": lat, "lon": lon, "az": az, "target_alt_km": target_alt_km}
-    if base["target_reached"]:
+    if base["target_reached"] and (base["margin_dv_ms"] or 0) >= RESERVE_MS:
         last = veh.stages[-1]
         ve = last.isp_vac_s * G0
         m_above0 = payload_kg + last.dry_kg

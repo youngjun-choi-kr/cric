@@ -115,6 +115,28 @@ CRIC is a research prototype for decision support. It is not an operational coll
   and the loop ran inside it in dry-run mode; nothing was run on Nebius AI Cloud.
 - The approval step logs a decision; it does not send anything. There is no uplink.
 
+## Mission Studio
+- The ascent is 3-DOF in one plane: no yaw steering or dog-legs, no winds aloft in the flight, an exponential
+  atmosphere, a constant drag coefficient. Guidance is a four-number pitch program found by an optimiser, not a
+  real closed-loop guidance. Against published capacities it is conservative by 2-20% (README); for a rocket
+  that has never flown, treat "reaches orbit" as a first check, not a qualification.
+- Preset numbers mix published figures with derived and assumed ones; each field says which. Garage One is
+  fictional.
+- Spec-sheet reading copies numbers it can see; gaps are filled with labelled defaults and listed as missing. A
+  misread unit would propagate; the form shows every value for the owner to check.
+- Dispersion sigmas (thrust 1.5%, Isp 0.5%, dry mass 2%, pitch 0.3 deg, azimuth 0.3 deg) are assumptions, not
+  any vehicle's data. Impacts ignore wind drift and break-up.
+- Launch commit criteria are simplified assumptions for a small launcher (CRITERIA in `cric/launch/windows.py`);
+  real ranges use their own, stricter rules (lightning field mills, cloud ceilings, toxic-plume corridors). Site
+  corridors are coarse azimuth ranges over the sea, not range safety analysis.
+- Weather is a public numerical forecast at the site's coordinates; Kp is forecast only about three days ahead,
+  later hours are graded on weather alone.
+- LCOLA and the 72 h screening use public TLE data (km-level) and the catalog snapshot the server loaded; the
+  thresholds (no-go under 2 km, caution under 10 km) are assumed. A real launch gets LCOLA from a provider with
+  covariances. The inserted orbit is the nominal flight, not the dispersed one.
+- The launched satellite is synthetic: it exists in `data/studio/fleet.json` and in screening, not in the public
+  catalog. Its capability is what the owner states.
+
 ## History
 - An earlier spike let Nemotron search burn parameters with tools. It found a valid burn but used 45% more
   delta-v than exhaustive search, took about 2 minutes, and its first prompt version failed outright.

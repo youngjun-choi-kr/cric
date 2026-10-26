@@ -152,11 +152,12 @@ def _alpha() -> Vehicle:
 
 
 def _garage() -> Vehicle:
-    # Fictional: a student two-stage rocket sized to fall just short of orbit. Every number is assumed.
+    # Fictional: a student two-stage rocket sized so that a 5 kg cubesat falls just short of a 500 km
+    # sun-synchronous orbit from Naro, and a bigger first stage gets it there. Every number is assumed.
     fic = {k: "assumed (fictional)" for k in ("prop_kg", "dry_kg", "thrust_vac_n", "isp_vac_s", "isp_sl_s")}
-    s1 = Stage("Stage 1", 4_000, 450, 80e3, 275.0, 250.0, dict(fic))
+    s1 = Stage("Stage 1", 4_600, 520, 92e3, 275.0, 250.0, dict(fic))
     s2 = Stage("Stage 2", 400, 75, 9e3, 300.0, 300.0, dict(fic))
-    return Vehicle("garage", "Garage One (fictional)", [s1, s2], 0.9, 20.0, 10.0, {}, [],
+    return Vehicle("garage", "Garage One (fictional)", [s1, s2], 0.9, 20.0, 5.0, {}, [],
                    "A fictional student rocket that falls just short of orbit.")
 
 

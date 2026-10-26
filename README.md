@@ -21,6 +21,10 @@ Pick a situation in the left panel and press *Replay recorded run*. Architecture
 - **Measured:** held-out sets fixed before running (the last one run once on the final pipeline), screening
   checked against CelesTrak SOCRATES, Pc against NASA CARA's test values. See Results.
 
+**New: Mission Studio** (`/studio.html` on the local server): bring your own rocket, find out whether it reaches
+orbit and where its stages fall, pick a launch window with weather and launch collision avoidance, then launch the
+satellite into the same catalog CRIC operates. See [Mission Studio](#mission-studio).
+
 ## How it uses Nebius and NVIDIA
 
 | Piece | Model / service | Role |
@@ -30,6 +34,7 @@ Pick a situation in the left panel and press *Replay recorded run*. Architecture
 | Satellite dossiers, real-event records | NVIDIA Nemotron 3 Super + Tavily | capability facts and storm records, every fact cited with a verbatim quote |
 | Human-facing documents | NVIDIA Nemotron 3 Ultra | coordination message or escalation brief, only when a person must act |
 | (evaluated, not routed) | NVIDIA Nemotron 3 Nano | slower and less accurate than Super for these decisions; see Results |
+| Mission Studio | Nano · Super · Ultra · 3.5 Super VL | Nano reads the owner's plain-language target orbit; VL (images) or Super (PDF text) transcribes a rocket spec sheet; Super explains a failed flight and casts the weather, range and orbital-safety votes; Ultra is the mission director who writes the launch brief |
 | Web grounding | Tavily Search + Extract | satellite facts and real space-weather events for the eval |
 
 Orbit maths never goes through an LLM: screening uses SGP4 on CelesTrak data, and safety rules are enforced in code.
@@ -159,6 +164,39 @@ step for a person; nothing is ever sent to a spacecraft.
 Without the server the page runs as a static site (GitHub Pages or `python -m http.server` at the repo root,
 then open `/web/`): it replays the recordings in `web/demo/` (refresh with `scripts/export_demo.py`).
 
+## Mission Studio
+
+```bash
+.venv/bin/python web/serve.py 8765        # http://localhost:8765/studio.html
+```
+
+Three steps for someone who builds a small rocket or owns a cubesat:
+
+1. **Your rocket.** Pick a published launcher (Nuri, Electron, SSLV, Firefly Alpha, or the fictional Garage One),
+   drop a spec sheet photo or PDF (Nemotron reads it; every field is tagged *read*, *derived*, *assumed* or
+   *missing*), or edit a form with sliders. Describe the orbit in a sentence ("my 5 kg cubesat, 500 km
+   sun-synchronous, I live in Seoul"); Nemotron Nano turns it into a target and code computes the inclination.
+   **Fly it**: a 3-DOF ascent (staging, drag, Earth rotation, guidance found by differential evolution) says
+   whether it reaches orbit, where every stage comes down, and where the delta-v went. If it falls short, the
+   studio searches for fixes and **re-flies each one** (the smallest bigger stage or lighter payload that reaches
+   the orbit with a 50 m/s reserve); Super explains why. A Monte Carlo (thrust, Isp, mass, pitch, azimuth
+   scatter) draws the impact areas.
+2. **When and where.** A seven-day hourly go / caution / no-go map for every launch site that can reach the orbit
+   over its sea corridor (Open-Meteo winds, rain, lightning potential, upper winds; NOAA Kp). Pick an hour and
+   the studio screens every liftoff minute against the catalog for the first orbit after insertion (LCOLA): one
+   minute can pass a kilometre or two from another satellite while a few minutes later is clear. Three launch-team roles vote
+   on the candidate minutes and Nemotron 3 Ultra, as mission director, picks one; code refuses any pick that a
+   check or a vote vetoed.
+3. **Operate.** The insertion state becomes a TLE (mean elements fitted so SGP4 reproduces it), the satellite
+   joins the catalog under a studio NORAD ID (99001+), and CRIC shows its passes over home and screens it for 72 h.
+   Any close approach opens the same incident pipeline as the console (dossier from the owner's registration, not
+   the web), ending in the owner's approve / reject.
+
+How close the ascent model is to reality, measured by the payload it can place in each real launcher's published
+orbit: Nuri −12%, Electron −8%, SSLV −2%, Alpha −20% (conservative throughout; `scripts/validate_vehicles.py`).
+The dispersion also runs as a batch job: `cric launch-dispersion --vehicle electron --site mahia --runs 5000`
+(2,000 runs in 12 s on an 8-core laptop), the shape of a Nebius Serverless Job. Limits: [LIMITATIONS.md](LIMITATIONS.md#mission-studio).
+
 ## Cinema mode (for the demo film)
 
 The console's globe engine doubles as the film's camera. Shots are scripted, so a take renders the same frames
@@ -178,7 +216,8 @@ situations exist for the film: the May 2024 G5 storm replayed as tonight's weath
 
 ## Data sources
 
-CelesTrak GP and SATCAT, NOAA SWPC, NASA SDO via Helioviewer, and web pages found through Tavily. Orbit data is screening-grade (about 1 km); CRIC is a research prototype, not an operational collision-avoidance service.
+CelesTrak GP and SATCAT, NOAA SWPC, NASA SDO via Helioviewer, Open-Meteo forecasts, published launcher figures
+(Wikipedia and makers' pages, linked per preset), and web pages found through Tavily. Orbit data is screening-grade (about 1 km); CRIC is a research prototype, not an operational collision-avoidance service.
 
 ## License
 

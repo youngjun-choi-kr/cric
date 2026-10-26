@@ -2,7 +2,7 @@
 
 For every vehicle with a published payload, find by bisection the largest payload the model can place in the
 published orbit (altitude, inclination) from a typical launch site, and compare. Writes
-fixtures/launch/vehicle_validation.json, which the studio shows next to the preset.
+fixtures/launch/vehicle_validation.json, which the studio shows next to the preset, and web/launch/presets.json.
 
     .venv/bin/python scripts/validate_vehicles.py
 """
@@ -20,6 +20,7 @@ from cric.launch.vehicles import PRESETS
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "fixtures" / "launch" / "vehicle_validation.json"
+STATIC = ROOT / "web" / "launch" / "presets.json"
 SITE_FOR = {"nuri": "naro", "electron": "mahia", "sslv": "sriharikota", "alpha": "vandenberg"}
 
 
@@ -48,6 +49,9 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({"rows": rows, "method": "largest payload the model places in the published orbit "
                                                      "(bisection, guidance re-optimised per payload)"}, indent=1))
+    from cric.launch.api import presets
+
+    STATIC.write_text(json.dumps(presets({}), indent=1))   # the studio's preset list when no server is running
     for r in rows:
         print(f"{r['vehicle']:16} published {r['published_payload_kg']:>6} kg  model {r['model_payload_kg']:>6} kg  "
               f"({r['error_pct']:+.0f}%)  {r['orbit']}  {r['note']}")

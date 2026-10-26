@@ -8,6 +8,7 @@ API:
       replay streams the trace saved by an earlier live run and makes no API calls.
   GET /api/incidents   saved incidents (newest first)
   GET /api/eval        latest decision-eval summary
+  /api/launch/*        Mission Studio (see cric.launch.api)
 
 Bound to localhost; live runs are refused for cross-site requests because they spend API credits.
 
@@ -30,6 +31,8 @@ from cric.config import DATA, SNAPSHOT
 from datetime import datetime, timedelta, timezone
 
 from cric.physics.timeutil import iso, parse_utc
+from cric.launch import api as launch_api
+from cric.launch.deploy import find_tca as studio_tca
 from cric.pipeline import INCIDENTS, PRESETS, default_now, preset, run_incident
 
 ACTIONABLE_H = 2.0  # a live decision needs at least this much time before TCA
@@ -42,6 +45,8 @@ LIVE_LOCK = threading.Lock()  # one paid run at a time
 
 
 def _find_tca(ours: int, other: int) -> str:
+    if (tca := studio_tca(ours, other)) is not None:    # a satellite launched in Mission Studio
+        return tca
     events = json.loads((SNAPSHOT / "conjunctions.json").read_text())["events"]
     ev = next((e for e in events if {e["object_a"]["norad_id"], e["object_b"]["norad_id"]} == {ours, other}), None)
     if ev is None:
@@ -164,6 +169,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path == "/api/approval":
             return self._approval()
+        if url.path.startswith("/api/launch/"):
+            return self._launch(url.path)
         if url.path != "/api/frame":
             return self.send_error(404)
         if not self._local_request():
@@ -219,6 +226,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 f.write(json.dumps(entry) + "\n")
         self._json(200, entry | {"note": "logged; simulated hand-off, no command was sent"})
 
+    def _launch(self, path: str) -> None:
+        """Mission Studio (cric.launch.api). Local only: the simulations are heavy and some calls spend credits."""
+        if not self._local_request():
+            return self.send_error(403, "local requests only")
+        size = int(self.headers.get("Content-Length", 0))
+        if not 0 <= size < 25_000_000:
+            return self.send_error(413)
+        body = self.rfile.read(size) if size else b""
+        mime = self.headers.get("Content-Type", "").split(";")[0].strip()
+        code, payload = launch_api.handle_post(path, body, mime)
+        self._json(code, payload)
+
     def _approvals(self) -> None:
         """GET /api/approvals: the decision log with a chain check (any edited or deleted line breaks it)."""
         entries = _approval_entries()
@@ -227,7 +246,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         url = urlparse(self.path)
         routes = {"/api/incident": self.api_incident, "/api/incidents": self.api_incidents, "/api/eval": self.api_eval,
-                  "/api/approvals": lambda *_: self._approvals()}
+                  "/api/approvals": lambda *_: self._approvals(),
+                  **{p: (lambda f: lambda q: self._json(200, f(q)))(f) for p, f in launch_api.GET.items()}}
         if url.path in routes:
             return routes[url.path](parse_qs(url.query))
         super().do_GET()

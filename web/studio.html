@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRIC Mission Studio</title>
+<link rel="stylesheet" href="console.css">
+<link rel="stylesheet" href="studio.css">
+<script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="loading"><div>Loading Earth…</div></div>
+
+<div class="panel" id="studioHud">
+  <h1>CRIC MISSION STUDIO</h1>
+  <div class="sub">Your rocket → your launch window → your satellite in orbit · 3-DOF ascent · Open-Meteo · NOAA SWPC · CelesTrak · NVIDIA Nemotron on Nebius</div>
+  <nav id="steps">
+    <button data-step="1" class="on"><b>1</b> Rocket</button>
+    <button data-step="2" disabled><b>2</b> Launch window</button>
+    <button data-step="3" disabled><b>3</b> Operate</button>
+    <a href="./" class="dim" title="The CRIC operations console">Console ↗</a>
+  </nav>
+  <div id="serverNote" hidden>Mission Studio runs its simulations on the local server: <code>.venv/bin/python web/serve.py</code>, then open <code>http://localhost:8765/studio.html</code>.</div>
+</div>
+
+<!-- ======================= STEP 1 ======================= -->
+<div class="panel scol" id="left1" data-for="1">
+  <h2>YOUR ROCKET</h2>
+  <div class="tabs" id="methodTabs">
+    <button data-m="preset" class="on">Published rockets</button>
+    <button data-m="sheet">Spec sheet (photo / PDF)</button>
+    <button data-m="form">Form &amp; sliders</button>
+  </div>
+  <div data-mp="preset">
+    <select id="presetSel"></select>
+    <div id="presetCard" class="card"></div>
+  </div>
+  <div data-mp="sheet" hidden>
+    <label id="drop" class="drop">
+      <input type="file" id="sheetFile" accept="image/png,image/jpeg,image/webp,application/pdf" hidden>
+      <div><b>Drop a spec sheet</b> or click to choose<br><span class="dim">PNG / JPEG / PDF · read by Nemotron 3.5 Super VL (images) or Nemotron 3 Super (PDF text)</span></div>
+    </label>
+    <div class="dim small">Try <a href="launch/garage_one_spec.png" target="_blank">a sample sheet</a> (save it, then drop it here).</div>
+    <div id="sheetStatus" class="small"></div>
+  </div>
+  <div data-mp="form" hidden>
+    <div class="small dim">Every number carries where it came from: <span class="prov published">published</span> <span class="prov read">read</span> <span class="prov derived">derived</span> <span class="prov assumed">assumed</span> <span class="prov edited">edited</span> <span class="prov missing">missing</span></div>
+    <div id="vehForm"></div>
+  </div>
+
+  <h2 class="mt">YOUR ORBIT</h2>
+  <div class="ctl"><textarea id="targetText" rows="2" placeholder="e.g. My 5 kg cubesat JIMIN-1 should photograph Seoul from a 500 km sun-synchronous orbit."></textarea></div>
+  <div class="ctl"><button id="targetBtn">Read it <span class="model">Nemotron Nano</span></button><span id="targetStatus" class="small dim"></span></div>
+  <div class="grid2">
+    <label>Altitude <span class="dim">km</span><input id="alt" type="number" value="500" min="160" max="2000" step="10"></label>
+    <label>Orbit <select id="orbitKind"><option value="sso">Sun-synchronous</option><option value="inclination">Inclination…</option><option value="polar">Polar (90°)</option><option value="iss">ISS-like (51.6°)</option></select></label>
+    <label>Inclination <span class="dim">°</span><input id="incl" type="number" step="0.1" disabled></label>
+    <label>Payload <span class="dim">kg</span><input id="payload" type="number" min="0" step="1"></label>
+  </div>
+  <label class="full">Launch site <select id="siteSel"></select></label>
+  <div id="azNote" class="small dim"></div>
+  <div class="ctl mt"><button id="flyBtn" class="primary big">▶ Fly it</button></div>
+</div>
+
+<div class="panel scol" id="right1" data-for="1" hidden>
+  <div id="verdict"></div>
+  <div id="flightBar" class="ctl"></div>
+  <div id="fixBox"></div>
+  <div id="dispBox"></div>
+  <details open><summary>Δv budget</summary><div id="dvTable"></div></details>
+  <details><summary>Flight events</summary><div id="events"></div></details>
+  <details><summary>Rocket as flown</summary><div id="flownSpec" class="small"></div></details>
+</div>
+
+<!-- ======================= STEP 2 ======================= -->
+<div class="panel" id="bottom2" data-for="2" hidden>
+  <h2><span>WHEN AND WHERE · next 7 days, hourly</span><span class="dim small" id="heatNote"></span></h2>
+  <div id="heat"></div>
+  <div id="lcolaBox"></div>
+</div>
+<div class="panel scol" id="right2" data-for="2" hidden>
+  <h2>GO / NO-GO</h2>
+  <div class="small dim">Pick an hour on the map, then minutes on the collision strip (up to 4). Three launch-team roles vote on each window (Nemotron 3 Super); the mission director (Nemotron 3 Ultra) writes the brief. A window graded no-go by the checks cannot be chosen.</div>
+  <div id="candList" class="chips mt"></div>
+  <div class="ctl"><button id="teamBtn" class="primary" disabled>Convene the launch team</button></div>
+  <div id="board"></div>
+</div>
+
+<!-- ======================= STEP 3 ======================= -->
+<div class="panel scol" id="left3" data-for="3" hidden>
+  <h2>YOUR SATELLITE</h2>
+  <div class="grid2">
+    <label>Name<input id="satName" value="JIMIN-1" maxlength="24"></label>
+    <label>Owner<input id="satOwner" value="Jimin"></label>
+    <label class="full">Mission<input id="satMission" value="imaging"></label>
+    <label>Home <input id="homeName" value="Seoul"></label>
+    <label>lat, lon<input id="homeLL" value="37.5665, 126.978"></label>
+  </div>
+  <label class="chk"><input type="checkbox" id="satProp" checked> it has propulsion (can manoeuvre)</label>
+  <div class="small dim" id="liftoffNote"></div>
+  <div class="ctl mt"><button id="deployBtn" class="primary big">🚀 Launch and hand over to CRIC</button></div>
+  <div id="deployOut"></div>
+</div>
+<div class="panel scol" id="right3" data-for="3" hidden>
+  <h2>OPERATIONS</h2>
+  <div id="opsOut" class="small dim">After launch, CRIC tracks the satellite with every catalogued object, tells you when it passes over home, and screens it for close approaches.</div>
+  <div id="incOut"></div>
+</div>
+
+<div id="tip" hidden></div>
+<div id="busy" hidden><div class="spin"></div><span id="busyTxt"></span></div>
+<script type="module" src="studio.js"></script>
+</body>
+</html>

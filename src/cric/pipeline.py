@@ -11,6 +11,8 @@ from .agent.decision import decide_votes
 from .agent.report import write_report
 from .config import DATA, FLEET, MODEL_SUPER, MODEL_ULTRA, MODEL_VL, ROOT
 from .ingest.celestrak import Catalog, snapshot_catalog
+from .launch.deploy import add_to_catalog as add_studio_objects
+from .launch.deploy import dossier as studio_dossier
 from .llm import Usage
 from .physics.maneuver import Encounter, trajectory_series
 from .physics.options import burn_options
@@ -128,6 +130,10 @@ def build_context(cat: Catalog, ours: int, other: int, tca: datetime, now: datet
     fleet = json.loads(FLEET.read_text()) if FLEET.exists() else {}
     dossiers = {}
     for n, role in ((ours, "ours"), (other, "other")):
+        if synthetic := studio_dossier(n):         # launched in Mission Studio: the registry is all there is
+            dossiers[n] = synthetic
+            emit("dossier", role=role, dossier=synthetic)
+            continue
         dossiers[n] = _cap_summary(build_dossier(n, use_tavily=use_tavily, usage=usage, emit=emit))
         if role == "ours" and str(n) in fleet:
             # Our own telemetry outranks web research about our satellite. The web facts are shown in the UI
@@ -168,6 +174,8 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
     tca = parse_utc(tca_utc)
     now = parse_utc(now_utc) if now_utc else datetime.now(timezone.utc)
     cat = cat or snapshot_catalog()
+    if studio_dossier(ours) or studio_dossier(other):
+        add_studio_objects(cat)
     mission = mission or {"notes": "No mission constraints today.", "blackouts": []}
     policy = policy or DEFAULT_POLICY
 

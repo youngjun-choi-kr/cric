@@ -6,6 +6,8 @@
   cric forge    --event "May 2024 G5 storm"    real event -> cited record (Tavily + Nemotron)
   cric watch    --every 30 --cycles 0          unattended loop: screen, decide, notify a person (Nebius job)
   cric cdm      FILE.cdm --hbr 20              Pc from a real Conjunction Data Message (CCSDS KVN)
+  cric launch-dispersion --vehicle electron --site mahia --runs 5000 --out disp.json
+                                               Mission Studio impact dispersion as a batch job (Nebius Serverless Jobs)
 """
 
 from __future__ import annotations
@@ -100,6 +102,36 @@ def cmd_watch(args) -> None:
           min_lead_min=args.min_lead, dry_run=args.dry_run, snapshot=args.snapshot)
 
 
+def cmd_launch_dispersion(args) -> None:
+    """Fly the rocket once to find its guidance, then the Monte Carlo on every core of the machine."""
+    import time
+
+    from .launch.ascent import optimise
+    from .launch.dispersion import dispersion
+    from .launch.geo import SITES, azimuths_for, in_corridor, sso_inclination
+    from .launch.vehicles import PRESETS, from_dict
+
+    veh = from_dict(json.loads(open(args.vehicle_file).read())) if args.vehicle_file else PRESETS[args.vehicle]
+    site = SITES[args.site]
+    incl = args.incl if args.incl is not None else sso_inclination(args.alt)
+    azs = [a for a in azimuths_for(site.lat, incl) if in_corridor(site, a)]
+    if not azs:
+        raise SystemExit(f"inclination {incl:.1f} is not reachable over the {site.name} corridor")
+    payload = args.payload if args.payload is not None else veh.payload_kg
+    kw = {"lat": site.lat, "lon": site.lon, "az": azs[0], "target_alt_km": args.alt}
+    t0 = time.time()
+    g, r = optimise(veh, payload, parallel=True, **kw)
+    d = dispersion(veh, payload, g, runs=args.runs, seed=args.seed, **kw)
+    d |= {"vehicle": veh.name, "payload_kg": payload, "site": site.name, "azimuth_deg": azs[0], "target_alt_km": args.alt,
+          "inclination_deg": incl, "nominal": {k: r[k] for k in ("orbit", "target_reached", "perigee_km", "apogee_km")},
+          "seconds": round(time.time() - t0, 1)}
+    out = args.out or str(DATA / f"dispersion_{veh.id}_{site.id}.json")
+    with open(out, "w") as f:
+        json.dump(d, f)
+    print(f"{veh.name} from {site.name}: {args.runs} runs in {d['seconds']} s · P(orbit) {d['p_orbit']:.1%} · "
+          f"P(target) {d['p_target']:.1%} -> {out}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="cric", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -154,6 +186,18 @@ def main() -> None:
     f.add_argument("--refresh", action="store_true")
     f.set_defaults(func=cmd_forge)
     e.set_defaults(func=lambda a: __import__("cric.eval.runner", fromlist=["main_cli"]).main_cli(a))
+
+    ld = sub.add_parser("launch-dispersion", help="Mission Studio: Monte Carlo impact dispersion as a batch job")
+    ld.add_argument("--vehicle", default="electron", help="preset id: nuri, electron, sslv, alpha, garage")
+    ld.add_argument("--vehicle-file", help="a vehicle JSON (as the studio form sends it) instead of a preset")
+    ld.add_argument("--payload", type=float)
+    ld.add_argument("--site", default="mahia")
+    ld.add_argument("--alt", type=float, default=500.0, help="target circular altitude, km")
+    ld.add_argument("--incl", type=float, help="inclination, deg (default: sun-synchronous)")
+    ld.add_argument("--runs", type=int, default=5000)
+    ld.add_argument("--seed", type=int, default=0)
+    ld.add_argument("--out")
+    ld.set_defaults(func=cmd_launch_dispersion)
 
     args = ap.parse_args()
     args.func(args)

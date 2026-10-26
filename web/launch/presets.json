@@ -1,0 +1,521 @@
+{
+ "vehicles": {
+  "nuri": {
+   "id": "nuri",
+   "name": "Nuri (KSLV-II)",
+   "stages": [
+    {
+     "name": "Stage 1",
+     "prop_kg": 131713.94868943587,
+     "dry_kg": 14634.883187715097,
+     "thrust_vac_n": 3036956.195603902,
+     "isp_vac_s": 298.6,
+     "isp_sl_s": 261.7,
+     "source": {
+      "isp_vac_s": "published",
+      "isp_sl_s": "published",
+      "burn_s": "published",
+      "prop_kg": "derived (thrust x burn / Isp g0, scaled to 200 t)",
+      "dry_kg": "assumed (10% of stage)",
+      "thrust_vac_n": "derived (mean over the burn)"
+     },
+     "solid": false,
+     "burn_s": 127.0
+    },
+    {
+     "name": "Stage 2",
+     "prop_kg": 33878.75138305061,
+     "dry_kg": 4619.829734052355,
+     "thrust_vac_n": 708024.1071407911,
+     "isp_vac_s": 315.4,
+     "isp_sl_s": 315.4,
+     "source": {
+      "isp_vac_s": "published",
+      "isp_sl_s": "assumed (= vacuum)",
+      "burn_s": "published",
+      "prop_kg": "derived (thrust x burn / Isp g0, scaled to 200 t)",
+      "dry_kg": "assumed (12% of stage)",
+      "thrust_vac_n": "derived (mean over the burn)"
+     },
+     "solid": false,
+     "burn_s": 148.0
+    },
+    {
+     "name": "Stage 3",
+     "prop_kg": 9642.069604596862,
+     "dry_kg": 2410.5174011492154,
+     "thrust_vac_n": 61727.482437274564,
+     "isp_vac_s": 325.1,
+     "isp_sl_s": 325.1,
+     "source": {
+      "isp_vac_s": "published",
+      "isp_sl_s": "assumed (= vacuum)",
+      "burn_s": "published",
+      "prop_kg": "derived (thrust x burn / Isp g0, scaled to 200 t)",
+      "dry_kg": "assumed (20% of stage)",
+      "thrust_vac_n": "derived (mean over the burn)"
+     },
+     "solid": false,
+     "burn_s": 498.0
+    }
+   ],
+   "diameter_m": 3.5,
+   "fairing_kg": 1200.0,
+   "payload_kg": 1900.0,
+   "published": {
+    "glow_t": 200,
+    "payload_kg": 1900,
+    "orbit": "700 km SSO",
+    "orbit_alt_km": 700,
+    "incl_deg": 98.2
+   },
+   "sources": [
+    "https://en.wikipedia.org/wiki/Nuri_(rocket)"
+   ],
+   "note": "Korea's three-stage launcher.",
+   "cd": 0.4,
+   "residual_frac": 0.015,
+   "fairing_sep_km": 110.0,
+   "glow_kg": 200000
+  },
+  "electron": {
+   "id": "electron",
+   "name": "Electron",
+   "stages": [
+    {
+     "name": "Stage 1",
+     "prop_kg": 9250,
+     "dry_kg": 950,
+     "thrust_vac_n": 234000.0,
+     "isp_vac_s": 311.0,
+     "isp_sl_s": 303.0,
+     "source": {
+      "thrust_vac_n": "published",
+      "isp_vac_s": "published",
+      "isp_sl_s": "assumed",
+      "prop_kg": "assumed (stack sums to 13.0 t)",
+      "dry_kg": "assumed"
+     },
+     "solid": false,
+     "burn_s": 120.6
+    },
+    {
+     "name": "Stage 2",
+     "prop_kg": 1970,
+     "dry_kg": 250,
+     "thrust_vac_n": 25800.0,
+     "isp_vac_s": 343.0,
+     "isp_sl_s": 343.0,
+     "source": {
+      "thrust_vac_n": "published",
+      "isp_vac_s": "published",
+      "isp_sl_s": "assumed (= vacuum)",
+      "prop_kg": "assumed",
+      "dry_kg": "assumed"
+     },
+     "solid": false,
+     "burn_s": 256.8
+    },
+    {
+     "name": "Kick stage",
+     "prop_kg": 40,
+     "dry_kg": 40,
+     "thrust_vac_n": 120.0,
+     "isp_vac_s": 300.0,
+     "isp_sl_s": 300.0,
+     "source": {
+      "thrust_vac_n": "published",
+      "isp_vac_s": "assumed",
+      "isp_sl_s": "assumed",
+      "prop_kg": "assumed",
+      "dry_kg": "assumed"
+     },
+     "solid": false,
+     "burn_s": 980.7
+    }
+   ],
+   "diameter_m": 1.2,
+   "fairing_kg": 50.0,
+   "payload_kg": 200.0,
+   "published": {
+    "glow_t": 13.0,
+    "payload_kg": 200,
+    "orbit": "500 km SSO",
+    "orbit_alt_km": 500,
+    "incl_deg": 97.4
+   },
+   "sources": [
+    "https://en.wikipedia.org/wiki/Electron_(rocket)"
+   ],
+   "note": "Rocket Lab's small launcher.",
+   "cd": 0.4,
+   "residual_frac": 0.015,
+   "fairing_sep_km": 110.0,
+   "glow_kg": 12750
+  },
+  "sslv": {
+   "id": "sslv",
+   "name": "SSLV",
+   "stages": [
+    {
+     "name": "SS1",
+     "prop_kg": 87000,
+     "dry_kg": 17516.176470588238,
+     "thrust_vac_n": 2442822.995758218,
+     "isp_vac_s": 270.0,
+     "isp_sl_s": 240.0,
+     "source": {
+      "prop_kg": "published",
+      "burn_s": "published",
+      "isp_vac_s": "assumed (typical solid)",
+      "isp_sl_s": "assumed",
+      "thrust_vac_n": "derived (mean over the burn)",
+      "dry_kg": "derived (stack sums to 120 t)"
+     },
+     "solid": true,
+     "burn_s": 94.3
+    },
+    {
+     "name": "SS2",
+     "prop_kg": 7700,
+     "dry_kg": 1358.8235294117646,
+     "thrust_vac_n": 193618.47435897437,
+     "isp_vac_s": 290.0,
+     "isp_sl_s": 290.0,
+     "source": {
+      "prop_kg": "published",
+      "burn_s": "published",
+      "isp_vac_s": "assumed (typical solid)",
+      "isp_sl_s": "assumed",
+      "thrust_vac_n": "derived (mean over the burn)",
+      "dry_kg": "assumed (15% of stage)"
+     },
+     "solid": true,
+     "burn_s": 113.1
+    },
+    {
+     "name": "SS3",
+     "prop_kg": 4500,
+     "dry_kg": 1125.0,
+     "thrust_vac_n": 119716.35406922357,
+     "isp_vac_s": 290.0,
+     "isp_sl_s": 290.0,
+     "source": {
+      "prop_kg": "published",
+      "burn_s": "published",
+      "isp_vac_s": "assumed (typical solid)",
+      "isp_sl_s": "assumed",
+      "thrust_vac_n": "derived (mean over the burn)",
+      "dry_kg": "assumed (20% of stage)"
+     },
+     "solid": true,
+     "burn_s": 106.9
+    },
+    {
+     "name": "VTM",
+     "prop_kg": 50.0,
+     "dry_kg": 150.0,
+     "thrust_vac_n": 800.0,
+     "isp_vac_s": 280.0,
+     "isp_sl_s": 280.0,
+     "source": {
+      "prop_kg": "published",
+      "thrust_vac_n": "published (16 x 50 N)",
+      "isp_vac_s": "assumed",
+      "isp_sl_s": "assumed",
+      "dry_kg": "assumed"
+     },
+     "solid": false,
+     "burn_s": 171.6
+    }
+   ],
+   "diameter_m": 2.0,
+   "fairing_kg": 300.0,
+   "payload_kg": 300.0,
+   "published": {
+    "glow_t": 120,
+    "payload_kg": 500,
+    "orbit": "500 km LEO",
+    "orbit_alt_km": 500,
+    "incl_deg": 45.0,
+    "note": "published LEO figure; the source does not give the LEO inclination, 45 deg assumed"
+   },
+   "sources": [
+    "https://en.wikipedia.org/wiki/Small_Satellite_Launch_Vehicle"
+   ],
+   "note": "India's small launcher: three solid stages and a liquid trim module that circularises.",
+   "cd": 0.4,
+   "residual_frac": 0.015,
+   "fairing_sep_km": 110.0,
+   "glow_kg": 120000
+  },
+  "alpha": {
+   "id": "alpha",
+   "name": "Firefly Alpha",
+   "stages": [
+    {
+     "name": "Stage 1",
+     "prop_kg": 41000,
+     "dry_kg": 3100,
+     "thrust_vac_n": 736100.0,
+     "isp_vac_s": 295.6,
+     "isp_sl_s": 275.0,
+     "source": {
+      "thrust_vac_n": "published",
+      "isp_vac_s": "published",
+      "isp_sl_s": "assumed",
+      "prop_kg": "assumed (stack sums to 54 t)",
+      "dry_kg": "assumed"
+     },
+     "solid": false,
+     "burn_s": 161.5
+    },
+    {
+     "name": "Stage 2",
+     "prop_kg": 7600,
+     "dry_kg": 900,
+     "thrust_vac_n": 70100.0,
+     "isp_vac_s": 322.0,
+     "isp_sl_s": 322.0,
+     "source": {
+      "thrust_vac_n": "published",
+      "isp_vac_s": "published",
+      "isp_sl_s": "assumed (= vacuum)",
+      "prop_kg": "assumed",
+      "dry_kg": "assumed"
+     },
+     "solid": false,
+     "burn_s": 342.4
+    }
+   ],
+   "diameter_m": 1.82,
+   "fairing_kg": 400.0,
+   "payload_kg": 630.0,
+   "published": {
+    "glow_t": 54,
+    "payload_kg": 630,
+    "orbit": "500 km SSO",
+    "orbit_alt_km": 500,
+    "incl_deg": 97.4
+   },
+   "sources": [
+    "https://en.wikipedia.org/wiki/Firefly_Alpha"
+   ],
+   "note": "Firefly Aerospace's two-stage launcher.",
+   "cd": 0.4,
+   "residual_frac": 0.015,
+   "fairing_sep_km": 110.0,
+   "glow_kg": 53630
+  },
+  "garage": {
+   "id": "garage",
+   "name": "Garage One (fictional)",
+   "stages": [
+    {
+     "name": "Stage 1",
+     "prop_kg": 4600,
+     "dry_kg": 520,
+     "thrust_vac_n": 92000.0,
+     "isp_vac_s": 275.0,
+     "isp_sl_s": 250.0,
+     "source": {
+      "prop_kg": "assumed (fictional)",
+      "dry_kg": "assumed (fictional)",
+      "thrust_vac_n": "assumed (fictional)",
+      "isp_vac_s": "assumed (fictional)",
+      "isp_sl_s": "assumed (fictional)"
+     },
+     "solid": false,
+     "burn_s": 134.8
+    },
+    {
+     "name": "Stage 2",
+     "prop_kg": 400,
+     "dry_kg": 75,
+     "thrust_vac_n": 9000.0,
+     "isp_vac_s": 300.0,
+     "isp_sl_s": 300.0,
+     "source": {
+      "prop_kg": "assumed (fictional)",
+      "dry_kg": "assumed (fictional)",
+      "thrust_vac_n": "assumed (fictional)",
+      "isp_vac_s": "assumed (fictional)",
+      "isp_sl_s": "assumed (fictional)"
+     },
+     "solid": false,
+     "burn_s": 130.8
+    }
+   ],
+   "diameter_m": 0.9,
+   "fairing_kg": 20.0,
+   "payload_kg": 5.0,
+   "published": {},
+   "sources": [],
+   "note": "A fictional student rocket that falls just short of orbit.",
+   "cd": 0.4,
+   "residual_frac": 0.015,
+   "fairing_sep_km": 110.0,
+   "glow_kg": 5620
+  }
+ },
+ "sites": {
+  "naro": {
+   "id": "naro",
+   "name": "Naro Space Center (KR)",
+   "lat": 34.431,
+   "lon": 127.535,
+   "corridors": [
+    [
+     160,
+     200
+    ]
+   ]
+  },
+  "tanegashima": {
+   "id": "tanegashima",
+   "name": "Tanegashima (JP)",
+   "lat": 30.4,
+   "lon": 130.975,
+   "corridors": [
+    [
+     90,
+     190
+    ]
+   ]
+  },
+  "wenchang": {
+   "id": "wenchang",
+   "name": "Wenchang (CN)",
+   "lat": 19.614,
+   "lon": 110.951,
+   "corridors": [
+    [
+     90,
+     180
+    ]
+   ]
+  },
+  "sriharikota": {
+   "id": "sriharikota",
+   "name": "Satish Dhawan, Sriharikota (IN)",
+   "lat": 13.72,
+   "lon": 80.23,
+   "corridors": [
+    [
+     100,
+     140
+    ]
+   ]
+  },
+  "mahia": {
+   "id": "mahia",
+   "name": "Mahia Peninsula LC-1 (NZ)",
+   "lat": -39.261,
+   "lon": 177.865,
+   "corridors": [
+    [
+     60,
+     200
+    ]
+   ]
+  },
+  "kourou": {
+   "id": "kourou",
+   "name": "Guiana Space Centre (FR)",
+   "lat": 5.236,
+   "lon": -52.769,
+   "corridors": [
+    [
+     349.5,
+     360
+    ],
+    [
+     0,
+     93.5
+    ]
+   ]
+  },
+  "cape": {
+   "id": "cape",
+   "name": "Cape Canaveral (US)",
+   "lat": 28.562,
+   "lon": -80.577,
+   "corridors": [
+    [
+     35,
+     120
+    ]
+   ]
+  },
+  "vandenberg": {
+   "id": "vandenberg",
+   "name": "Vandenberg (US)",
+   "lat": 34.632,
+   "lon": -120.611,
+   "corridors": [
+    [
+     147,
+     210
+    ]
+   ]
+  },
+  "kodiak": {
+   "id": "kodiak",
+   "name": "Pacific Spaceport, Kodiak (US)",
+   "lat": 57.435,
+   "lon": -152.337,
+   "corridors": [
+    [
+     150,
+     210
+    ]
+   ]
+  }
+ },
+ "validation": {
+  "Nuri (KSLV-II)": {
+   "vehicle": "Nuri (KSLV-II)",
+   "site": "Naro Space Center (KR)",
+   "azimuth_deg": 189.96,
+   "orbit": "700 km SSO",
+   "inclination_flown_deg": 98.2,
+   "published_payload_kg": 1900,
+   "model_payload_kg": 1681,
+   "error_pct": -11.5,
+   "note": ""
+  },
+  "Electron": {
+   "vehicle": "Electron",
+   "site": "Mahia Peninsula LC-1 (NZ)",
+   "azimuth_deg": 189.57,
+   "orbit": "500 km SSO",
+   "inclination_flown_deg": 97.4,
+   "published_payload_kg": 200,
+   "model_payload_kg": 184,
+   "error_pct": -8.0,
+   "note": ""
+  },
+  "SSLV": {
+   "vehicle": "SSLV",
+   "site": "Satish Dhawan, Sriharikota (IN)",
+   "azimuth_deg": 133.29,
+   "orbit": "500 km LEO",
+   "inclination_flown_deg": 45.0,
+   "published_payload_kg": 500,
+   "model_payload_kg": 492,
+   "error_pct": -1.6,
+   "note": ""
+  },
+  "Firefly Alpha": {
+   "vehicle": "Firefly Alpha",
+   "site": "Vandenberg (US)",
+   "azimuth_deg": 189.01,
+   "orbit": "500 km SSO",
+   "inclination_flown_deg": 97.4,
+   "published_payload_kg": 630,
+   "model_payload_kg": 502,
+   "error_pct": -20.3,
+   "note": ""
+  }
+ }
+}
