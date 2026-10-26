@@ -40,7 +40,7 @@ Orbit maths never goes through an LLM: screening uses SGP4 on CelesTrak data, an
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 cp .env.example .env                          # add NEBIUS_API_KEY and TAVILY_API_KEY (see SETUP.md)
 .venv/bin/cric screen --hours 6               # real close approaches from CelesTrak
-.venv/bin/cric incident --ours 43250 --other 34430   # IRIDIUM 149 x COSMOS 2251 DEB, decided at TCA - 3 h
+.venv/bin/cric incident --ours 60454 --other 61786   # EOS-08 x SITRO-AIS 38, decided at TCA - 3 h
 .venv/bin/python -m pytest -q                 # offline tests: physics and safety rules
 ```
 
