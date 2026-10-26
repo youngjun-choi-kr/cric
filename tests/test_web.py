@@ -47,6 +47,9 @@ def test_static_replay_and_approval(site):
         assert page.is_visible("#apprSec")
         page.click("#apprNo")                                   # a rejection needs a reason first
         assert page.is_visible("#apprWhy")
+        page.click("#apprYes")                                  # no name yet: nothing is logged
+        assert page.inner_text("#apprLog") == ""
+        page.fill("#apprWho", "test operator")
         page.click("#apprYes")
         assert "approved" in page.inner_text("#apprLog")
         assert page.inner_text("#evalBody").count("Scenarios handled correctly") == 1

@@ -198,3 +198,21 @@ def test_storm_drag_grows_with_kp_time_and_lower_altitude():
     a, b = storm_along_km(500, 8, 0.5), storm_along_km(500, 8, 1.0)
     assert 3.5 < b / a < 4.5                                          # quadratic in time
     assert storm_along_km(400, 8, 1.0) > storm_along_km(800, 8, 1.0) * 10
+
+
+def test_approval_log_chain_detects_edits():
+    import hashlib
+    import json as _json
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "web"))
+    from serve import _chain_ok
+    entries, prev = [], "0" * 64
+    for i in range(3):
+        e = {"logged_utc": f"t{i}", "operator": "a", "verdict": "approve", "prev_hash": prev}
+        e["hash"] = hashlib.sha256(_json.dumps(e, sort_keys=True).encode()).hexdigest()
+        entries.append(e)
+        prev = e["hash"]
+    assert _chain_ok(entries)
+    entries[1]["verdict"] = "reject"
+    assert not _chain_ok(entries)

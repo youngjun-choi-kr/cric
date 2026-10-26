@@ -17,6 +17,7 @@ Bound to localhost; live runs are refused for cross-site requests because they s
 from __future__ import annotations
 
 import functools
+import hashlib
 import http.server
 import json
 import pathlib
@@ -102,6 +103,25 @@ def _execution(d: dict) -> dict | None:
                    sigma_rtn_km=d["context"]["risk"].get("sigma_rtn_km"))
 
 
+APPROVAL_LOCK = threading.Lock()
+
+
+def _approval_entries() -> list[dict]:
+    path = DATA / "approvals.jsonl"
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+
+
+def _chain_ok(entries: list[dict]) -> bool:
+    """Each entry's hash covers its content and the previous hash, so the log is tamper-evident."""
+    prev = "0" * 64
+    for e in entries:
+        body = {k: v for k, v in e.items() if k != "hash"}
+        if e.get("prev_hash") != prev or hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest() != e.get("hash"):
+            return False
+        prev = e["hash"]
+    return True
+
+
 def _result_event(d: dict, file: str | None = None) -> dict:
     ctx = d["context"]
     return {"kind": "result", "pair": d.get("pair"), "decision": d["decision"], "validation": d["validation"],
@@ -183,16 +203,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_error(400, "need verdict approve|reject and action")
         if verdict == "reject" and not str(body.get("reason", "")).strip():
             return self.send_error(400, "a rejection needs a reason")
+        if not str(body.get("operator", "")).strip():
+            return self.send_error(400, "say who decides (operator)")
         entry = {"logged_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                  **{k: str(body.get(k, ""))[:1000] for k in ("file", "action", "option_id", "verdict", "reason", "operator")},
                  "sent": False}
-        with (DATA / "approvals.jsonl").open("a") as f:
-            f.write(json.dumps(entry) + "\n")
+        incident = INCIDENTS / entry["file"]
+        if entry["file"] and incident.resolve().parent == INCIDENTS.resolve() and incident.exists():
+            entry["incident_sha256"] = hashlib.sha256(incident.read_bytes()).hexdigest()   # what exactly was approved
+        with APPROVAL_LOCK:
+            prev = _approval_entries()[-1]["hash"] if _approval_entries() else "0" * 64
+            entry["prev_hash"] = prev
+            entry["hash"] = hashlib.sha256(json.dumps(entry, sort_keys=True).encode()).hexdigest()
+            with (DATA / "approvals.jsonl").open("a") as f:
+                f.write(json.dumps(entry) + "\n")
         self._json(200, entry | {"note": "logged; simulated hand-off, no command was sent"})
+
+    def _approvals(self) -> None:
+        """GET /api/approvals: the decision log with a chain check (any edited or deleted line breaks it)."""
+        entries = _approval_entries()
+        self._json(200, {"entries": entries[-50:], "count": len(entries), "chain_intact": _chain_ok(entries)})
 
     def do_GET(self) -> None:
         url = urlparse(self.path)
-        routes = {"/api/incident": self.api_incident, "/api/incidents": self.api_incidents, "/api/eval": self.api_eval}
+        routes = {"/api/incident": self.api_incident, "/api/incidents": self.api_incidents, "/api/eval": self.api_eval,
+                  "/api/approvals": lambda *_: self._approvals()}
         if url.path in routes:
             return routes[url.path](parse_qs(url.query))
         super().do_GET()

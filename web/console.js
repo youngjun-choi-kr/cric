@@ -378,18 +378,26 @@ function renderApproval(e) {
   $('apprBody').innerHTML = `<div class="appr"><div class="what">${what}</div>
     ${deadline ? `<div class="lim">${deadline}</div>` : ''}
     ${passed ? '<div class="lim">Recorded run: this TCA has passed. Your choice is logged, nothing is sent.</div>' : ''}
+    <input id="apprWho" placeholder="Your name (goes into the decision log)" style="width:100%;box-sizing:border-box;margin-top:6px;background:rgba(255,255,255,.05);color:inherit;border:1px solid var(--line);border-radius:6px;padding:5px;font:inherit;font-size:11.5px">
     <div class="btns"><button id="apprYes">Approve</button><button id="apprNo">Reject…</button></div>
     <textarea id="apprWhy" rows="2" placeholder="Why reject? (required; it goes into the log next to the agent's reasoning)" hidden></textarea>
     <div class="logged" id="apprLog"></div></div>`;
   const send = async (verdict) => {
     const reason = $('apprWhy').value.trim();
     if (verdict === 'reject' && !reason) { $('apprWhy').hidden = false; $('apprWhy').focus(); return; }
-    const body = { file: e.file, action: act, option_id: v.final_option_id, verdict, reason, operator: 'console' };
+    const who = $('apprWho').value.trim();
+    if (!who) { $('apprWho').focus(); $('apprWho').placeholder = 'Who decides? A name is required for the log'; return; }
+    try { localStorage.setItem('cric-operator', who); } catch { /* storage blocked */ }
+    const body = { file: e.file, action: act, option_id: v.final_option_id, verdict, reason, operator: who };
     let res;
     if (STATIC) res = { ...body, logged_utc: new Date().toISOString().slice(0, 19), note: 'static demo: kept in this page only' };
     else {
       const r = await fetch('/api/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       res = r.ok ? await r.json() : { note: `not logged: HTTP ${r.status}` };
+      if (r.ok) {
+        const log = await fetch('/api/approvals').then((x) => x.json()).catch(() => null);
+        if (log) res.note += ` · log entry ${res.hash.slice(0, 10)}… · chain ${log.chain_intact ? 'intact' : 'BROKEN'} (${log.count} entries)`;
+      }
     }
     $('apprYes').disabled = $('apprNo').disabled = true;
     $('apprLog').innerHTML = `<span class="tag ${verdict === 'approve' ? 'ok' : 'bad'}">${verdict === 'approve' ? 'approved' : 'rejected'}</span>
@@ -397,6 +405,7 @@ function renderApproval(e) {
       <div class="lim">Simulated hand-off. In operations an approved burn goes to the operator's own command system; CRIC never uplinks.</div>
       ${verdict === 'approve' && e.execution ? execBlock(e.execution) : ''}`;
   };
+  try { $('apprWho').value = localStorage.getItem('cric-operator') || ''; } catch { /* storage blocked */ }
   $('apprYes').onclick = () => send('approve');
   $('apprNo').onclick = () => { if ($('apprWhy').hidden) { $('apprWhy').hidden = false; $('apprWhy').focus(); } else send('reject'); };
 }
