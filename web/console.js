@@ -32,7 +32,7 @@ if (STATIC) {
   $('staticNote').hidden = false;
   $('staticNote').innerHTML = LIVE
     ? `Live data: CelesTrak catalog of ${LIVE.generated_utc.slice(0, 16).replace('T', ' ')} UTC, screened for the next ${LIVE.hours} h.
-       ${LIVE.incidents.length ? 'Today\'s incident was decided by the real pipeline.' : 'No incident run today.'}
+       ${LIVE.incidents.length ? 'Today\'s closest encounter was decided by the real pipeline: pick it and press Replay.' : 'Orbits only today (the daily AI run needs API keys as repository secrets).'}
        <a href="?data=snapshot">Recorded demo runs (24–25 Oct) →</a>`
     : `Recorded demo: runs from 24–25 Oct 2026 on the frozen catalog; these encounters have passed.
        ${QS0.get('data') === 'snapshot' ? '<a href="?">Today\'s orbits →</a>' : ''} Live decisions need the local server and keys (SETUP.md).`;
