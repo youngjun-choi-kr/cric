@@ -25,7 +25,7 @@ from ..llm import Usage
 from ..physics.timeutil import iso, parse_utc
 from ..pipeline import DEFAULT_POLICY, physics_block
 from ..safety.validator import validate
-from .scenarios import ENCOUNTERS, HELDOUT, HELDOUT2, SCENARIOS, Scenario, forged_scenarios
+from .scenarios import ENCOUNTERS, HELDOUT, HELDOUT2, HELDOUT3, SCENARIOS, Scenario, forged_scenarios
 
 RESULTS = DATA / "eval"
 
@@ -203,7 +203,8 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
 
 def run(models: list[str], repeats: int = 3, scenario_ids: list[str] | None = None, workers: int = 4,
         scenario_set: str = "tuning", log=print) -> dict:
-    pool_ = {"heldout": HELDOUT, "heldout2": HELDOUT2, "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
+    pool_ = {"heldout": HELDOUT, "heldout2": HELDOUT2, "heldout3": HELDOUT3,
+             "forged": forged_scenarios()}.get(scenario_set, SCENARIOS)
     chosen = [s for s in pool_ if not scenario_ids or s.id in scenario_ids]
     contexts = build_contexts(chosen, log=log)
     rows = []
@@ -247,7 +248,7 @@ def regrade(path) -> dict:
     """Re-apply the current safety validator to saved decisions (no model calls) and store the new summary."""
     d = json.loads(path.read_text())
     sc = {x["id"]: x for x in d["scenarios"]}
-    pool = {s.id: s for s in SCENARIOS + HELDOUT + HELDOUT2 + forged_scenarios()}
+    pool = {s.id: s for s in SCENARIOS + HELDOUT + HELDOUT2 + HELDOUT3 + forged_scenarios()}
     chosen = [pool[i] for i in sc if i in pool]
     contexts = build_contexts(chosen, log=lambda *_: None)
     for r in d["rows"]:

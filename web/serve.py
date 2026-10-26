@@ -66,7 +66,7 @@ def eval_sets() -> dict:
     separate files), summary only."""
     out = {}
     folder = DATA / "eval"
-    for name in ("heldout", "heldout2", "tuning", "forged"):
+    for name in ("heldout3", "heldout", "heldout2", "tuning", "forged"):
         # eval_<name>_<digits>: "heldout_*" alone would also match heldout2 files
         files = sorted((f for f in folder.glob(f"eval_{name}_*.json") if re.fullmatch(rf"eval_{name}_\d+_\d+", f.stem)),
                        key=lambda p: p.stat().st_mtime) if folder.exists() else []

@@ -21,7 +21,7 @@ from cric.config import DATA, SNAPSHOT
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "results"
-SETS = {"heldout2": "Held-out 2", "heldout": "Held-out", "tuning": "Tuning", "forged": "Real storms (Tavily)"}
+SETS = {"heldout3": "Held-out 3 (final, run once)", "heldout2": "Held-out 2", "heldout": "Held-out", "tuning": "Tuning", "forged": "Real storms (Tavily)"}
 ARMS = [("policy_rule", "Coded policy (fields only)"), ("nemotron-3-super-120b-a12b", "Super, one call"),
         ("nemotron-3-super-120b-a12b+vote3", "Super, 3 votes"),
         ("NVIDIA-Nemotron-3-Nano-30B-A3B+extract", "Nano reads notes, code decides"),

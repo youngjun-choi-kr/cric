@@ -23,6 +23,14 @@ ENCOUNTERS = {
     "red": {"ours": 60454, "other": 61786, "tca_utc": None},      # EOS-08 / SITRO-AIS 38, 17 m: red on TLE and CDM
     "yellow": {"ours": 52939, "other": 67291, "tca_utc": None},   # POEM / QMR-KWT-2, 0.61 km: yellow on TLE
     "green": {"ours": 43677, "other": 48423, "tca_utc": None},    # TEN-KOH / YAOGAN-30 09A, 1.16 km: green
+    # Held-out set 3: six more real encounters, each also listed by CelesTrak SOCRATES, chosen for spread in
+    # altitude (353-819 km), relative speed (6-15 km/s), miss distance and the kind of object on the other side.
+    "e1": {"ours": 59146, "other": 63010, "tca_utc": None},  # LEMUR-2-JOHNNYTRUONG / STARLINK-11574, 353 km, 166 m
+    "e2": {"ours": 41603, "other": 63047, "tca_utc": None},  # LAPAN-A3 / STARLINK-32590, 468 km, 6.1 km/s, 0.80 km
+    "e3": {"ours": 64532, "other": 58090, "tca_utc": None},  # TRANSPORTER-14 OBJECT E / STARLINK-30590, 483 km, 277 m
+    "e4": {"ours": 47932, "other": 57184, "tca_utc": None},  # CAS500-1 / MONITOR-2 (payload vs payload), 510 km, 0.81 km
+    "e5": {"ours": 27844, "other": 37920, "tca_utc": None},  # CUTE-1 / FENGYUN 1C DEB, 819 km, 348 m
+    "e6": {"ours": 41473, "other": 30531, "tca_utc": None},  # YAOGAN-30 01 / FENGYUN 1C DEB, 630 km, 1.28 km
 }
 
 
@@ -172,6 +180,56 @@ HELDOUT2 = [
              "Only a small along-track burn is allowed; the large late option is out.", avoid_option_kind="latest",
              mission_notes="추력기 2번 누설이 의심됩니다. 당분간 진행 방향(prograde/retrograde) 분사만 허용하고, "
                            "1회 분사량은 0.5 m/s 이하로 제한합니다."),
+]
+
+
+# Held-out set 3: written after the final pipeline design (two routes must agree) and committed before that
+# pipeline, or any model, ran on it. New encounters, so physics differs from every earlier set. Risk levels were
+# computed first (deterministic physics, no model) because the labels follow the operator policy on them:
+#   e1 red on TLE and on precise data; e2 yellow on TLE, green on precise; e3, e4, e5 red on TLE, green on
+#   precise; e6 green. At 1 h before TCA there is no time left to get precise data for e1, e4, e5.
+HELDOUT3 = [
+    Scenario("V01", "Precise red Pc, the other satellite can manoeuvre", "e1", {"COORDINATE"}, "structured",
+             "Both can move: notify the other operator before anyone burns.", other="active_yes", message_required=True),
+    Scenario("V02", "Precise red Pc, the other operator says it will move", "e1", {"MONITOR", "COORDINATE"}, "text",
+             "The other side committed to its own burn; moving too could undo it.", other="active_yes",
+             mission_notes="Message from the other operator's ops desk at {now} UTC: 'Our collision-avoidance system "
+                           "has scheduled a burn for this conjunction at {other_burn} UTC. Please hold.'"),
+    Scenario("V03", "TLE red Pc, three hours left", "e1", {"REQUEST_PRECISE_DATA"}, "structured",
+             "Public data finds the candidate; there is time to get precise data before deciding.",
+             data_quality="tle", other="active_yes"),
+    Scenario("V04", "TLE red Pc, one hour left, the other can manoeuvre", "e1", {"COORDINATE", "ESCALATE"}, "structured",
+             "No time for better data and the other side can move: coordinate or hand to a person.",
+             data_quality="tle", hours_before=1.0, other="active_yes"),
+    Scenario("V05", "TLE yellow Pc, three hours left", "e2", {"REQUEST_PRECISE_DATA", "MONITOR"}, "structured",
+             "Yellow on screening data: ask for better data or keep watching; no burn.", data_quality="tle",
+             other="active_yes"),
+    Scenario("V06", "Precise data clears a slow encounter", "e2", {"MONITOR"}, "structured",
+             "Precise data puts Pc far below any threshold.", other="active_yes"),
+    Scenario("V07", "TLE red Pc, one hour left, French note: propulsion unavailable", "e5", {"ESCALATE"}, "text",
+             "Only the note says we cannot burn, and there is no time for anything else.",
+             data_quality="tle", hours_before=1.0,
+             mission_notes="Équipe propulsion : le système de propulsion est indisponible jusqu'à nouvel ordre "
+                           "(défaut de vanne détecté à {safe_since} UTC)."),
+    Scenario("V08", "TLE red Pc, one hour left, debris, no constraints", "e5", {"MANEUVER", "ESCALATE"}, "structured",
+             "No time for precise data, red Pc, debris cannot move: burn the verified option or hand to a person."
+             , data_quality="tle", hours_before=1.0),
+    Scenario("V09", "Precise red Pc, Spanish note caps burns at 0.1 m/s", "e1", {"ESCALATE", "COORDINATE"}, "text",
+             "Every verified option exceeds the cap in the note; we may still ask the other operator to move.",
+             other="active_yes",
+             mission_notes="Jefe de operaciones: no se autoriza ningún encendido superior a 0,1 m/s sin su "
+                           "aprobación por escrito."),
+    Scenario("V10", "TLE red Pc, Korean note blocks the cheapest burn", "e4", {"REQUEST_PRECISE_DATA"}, "text",
+             "The blackout matters only if we burn; on screening data with time left, ask for precise data first.",
+             data_quality="tle", other="active_unknown",
+             mission_notes="{img_start}~{img_end} UTC 정밀 촬영 일정이 있어 이 시간에는 추력기 분사가 금지됩니다."),
+    Scenario("V11", "Green Pc, Japanese note about low propellant", "e6", {"MONITOR"}, "text",
+             "The note is true but irrelevant: nothing to do on a green Pc.", data_quality="tle",
+             mission_notes="推進剤の残量が少なくなっています。不要な軌道制御は避けてください。"),
+    Scenario("V12", "TLE red Pc, one hour left, other operational with unknown propulsion", "e4",
+             {"COORDINATE", "ESCALATE"}, "structured",
+             "No time for data; policy requires notifying an operational satellite's operator before moving.",
+             data_quality="tle", hours_before=1.0, other="active_unknown", message_required=True),
 ]
 
 

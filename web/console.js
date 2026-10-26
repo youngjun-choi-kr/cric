@@ -515,9 +515,10 @@ $('runReplay').onclick = () => runIncident('replay');
 
 // ---------- eval panel ----------
 const ARM = { naive_rule: 'Rule of thumb (miss < 1 km)', policy_rule: 'Coded policy, fields only' };
-const SET_LABEL = { heldout: 'Held-out', heldout2: 'Held-out 2', tuning: 'Tuning', forged: 'Real events (Tavily)' };
+const SET_LABEL = { heldout3: 'Held-out 3', heldout: 'Held-out', heldout2: 'Held-out 2', tuning: 'Tuning', forged: 'Real events (Tavily)' };
 const SET_NOTE = {
   heldout: 'Expected answers committed before any model ran on them.',
+  heldout3: 'New encounters, written after the final design and run once on the final pipeline.',
   heldout2: 'A second held-out set, committed after the design was frozen and before any model ran on it.',
   tuning: 'Used while designing the validator rules; optimistic.',
   forged: 'Real storms researched with Tavily, replayed as current conditions.',
@@ -547,7 +548,7 @@ function renderEval(sets, name) {
 }
 fetch(STATIC ? 'demo/eval.json' : '/api/eval').then((r) => (r.ok ? r.json() : null)).then((d) => {
   const sets = d?.sets || {};
-  const first = ['heldout2', 'heldout', 'tuning', 'forged'].find((k) => sets[k]);
+  const first = ['heldout3', 'heldout2', 'heldout', 'tuning', 'forged'].find((k) => sets[k]);
   if (!first) { $('evalBody').textContent = 'No eval run yet.'; return; }
   renderEval(sets, first);
 }).catch(() => ($('evalBody').textContent = 'Eval unavailable.'));

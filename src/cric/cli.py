@@ -124,7 +124,7 @@ def main() -> None:
     e.add_argument("--repeats", type=int, default=3)
     e.add_argument("--scenarios", help="comma list of scenario ids, e.g. S01,S07")
     e.add_argument("--workers", type=int, default=4)
-    e.add_argument("--set", choices=["tuning", "heldout", "heldout2", "forged"], default="tuning")
+    e.add_argument("--set", choices=["tuning", "heldout", "heldout2", "heldout3", "forged"], default="tuning")
     e.add_argument("--batch", action="store_true", help="run as one Nebius Token Factory batch job (single model)")
     e.add_argument("--batch-collect", metavar="BATCH_ID", help="grade a finished batch job")
     e.add_argument("--regrade", metavar="FILE", help="re-apply the current validator to a saved run (no model calls)")
