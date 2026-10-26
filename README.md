@@ -80,6 +80,14 @@ found 1,879 (99.7%); all 6 misses involve "analyst" objects whose elements diffe
 closest approach agree within 1 ms and miss distances within 1.1 m at the 95th percentile
 (`scripts/validate_socrates.py`, `results/socrates.json`).
 
+**Collision probability checked against NASA.** `cric cdm` reads a CCSDS Conjunction Data Message and computes Pc
+by integrating the combined covariance over the hard-body disk. It reproduces NASA CARA's published unit-test
+values (Omitron case 01: 2.706e-5 within 0.1%; the CDM of case 08: 2.27e-20 within 1%; `tests/test_cdm.py`). The
+same exact integral now replaces the small-object shortcut CRIC used before, which overestimated Pc about 2x when
+the covariance is as tight as precise ephemeris (no scenario's risk level changed). Against SOCRATES's maximum Pc
+the ranking agrees only moderately (Spearman 0.39 over the 300 closest pairs): both are screening numbers from
+different covariance assumptions.
+
 **Does the Sun image add anything?** We tested Nemotron 3.5 Super VL on archived SDO images: 10 calm days before
 G3-G5 storms and 10 calm days with no storm (2023-2026). Given the image alone, it rated drag risk "moderate"
 for all 20. No forecasting signal, so the image read only explains conditions to the operator; the physics uses

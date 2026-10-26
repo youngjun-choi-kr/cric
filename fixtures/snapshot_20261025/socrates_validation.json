@@ -215,5 +215,11 @@
    "tca": "2026-10-25T13:34:25.949741Z",
    "miss_km": 0.2996
   }
- ]
+ ],
+ "pc_rank_agreement": {
+  "pairs": 300,
+  "spearman_rho": 0.392,
+  "p_value": 1.77496201785277e-12,
+  "compared": "CRIC pc_max_if_better_data vs SOCRATES MAX_PROB, closest pairs first"
+ }
 }

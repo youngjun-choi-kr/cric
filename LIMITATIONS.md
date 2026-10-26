@@ -5,7 +5,7 @@ CRIC is a research prototype for decision support. It is not an operational coll
 ## Data
 - Orbits come from public CelesTrak GP/TLE data, accurate to roughly a kilometre. Close-approach distances
   from this data are screening-grade.
-- There is no real covariance or CDM. Pc uses an **assumed** covariance (TLE age and Kp driven). The
+- No real CDM for our encounters was available. `cric cdm` reads CDMs and was checked on NASA's sample CDMs, but the eval's "precise data" still uses a **simulated** covariance. Pc otherwise uses an **assumed** covariance (TLE age and Kp driven). The
   "precise data" mode in the eval uses a **simulated** CDM-grade covariance (~100 m along-track), not real data.
 - Debris: the snapshot includes the public debris groups CelesTrak redistributes (Fengyun-1C, Cosmos 2251,
   Iridium 33, Cosmos 1408 and "analyst" objects: 2,894 objects). The full debris catalog needs Space-Track
@@ -20,7 +20,7 @@ CRIC is a research prototype for decision support. It is not an operational coll
 - A burn's effect is a Clohessy-Wiltshire offset on top of the SGP4 path. Checked against a two-body
   integration (about 1% error for the burns tested), valid for hours to about a day after the burn.
 - Re-screening covers catalogued objects whose altitude band overlaps; uncatalogued debris is not modelled.
-- The Pc formula is the small-object approximation of Foster's 2D integral with a 20 m combined radius. Each Pc
+- Pc is Foster's 2D integral computed exactly over the hard-body disk (20 m combined radius), verified against NASA CARA test values; it is a 2D method, and NASA's case 08 shows 3D effects can make the true Pc far larger for slow, long encounters. Each Pc
   also comes with a sensitivity sweep (assumed sigmas x0.5-x2, combined radius 10-40 m); the console shows the
   range and whether the risk level holds across it.
 - Screening bug fixed on 2026-10-25: the coarse pass kept one sample per pair over the whole window, so a later,

@@ -69,12 +69,11 @@ def _rtn_cov_eci(r: np.ndarray, v: np.ndarray, sig: np.ndarray) -> np.ndarray:
 
 
 def _pc_2d(miss_vec_2d: np.ndarray, cov_2d: np.ndarray, hbr_km: float) -> float:
-    det = float(np.linalg.det(cov_2d))
-    if det <= 0:
-        return 0.0
-    m = miss_vec_2d
-    maha2 = float(m @ np.linalg.solve(cov_2d, m))
-    return min(1.0, hbr_km ** 2 / (2 * math.sqrt(det)) * math.exp(-0.5 * maha2))
+    """Exact 2D Pc (Foster): Gaussian mass inside the hard-body disk. The small-object shortcut used before
+    overestimated by about 2x when the covariance is as tight as precise ephemeris (sigma ~ hard-body radius)."""
+    from .cdm import pc_disk
+
+    return pc_disk(miss_vec_2d, cov_2d, hbr_km)
 
 
 def collision_probability(enc: Encounter, age_days: tuple[float, float], *, kp: float = 2.0,

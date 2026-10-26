@@ -5,6 +5,7 @@
   cric eval     --models super,nano            decision scenarios vs rule baselines
   cric forge    --event "May 2024 G5 storm"    real event -> cited record (Tavily + Nemotron)
   cric watch    --every 30 --cycles 0          unattended loop: screen, decide, notify a person (Nebius job)
+  cric cdm      FILE.cdm --hbr 20              Pc from a real Conjunction Data Message (CCSDS KVN)
 """
 
 from __future__ import annotations
@@ -78,6 +79,20 @@ def cmd_forge(args) -> None:
     print(weather_note(rec))
 
 
+def cmd_cdm(args) -> None:
+    from .physics.cdm import parse_cdm, pc_from_cdm
+
+    cdm = parse_cdm(args.file)
+    res = pc_from_cdm(cdm, hbr_m=args.hbr)
+    o1, o2 = cdm["objects"][:2]
+    level = "red" if res["pc"] >= 1e-4 else "yellow" if res["pc"] >= 1e-5 else "green"
+    print(f"{cdm['originator'] or 'CDM'} TCA {cdm['tca']}  objects {o1['designator']} / {o2['designator']}  "
+          f"miss {res['miss_m']:.1f} m")
+    print(f"sigma RTN (m): {res['sigma_rtn_m'][0]} / {res['sigma_rtn_m'][1]}")
+    print(f"Pc {res['pc']:.3e} ({level}) with hard-body radius {args.hbr} m"
+          + (f"; CDM reports {res['pc_reported']:.3e}" if res["pc_reported"] is not None else ""))
+
+
 def cmd_watch(args) -> None:
     from .watch import watch
 
@@ -95,6 +110,11 @@ def main() -> None:
     s.add_argument("--threshold", type=float, default=5.0)
     s.add_argument("--no-debris", action="store_true", help="screen active satellites only")
     s.set_defaults(func=cmd_screen)
+
+    c = sub.add_parser("cdm", help="Pc from a CCSDS Conjunction Data Message")
+    c.add_argument("file")
+    c.add_argument("--hbr", type=float, default=20.0, help="combined hard-body radius, m")
+    c.set_defaults(func=cmd_cdm)
 
     w = sub.add_parser("watch", help="sense -> decide -> notify loop")
     w.add_argument("--every", type=float, default=30.0, help="minutes between cycles")

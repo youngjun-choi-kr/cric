@@ -48,6 +48,37 @@ def build_subset(full_csv: Path, start, end) -> list[dict]:
     return keep
 
 
+def pc_ranks(cat, by_pair: dict, found: dict, n: int = 300) -> dict:
+    """Spearman rank correlation between SOCRATES's maximum Pc and CRIC's Pc for the n closest matched pairs.
+    SOCRATES reports the largest Pc any covariance size could give (dilution maximum); CRIC's closest analogue is
+    pc_max_if_better_data under its assumed TLE covariance. Both are screening-grade numbers."""
+    from scipy.stats import spearmanr
+
+    from cric.physics.maneuver import Encounter
+    from cric.physics.risk import collision_probability
+    from cric.physics.timeutil import jdfr
+
+    rows = []
+    for k, rs in by_pair.items():
+        r = min(rs, key=lambda x: float(x["TCA_RANGE"]))
+        hit = found.get(k)
+        if hit and r["MAX_PROB"] not in ("", "NaN"):
+            rows.append((float(r["TCA_RANGE"]), r, hit[0]))
+    rows.sort(key=lambda x: x[0])
+    ours, theirs = [], []
+    for _, r, e in rows[:n]:
+        a, b = e["object_a"]["norad_id"], e["object_b"]["norad_id"]
+        tca = parse_utc(e["tca_utc"])
+        jd, fr = jdfr(tca, [0.0])
+        age = (cat.epoch_age_days(a, jd[0] + fr[0]), cat.epoch_age_days(b, jd[0] + fr[0]))
+        risk = collision_probability(Encounter(cat.sats[a], cat.sats[b], tca), age)
+        ours.append(risk["pc_max_if_better_data"])
+        theirs.append(float(r["MAX_PROB"]))
+    rho, p = spearmanr(ours, theirs)
+    return {"pairs": len(ours), "spearman_rho": round(float(rho), 3), "p_value": float(p),
+            "compared": "CRIC pc_max_if_better_data vs SOCRATES MAX_PROB, closest pairs first"}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", type=Path, help="full SOCRATES sort-minRange.csv download")
@@ -120,6 +151,7 @@ def main() -> None:
         "only_in_cric_examples": [{"pair": [e["object_a"]["name"], e["object_b"]["name"]], "tca": e["tca_utc"],
                                    "miss_km": e["miss_distance_km"]} for e in only_ours[:10]],
     }
+    res["pc_rank_agreement"] = pc_ranks(cat, by_pair, found)
     OUT.write_text(json.dumps(res, indent=1))
     print(json.dumps({k: v for k, v in res.items() if not k.endswith("examples")}, indent=1))
     for m in missed[:8]:
