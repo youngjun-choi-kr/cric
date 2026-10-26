@@ -12,7 +12,7 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return String(u || ''); } };
 const fmtDist = (km) => (km < 1 ? `${(km * 1000).toFixed(0)} m` : `${km.toFixed(2)} km`);
 const fmtUTC = (iso) => String(iso).slice(11, 19) + ' UTC';
-const pcTxt = (p) => (p > 0 ? p.toExponential(1) : '< 1e-300');
+const pcTxt = (p) => (p > 0 ? p.toExponential(1) : '≈ 0');
 
 // ---------- data ----------
 // Static mode (e.g. GitHub Pages): no API; replay recordings from demo/ and read orbits from the committed snapshot.
@@ -353,6 +353,7 @@ function execBlock(x) {
   return `<div class="exec"><b>Executed in simulation</b> (${x.samples} runs, 1σ errors: ${x.errors_1sigma.magnitude_pct}% Δv,
     ${x.errors_1sigma.pointing_deg}° pointing, ${x.errors_1sigma.timing_s} s timing) · re-checked:
     <div>miss ${fmtDist(x.miss_before_km)} → <b>${fmtDist(x.miss_nominal_km)}</b> planned · worst 5% ${fmtDist(x.miss_p5_km)} · minimum ${fmtDist(x.miss_min_km)}</div>
+    ${x.post_burn_pc ? `<div>Pc after the burn ${pcTxt(x.post_burn_pc.nominal)} · worst 5% ${pcTxt(x.post_burn_pc.worst_5pct)} · goal ≤ ${pcTxt(x.post_burn_pc.goal)} <span class="lim">(NASA CA handbook: 1.5 orders below 1e-4)</span></div>` : ''}
     <span class="tag ${ok ? 'ok' : 'bad'}">${ok ? 'conjunction cleared' : esc(x.verdict)}</span>
     <span class="lim">${Math.round(x.share_above_clear_km * 100)}% of runs stay beyond ${x.clear_km} km</span></div>`;
 }

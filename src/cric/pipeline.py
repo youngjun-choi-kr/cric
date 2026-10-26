@@ -257,7 +257,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
 
         enc = Encounter(cat.sats[ours], cat.sats[other], tca)
         trajectory = trajectory_series(enc, opt)
-        execution = execute(enc, opt)      # shown once a person approves: flown with errors, then re-checked
+        execution = execute(enc, opt, sigma_rtn_km=ctx["risk"]["sigma_rtn_km"])   # shown once a person approves
     emit("done", usage=usage.as_dict(), seconds=round(time.time() - t0, 1))
 
     result = {"pair": {"ours": ours, "other": other, "tca_utc": iso(tca)}, "context": ctx,

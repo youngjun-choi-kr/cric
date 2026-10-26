@@ -98,7 +98,8 @@ def _execution(d: dict) -> dict | None:
     pair = d["pair"]
     if pair["ours"] not in _CAT.sats or pair["other"] not in _CAT.sats:
         return None
-    return execute(Encounter(_CAT.sats[pair["ours"]], _CAT.sats[pair["other"]], parse_utc(pair["tca_utc"])), opt)
+    return execute(Encounter(_CAT.sats[pair["ours"]], _CAT.sats[pair["other"]], parse_utc(pair["tca_utc"])), opt,
+                   sigma_rtn_km=d["context"]["risk"].get("sigma_rtn_km"))
 
 
 def _result_event(d: dict, file: str | None = None) -> dict:
