@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 430" font-family="-apple-system, Helvetica, Arial, sans-serif">
+  <rect width="1100" height="430" rx="14" fill="#0b1220"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#8aa0c8"/>
+    </marker>
+  </defs>
+  <style>
+    .t{fill:#e6edff;font-size:15px;font-weight:600}
+    .s{fill:#9fb0d0;font-size:12px}
+    .h{fill:#6cc4ff;font-size:12px;font-weight:700;letter-spacing:.12em}
+    .box{fill:#121c30;stroke:#2a3a5c;stroke-width:1.2}
+    .code{fill:#10261f;stroke:#2f6b55}
+    .model{fill:#1a1838;stroke:#4f47a0}
+    .person{fill:#2a2210;stroke:#8a6a1e}
+    .l{stroke:#8aa0c8;stroke-width:1.6;fill:none;marker-end:url(#a)}
+  </style>
+
+  <text x="40" y="44" class="h">1 · SENSE</text>
+  <rect x="30" y="60" width="200" height="66" rx="9" class="box code"/>
+  <text x="44" y="86" class="t">Real orbits</text>
+  <text x="44" y="106" class="s">CelesTrak + SGP4, 18,806 objects</text>
+  <rect x="30" y="140" width="200" height="66" rx="9" class="box code"/>
+  <text x="44" y="166" class="t">Physics</text>
+  <text x="44" y="186" class="s">Pc, verified burns, MSIS drag</text>
+  <rect x="30" y="220" width="200" height="66" rx="9" class="box"/>
+  <text x="44" y="246" class="t">What the team says</text>
+  <text x="44" y="266" class="s">notes, any language; screenshots</text>
+
+  <text x="280" y="44" class="h">2 · READ</text>
+  <rect x="270" y="190" width="210" height="112" rx="9" class="box model"/>
+  <text x="284" y="216" class="t">Nemotron reads</text>
+  <text x="284" y="238" class="s">Super: notes → quoted constraints</text>
+  <text x="284" y="256" class="s">VL: screenshots → text</text>
+  <text x="284" y="282" class="s">code checks every quote</text>
+
+  <text x="530" y="44" class="h">3 · TWO ROUTES MUST AGREE</text>
+  <rect x="520" y="60" width="230" height="96" rx="9" class="box model"/>
+  <text x="534" y="86" class="t">Super × 3 votes</text>
+  <text x="534" y="106" class="s">then hard rules in code</text>
+  <text x="534" y="124" class="s">(validator: never riskier)</text>
+  <rect x="520" y="200" width="230" height="96" rx="9" class="box code"/>
+  <text x="534" y="226" class="t">Operator policy in code</text>
+  <text x="534" y="246" class="s">over the same fields, incl.</text>
+  <text x="534" y="264" class="s">constraints read from notes</text>
+
+  <rect x="790" y="140" width="120" height="80" rx="40" class="box"/>
+  <text x="850" y="176" class="t" text-anchor="middle">agree on</text>
+  <text x="850" y="196" class="t" text-anchor="middle">propellant?</text>
+
+  <text x="940" y="44" class="h">4 · A PERSON</text>
+  <rect x="940" y="60" width="140" height="96" rx="9" class="box person"/>
+  <text x="954" y="86" class="t">Approve /</text>
+  <text x="954" y="106" class="t">reject</text>
+  <text x="954" y="130" class="s">CRIC never uplinks</text>
+  <rect x="940" y="200" width="140" height="96" rx="9" class="box person"/>
+  <text x="954" y="226" class="t">Escalate</text>
+  <text x="954" y="246" class="s">both views and an</text>
+  <text x="954" y="264" class="s">Ultra-written brief</text>
+
+  <text x="530" y="344" class="h">5 · ACT AND SENSE AGAIN</text>
+  <rect x="520" y="356" width="560" height="52" rx="9" class="box code"/>
+  <text x="534" y="388" class="t">Approved burn flown in simulation with real-world errors, then re-checked</text>
+
+  <path class="l" d="M230 93 C 380 93, 420 93, 520 100"/>
+  <path class="l" d="M230 173 C 420 160, 490 170, 520 214"/>
+  <path class="l" d="M230 253 L 270 253"/>
+  <path class="l" d="M480 230 C 500 160, 505 130, 520 120"/>
+  <path class="l" d="M480 250 L 520 250"/>
+  <path class="l" d="M750 108 C 775 110, 780 150, 800 162"/>
+  <path class="l" d="M750 248 C 775 248, 780 210, 800 200"/>
+  <path class="l" d="M900 160 C 915 140, 920 115, 940 110"/>
+  <text x="905" y="128" class="s">yes</text>
+  <path class="l" d="M900 202 C 915 222, 920 240, 940 246"/>
+  <text x="905" y="238" class="s">no</text>
+  <path class="l" d="M1010 156 C 1010 180, 1010 330, 1000 356"/>
+</svg>

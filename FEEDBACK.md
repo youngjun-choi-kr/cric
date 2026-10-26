@@ -56,7 +56,7 @@ messages and LIMITATIONS.md have the details.
 
 7. **Batch inference could not be started.** We built a batch mode for the eval (same request bodies, JSONL
    upload with purpose "batch", `batches.create` with a 24 h window). File upload worked; creating the batch
-   returned `403 Creating new batch job is temporarily unavailable` on 2026-10-25 and again hours later.
+   returned `403 Creating new batch job is temporarily unavailable` on 2026-10-25 (twice) and again on 2026-10-26.
    *Suggestion:* show batch availability per account in the console, or queue the job instead of refusing it.
 
 ## Numbers from our runs

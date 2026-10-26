@@ -7,6 +7,20 @@ Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackat
 **Live demo (no install, replays recorded runs): https://youngjun-choi-kr.github.io/cric/web/**
 Pick a situation in the left panel and press *Replay recorded run*. Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 
+![How CRIC works: sense, read, two routes must agree, a person, act and sense again](docs/how-it-works.svg)
+
+**In one minute**
+- **Sense:** real orbits (CelesTrak + SGP4) find close approaches; code computes Pc, burn options checked against
+  every other object, and storm drag from NASA's MSIS model.
+- **Read:** Nemotron 3 Super turns the team's notes (any language) into constraints with exact quotes;
+  Nemotron 3.5 Super VL does the same for screenshots. Code checks every quote.
+- **Decide:** two independent routes must agree before anything spends propellant: Super's three votes after the
+  hard rules, and the operator policy in code. If they disagree, a person decides, with a brief from Nemotron 3 Ultra.
+- **Act and check:** a person approves; the burn is flown in simulation with real-world errors and the encounter
+  is checked again. CRIC never commands a spacecraft.
+- **Measured:** held-out sets fixed before running (the last one run once on the final pipeline), screening
+  checked against CelesTrak SOCRATES, Pc against NASA CARA's test values. See Results.
+
 ## How it uses Nebius and NVIDIA
 
 | Piece | Model / service | Role |
