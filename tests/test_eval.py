@@ -127,3 +127,16 @@ def test_cutoff_is_minute_precise_and_committed_other_lets_us_monitor():
     assert [e["id"] for e in out["mission"]["excluded_options"]] == ["O2"]
     assert validate({"action": "MONITOR", "option_id": None}, out, NOW)["final_action"] == "MONITOR"
     assert validate({"action": "MONITOR", "option_id": None}, ctx, NOW)["final_action"] == "ESCALATE"
+
+
+def test_agreement_escalates_only_on_propellant():
+    from cric.agent.constraints import agree
+    m = lambda a, o=None: {"action": a, "option_id": o, "message_to_other_operator": "hi" if a == "COORDINATE" else None}
+    assert agree(m("MANEUVER", "O1"), m("MANEUVER", "O2"))["action"] == "ESCALATE"      # different burns
+    assert agree(m("MANEUVER", "O1"), m("MONITOR"))["action"] == "ESCALATE"             # burn vs no burn
+    assert agree(m("COORDINATE", "O1"), m("MANEUVER", "O1"))["action"] == "COORDINATE"   # notify first
+    r = agree(m("MONITOR"), m("REQUEST_PRECISE_DATA"))
+    assert r["action"] == "REQUEST_PRECISE_DATA" and r["option_id"] is None
+    c = agree(m("COORDINATE", "O1"), m("COORDINATE", "O2"))
+    assert c["action"] == "COORDINATE" and c["option_id"] == "O1" and "confirm" in c["agreement"]
+    assert agree(m("ESCALATE"), m("MONITOR"))["action"] == "ESCALATE"

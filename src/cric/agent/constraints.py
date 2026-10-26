@@ -160,19 +160,42 @@ def coded_policy(ctx: dict, now: datetime) -> dict:
     return policy_rule(trimmed, now)
 
 
+REVERSIBLE = ("MONITOR", "REQUEST_PRECISE_DATA", "COORDINATE")   # least to most cautious; none spends propellant
+
+
 def agree(coded: dict, voted: dict) -> dict:
-    """Two independent routes must agree before CRIC proposes anything: the coded policy over the extracted
-    constraints, and the model's majority vote. Same action (and same option for a burn) -> that decision, with the
-    model's rationale and message; otherwise a person decides, with both views on the table."""
-    same = coded["action"] == voted["action"] and (
-        coded["action"] not in ("MANEUVER", "COORDINATE") or coded.get("option_id") == voted.get("option_id"))
-    if same:
+    """Two independent routes, the coded policy over the extracted constraints and the model's vote after the hard
+    rules, must agree on anything that spends propellant. A person decides when they do not:
+      - one route burns and the other does not, or they pick different burns  -> ESCALATE with both views;
+      - both coordinate but name different fallback burns                      -> coordinate, person confirms burn;
+      - one burns, the other notifies first, same burn                         -> notify first (COORDINATE);
+      - both choose among monitor / request data / message                     -> the more cautious of the two.
+    Either route escalating escalates."""
+    ca, va = coded["action"], voted["action"]
+    co, vo = coded.get("option_id"), voted.get("option_id")
+    if ca == va and (ca != "MANEUVER" or co == vo):
+        if ca == "COORDINATE" and co != vo:
+            return {**voted, "option_id": co, "agreement": f"agree on coordinating; fallback burn differs (model {vo}, "
+                    f"policy {co}): person to confirm"}
         return {**voted, "agreement": "coded policy and model agree"}
-    a = f"coded policy {coded['action']} {coded.get('option_id') or ''}".strip()
-    b = f"model {voted['action']} {voted.get('option_id') or ''}".strip()
+    pair = {ca, va}
+    if pair == {"MANEUVER", "COORDINATE"} and co == vo:
+        base = voted if va == "COORDINATE" else coded
+        return {**voted, **{k: base.get(k) for k in ("action", "option_id", "message_to_other_operator")},
+                "action": "COORDINATE", "agreement": "same burn; notify the other operator first"}
+    if pair <= set(REVERSIBLE):
+        pick = max((coded, voted), key=lambda d: REVERSIBLE.index(d["action"]))
+        out = {**voted, "action": pick["action"], "option_id": None,
+               "message_to_other_operator": pick.get("message_to_other_operator") or voted.get("message_to_other_operator"),
+               "agreement": f"no burn either way; took the more cautious of {ca} and {va}"}
+        if out["action"] == "COORDINATE" and not out["message_to_other_operator"]:
+            out["message_to_other_operator"] = "We see a predicted close approach; please share your intentions."
+        return out
+    a = f"coded policy {ca} {co or ''}".strip()
+    b = f"model {va} {vo or ''}".strip()
     return {"action": "ESCALATE", "option_id": None, "message_to_other_operator": None,
-            "rationale": f"The two decision routes disagree ({a}; {b}); a person should decide.",
+            "rationale": f"The two decision routes disagree on spending propellant ({a}; {b}); a person should decide.",
             "key_factors": [{"factor": "route disagreement", "evidence": f"{a}; {b}", "effect": "escalate"},
-                            {"factor": "policy", "evidence": "both routes must agree", "effect": "no automatic action"}],
+                            {"factor": "policy", "evidence": "burns need both routes", "effect": "no automatic action"}],
             "mission_conflicts": [], "recheck_at_utc": None, "confidence": 0.0,
             "unknowns": ["which route is right"], "agreement": "disagree", "routes": {"coded": coded, "model": voted}}

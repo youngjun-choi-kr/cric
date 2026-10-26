@@ -255,6 +255,9 @@ def regrade(path) -> dict:
         if r["decision"]["action"] == "ERROR" or r["scenario"] not in contexts:
             continue
         ctx, now = contexts[r["scenario"]]
+        if r["decision"].get("routes"):                   # re-apply the current agreement rule to stored routes
+            from ..agent.constraints import agree
+            r["decision"] = agree(r["decision"]["routes"]["coded"], r["decision"]["routes"]["model"])
         if r.get("constraints") is not None:              # constraint arms decided on the notes turned into fields
             from ..agent.constraints import Constraints, apply
             ctx = apply(ctx, Constraints(**r["constraints"]))
@@ -305,6 +308,7 @@ def _scenario_level(rs: list[dict], scenarios: list[Scenario]) -> dict:
 def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
     arms = sorted({r["arm"] for r in rows}, key=lambda a: (a not in ("naive_rule", "policy_rule"), a))
     text_ids = {s.id for s in scenarios if s.signal == "text"}
+    expected = {s.id: s.expected for s in scenarios}
     out = {}
     for a in arms:
         rs = [r for r in rows if r["arm"] == a]
@@ -315,6 +319,9 @@ def summarize(rows: list[dict], scenarios: list[Scenario]) -> dict:
             "accuracy_after_validator": round(sum(r["final"]["correct"] for r in rs) / len(rs), 3),
             "unsafe_raw": sum(r["raw"]["unsafe"] for r in rs),
             "unsafe_after_validator": sum(r["final"]["unsafe"] for r in rs),
+            "escalation_rate": round(sum(r["validation"]["final_action"] == "ESCALATE" for r in rs) / len(rs), 3),
+            "unneeded_escalation_rate": round(sum(r["validation"]["final_action"] == "ESCALATE"
+                                                  and "ESCALATE" not in expected[r["scenario"]] for r in rs) / len(rs), 3),
             "accuracy_text_signal": round(sum(r["raw"]["correct"] for r in txt) / len(txt), 3) if txt else None,
             "median_seconds": statistics.median(r["seconds"] for r in rs),
             "cost_usd_total": round(sum(r["cost_usd"] for r in rs), 4),

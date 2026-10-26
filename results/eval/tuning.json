@@ -10353,7 +10353,7 @@
     "action": "ESCALATE",
     "option_id": null,
     "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy MANEUVER O1; model REQUEST_PRECISE_DATA); a person should decide.",
+    "rationale": "The two decision routes disagree on spending propellant (coded policy MANEUVER O1; model REQUEST_PRECISE_DATA); a person should decide.",
     "key_factors": [
      {
       "factor": "route disagreement",
@@ -10362,7 +10362,7 @@
      },
      {
       "factor": "policy",
-      "evidence": "both routes must agree",
+      "evidence": "burns need both routes",
       "effect": "no automatic action"
      }
     ],
@@ -10477,7 +10477,7 @@
     "action": "ESCALATE",
     "option_id": null,
     "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy MANEUVER O1; model REQUEST_PRECISE_DATA); a person should decide.",
+    "rationale": "The two decision routes disagree on spending propellant (coded policy MANEUVER O1; model REQUEST_PRECISE_DATA); a person should decide.",
     "key_factors": [
      {
       "factor": "route disagreement",
@@ -10486,7 +10486,7 @@
      },
      {
       "factor": "policy",
-      "evidence": "both routes must agree",
+      "evidence": "burns need both routes",
       "effect": "no automatic action"
      }
     ],
@@ -10589,7 +10589,7 @@
     "action": "ESCALATE",
     "option_id": null,
     "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy MANEUVER O1; model REQUEST_PRECISE_DATA); a person should decide.",
+    "rationale": "The two decision routes disagree on spending propellant (coded policy MANEUVER O1; model REQUEST_PRECISE_DATA); a person should decide.",
     "key_factors": [
      {
       "factor": "route disagreement",
@@ -10598,7 +10598,7 @@
      },
      {
       "factor": "policy",
-      "evidence": "both routes must agree",
+      "evidence": "burns need both routes",
       "effect": "no automatic action"
      }
     ],
@@ -11687,80 +11687,49 @@
    "arm": "nemotron-3-super-120b-a12b+hybrid",
    "rep": 0,
    "decision": {
-    "action": "ESCALATE",
+    "action": "REQUEST_PRECISE_DATA",
     "option_id": null,
-    "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy MONITOR; model REQUEST_PRECISE_DATA); a person should decide.",
+    "rationale": "Pc is below the policy yellow threshold (1e-5) and the conjunction is based on public TLE data (~1 km accuracy). Operator policy states not to decide a burn while there is time to obtain precise ephemeris; there is ample time (>2 h) before the latest safe burn (O2) to acquire better data and still meet the 30\u2011minute command upload requirement. Our satellite can maneuver, but the other object is non\u2011maneuverable debris, so no coordination is needed.",
     "key_factors": [
      {
-      "factor": "route disagreement",
-      "evidence": "coded policy MONITOR; model REQUEST_PRECISE_DATA",
-      "effect": "escalate"
+      "factor": "Collision probability (Pc)",
+      "evidence": "risk.pc = 6.018417036359684e-06",
+      "effect": "Below policy yellow threshold (1e-05); maneuver not required per policy."
      },
      {
-      "factor": "policy",
-      "evidence": "both routes must agree",
-      "effect": "no automatic action"
+      "factor": "Data quality",
+      "evidence": "conjunction.data = 'public GP/TLE, accuracy about 1 km'; operator_policy.text mentions 'On public TLE data, do not decide a burn while there is time to get precise ephemeris'",
+      "effect": "Precise data should be sought before committing to a burn."
+     },
+     {
+      "factor": "Time until latest safe burn",
+      "evidence": "burn_options.O2.burn_utc = '2026-10-25T06:00:28.954166Z'; now_utc = '2026-10-25T03:19:37.954166Z' \u2192 ~2h40m available",
+      "effect": "Sufficient window to request and process precise data and still perform a 30\u2011minute command upload before the burn."
+     },
+     {
+      "factor": "Our satellite maneuver capability",
+      "evidence": "our_satellite.capability.can_maneuver = 'yes' (basis: operator records: propulsion nominal at last pass)",
+      "effect": "We are able to execute a burn if later analysis indicates risk warrants it."
+     },
+     {
+      "factor": "Other object maneuver capability",
+      "evidence": "other_object.capability.can_maneuver = 'no' (basis: SATCAT object type: debris)",
+      "effect": "No need to coordinate with another operator; the debris cannot maneuver."
      }
     ],
     "mission_conflicts": [],
-    "recheck_at_utc": null,
-    "confidence": 0.0,
+    "message_to_other_operator": "",
+    "recheck_at_utc": "2026-10-25T05:30:00Z",
+    "confidence": 0.85,
     "unknowns": [
-     "which route is right"
+     "Actual orbital uncertainty may be higher than TLE-derived sigma; improved data could raise Pc above decision thresholds.",
+     "Potential unmodeled atmospheric drag variations during the interval."
     ],
-    "agreement": "disagree",
-    "routes": {
-     "coded": {
-      "action": "MONITOR",
-      "option_id": null,
-      "message_to_other_operator": null
-     },
-     "model": {
-      "action": "REQUEST_PRECISE_DATA",
-      "option_id": null,
-      "rationale": "Pc is below the policy yellow threshold (1e-5) and the conjunction is based on public TLE data (~1 km accuracy). Operator policy states not to decide a burn while there is time to obtain precise ephemeris; there is ample time (>2 h) before the latest safe burn (O2) to acquire better data and still meet the 30\u2011minute command upload requirement. Our satellite can maneuver, but the other object is non\u2011maneuverable debris, so no coordination is needed.",
-      "key_factors": [
-       {
-        "factor": "Collision probability (Pc)",
-        "evidence": "risk.pc = 6.018417036359684e-06",
-        "effect": "Below policy yellow threshold (1e-05); maneuver not required per policy."
-       },
-       {
-        "factor": "Data quality",
-        "evidence": "conjunction.data = 'public GP/TLE, accuracy about 1 km'; operator_policy.text mentions 'On public TLE data, do not decide a burn while there is time to get precise ephemeris'",
-        "effect": "Precise data should be sought before committing to a burn."
-       },
-       {
-        "factor": "Time until latest safe burn",
-        "evidence": "burn_options.O2.burn_utc = '2026-10-25T06:00:28.954166Z'; now_utc = '2026-10-25T03:19:37.954166Z' \u2192 ~2h40m available",
-        "effect": "Sufficient window to request and process precise data and still perform a 30\u2011minute command upload before the burn."
-       },
-       {
-        "factor": "Our satellite maneuver capability",
-        "evidence": "our_satellite.capability.can_maneuver = 'yes' (basis: operator records: propulsion nominal at last pass)",
-        "effect": "We are able to execute a burn if later analysis indicates risk warrants it."
-       },
-       {
-        "factor": "Other object maneuver capability",
-        "evidence": "other_object.capability.can_maneuver = 'no' (basis: SATCAT object type: debris)",
-        "effect": "No need to coordinate with another operator; the debris cannot maneuver."
-       }
-      ],
-      "mission_conflicts": [],
-      "message_to_other_operator": "",
-      "recheck_at_utc": "2026-10-25T05:30:00Z",
-      "confidence": 0.85,
-      "unknowns": [
-       "Actual orbital uncertainty may be higher than TLE-derived sigma; improved data could raise Pc above decision thresholds.",
-       "Potential unmodeled atmospheric drag variations during the interval."
-      ],
-      "votes": {
-       "REQUEST_PRECISE_DATA": 2,
-       "MONITOR": 1
-      }
-     }
-    }
+    "votes": {
+     "REQUEST_PRECISE_DATA": 2,
+     "MONITOR": 1
+    },
+    "agreement": "no burn either way; took the more cautious of MONITOR and REQUEST_PRECISE_DATA"
    },
    "raw": {
     "correct": false,
@@ -11773,7 +11742,7 @@
     "reason": "expected ['MONITOR']"
    },
    "validation": {
-    "final_action": "ESCALATE",
+    "final_action": "REQUEST_PRECISE_DATA",
     "final_option_id": null,
     "overrides": [],
     "warnings": [],
@@ -11796,76 +11765,45 @@
    "arm": "nemotron-3-super-120b-a12b+hybrid",
    "rep": 1,
    "decision": {
-    "action": "ESCALATE",
+    "action": "REQUEST_PRECISE_DATA",
     "option_id": null,
-    "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy MONITOR; model REQUEST_PRECISE_DATA); a person should decide.",
+    "rationale": "Pc is well below the 1e-5 threshold (6.0e-06), indicating low collision risk. The latest safe burn (O2) occurs at 06:00:28Z, providing >2 hours before the maneuver and ample time (>30 min) for command upload. Policy mandates obtaining precise ephemeris when time allows before a burn on public TLE data, and the other object is non-maneuverable debris, removing coordination need.",
     "key_factors": [
      {
-      "factor": "route disagreement",
-      "evidence": "coded policy MONITOR; model REQUEST_PRECISE_DATA",
-      "effect": "escalate"
+      "factor": "Pc value",
+      "evidence": "risk.pc: 6.018417036359684e-06",
+      "effect": "Below policy thresholds for mandatory maneuver (Pc < 1e-5)."
      },
      {
-      "factor": "policy",
-      "evidence": "both routes must agree",
-      "effect": "no automatic action"
+      "factor": "Time to latest safe burn",
+      "evidence": "burn_options.options[1].burn_utc: 2026-10-25T06:00:28.954166Z; now_utc: 2026-10-25T03:19:37.954166Z",
+      "effect": "~2h40m lead, sufficient to request and process precise data before the 30\u2011minute command upload deadline."
+     },
+     {
+      "factor": "Command upload requirement",
+      "evidence": "operator_policy.min_command_upload_min: 30",
+      "effect": "O1 burn would violate the 30\u2011min lead (only ~6\u202fmin available); O2 satisfies the requirement."
+     },
+     {
+      "factor": "Other object maneuverability",
+      "evidence": "other_object.capability.can_maneuver: no",
+      "effect": "No need to coordinate with the other operator as the object is debris and cannot maneuver."
+     },
+     {
+      "factor": "Public TLE data limitation",
+      "evidence": "conjunction.data: public GP/TLE, accuracy about 1 km",
+      "effect": "Policy prohibits deciding a burn on TLE when time exists to obtain precise ephemeris."
      }
     ],
     "mission_conflicts": [],
-    "recheck_at_utc": null,
-    "confidence": 0.0,
-    "unknowns": [
-     "which route is right"
-    ],
-    "agreement": "disagree",
-    "routes": {
-     "coded": {
-      "action": "MONITOR",
-      "option_id": null,
-      "message_to_other_operator": null
-     },
-     "model": {
-      "action": "REQUEST_PRECISE_DATA",
-      "option_id": null,
-      "rationale": "Pc is well below the 1e-5 threshold (6.0e-06), indicating low collision risk. The latest safe burn (O2) occurs at 06:00:28Z, providing >2 hours before the maneuver and ample time (>30 min) for command upload. Policy mandates obtaining precise ephemeris when time allows before a burn on public TLE data, and the other object is non-maneuverable debris, removing coordination need.",
-      "key_factors": [
-       {
-        "factor": "Pc value",
-        "evidence": "risk.pc: 6.018417036359684e-06",
-        "effect": "Below policy thresholds for mandatory maneuver (Pc < 1e-5)."
-       },
-       {
-        "factor": "Time to latest safe burn",
-        "evidence": "burn_options.options[1].burn_utc: 2026-10-25T06:00:28.954166Z; now_utc: 2026-10-25T03:19:37.954166Z",
-        "effect": "~2h40m lead, sufficient to request and process precise data before the 30\u2011minute command upload deadline."
-       },
-       {
-        "factor": "Command upload requirement",
-        "evidence": "operator_policy.min_command_upload_min: 30",
-        "effect": "O1 burn would violate the 30\u2011min lead (only ~6\u202fmin available); O2 satisfies the requirement."
-       },
-       {
-        "factor": "Other object maneuverability",
-        "evidence": "other_object.capability.can_maneuver: no",
-        "effect": "No need to coordinate with the other operator as the object is debris and cannot maneuver."
-       },
-       {
-        "factor": "Public TLE data limitation",
-        "evidence": "conjunction.data: public GP/TLE, accuracy about 1 km",
-        "effect": "Policy prohibits deciding a burn on TLE when time exists to obtain precise ephemeris."
-       }
-      ],
-      "mission_conflicts": [],
-      "message_to_other_operator": "",
-      "recheck_at_utc": "2026-10-25T04:30:00Z",
-      "confidence": 0.92,
-      "unknowns": [],
-      "votes": {
-       "REQUEST_PRECISE_DATA": 3
-      }
-     }
-    }
+    "message_to_other_operator": "",
+    "recheck_at_utc": "2026-10-25T04:30:00Z",
+    "confidence": 0.92,
+    "unknowns": [],
+    "votes": {
+     "REQUEST_PRECISE_DATA": 3
+    },
+    "agreement": "no burn either way; took the more cautious of MONITOR and REQUEST_PRECISE_DATA"
    },
    "raw": {
     "correct": false,
@@ -11878,7 +11816,7 @@
     "reason": "expected ['MONITOR']"
    },
    "validation": {
-    "final_action": "ESCALATE",
+    "final_action": "REQUEST_PRECISE_DATA",
     "final_option_id": null,
     "overrides": [],
     "warnings": [],
@@ -11901,90 +11839,59 @@
    "arm": "nemotron-3-super-120b-a12b+hybrid",
    "rep": 2,
    "decision": {
-    "action": "ESCALATE",
+    "action": "REQUEST_PRECISE_DATA",
     "option_id": null,
-    "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy MONITOR; model REQUEST_PRECISE_DATA); a person should decide.",
+    "rationale": "Pc is below the yellow threshold (6e-6 < 1e-5) and the conjunction is based on public TLE data (~1 km accuracy). Operator policy prefers obtaining precise ephemeris when Pc is between 1e-5 and 1e-4 or diluted, and explicitly states not to decide a burn on public TLE data while time exists to get better data. There is sufficient time (>30 min) before the latest safe burn (O2 at 06:00:28Z) to request and process a CDM.",
     "key_factors": [
      {
-      "factor": "route disagreement",
-      "evidence": "coded policy MONITOR; model REQUEST_PRECISE_DATA",
-      "effect": "escalate"
+      "factor": "Collision probability",
+      "evidence": "risk.pc: 6.018417036359684e-06",
+      "effect": "Below yellow threshold (1e-5), indicating low immediate risk"
      },
      {
-      "factor": "policy",
-      "evidence": "both routes must agree",
-      "effect": "no automatic action"
+      "factor": "Data quality",
+      "evidence": "conjunction.data: public GP/TLE, accuracy about 1 km",
+      "effect": "Public TLE alone insufficient for maneuver decision per policy"
+     },
+     {
+      "factor": "Operator policy",
+      "evidence": "operator_policy.text: 'Between 1e-5 and 1e-4, or when Pc is diluted, prefer getting precise data if there is time before the latest safe burn. On public TLE data, do not decide a burn while there is time to get precise ephemeris;'",
+      "effect": "Guidance to request precise data before committing to a burn"
+     },
+     {
+      "factor": "Time to latest safe burn",
+      "evidence": "burn_options.options[O2].burn_utc: 2026-10-25T06:00:28.954166Z (lead_min 19.1)",
+      "effect": "Approx 2h40m from now, allowing >30 min for command upload and data retrieval"
+     },
+     {
+      "factor": "Other object maneuverability",
+      "evidence": "other_object.capability.can_maneuver: no (basis: SATCAT object type: debris)",
+      "effect": "No need to coordinate with other operator; debris cannot maneuver"
+     },
+     {
+      "factor": "Propulsion status",
+      "evidence": "our_satellite.capability.basis: operator records: propulsion nominal at last pass",
+      "effect": "Our satellite can execute a verified burn if needed"
+     },
+     {
+      "factor": "Mission constraints",
+      "evidence": "mission.notes: No mission constraints today.",
+      "effect": "No conflicts with planned operations"
      }
     ],
     "mission_conflicts": [],
-    "recheck_at_utc": null,
-    "confidence": 0.0,
+    "message_to_other_operator": "",
+    "recheck_at_utc": "2026-10-25T05:30:00Z",
+    "confidence": 0.82,
     "unknowns": [
-     "which route is right"
+     "precise ephemeris availability",
+     "actual covariance values"
     ],
-    "agreement": "disagree",
-    "routes": {
-     "coded": {
-      "action": "MONITOR",
-      "option_id": null,
-      "message_to_other_operator": null
-     },
-     "model": {
-      "action": "REQUEST_PRECISE_DATA",
-      "option_id": null,
-      "rationale": "Pc is below the yellow threshold (6e-6 < 1e-5) and the conjunction is based on public TLE data (~1 km accuracy). Operator policy prefers obtaining precise ephemeris when Pc is between 1e-5 and 1e-4 or diluted, and explicitly states not to decide a burn on public TLE data while time exists to get better data. There is sufficient time (>30 min) before the latest safe burn (O2 at 06:00:28Z) to request and process a CDM.",
-      "key_factors": [
-       {
-        "factor": "Collision probability",
-        "evidence": "risk.pc: 6.018417036359684e-06",
-        "effect": "Below yellow threshold (1e-5), indicating low immediate risk"
-       },
-       {
-        "factor": "Data quality",
-        "evidence": "conjunction.data: public GP/TLE, accuracy about 1 km",
-        "effect": "Public TLE alone insufficient for maneuver decision per policy"
-       },
-       {
-        "factor": "Operator policy",
-        "evidence": "operator_policy.text: 'Between 1e-5 and 1e-4, or when Pc is diluted, prefer getting precise data if there is time before the latest safe burn. On public TLE data, do not decide a burn while there is time to get precise ephemeris;'",
-        "effect": "Guidance to request precise data before committing to a burn"
-       },
-       {
-        "factor": "Time to latest safe burn",
-        "evidence": "burn_options.options[O2].burn_utc: 2026-10-25T06:00:28.954166Z (lead_min 19.1)",
-        "effect": "Approx 2h40m from now, allowing >30 min for command upload and data retrieval"
-       },
-       {
-        "factor": "Other object maneuverability",
-        "evidence": "other_object.capability.can_maneuver: no (basis: SATCAT object type: debris)",
-        "effect": "No need to coordinate with other operator; debris cannot maneuver"
-       },
-       {
-        "factor": "Propulsion status",
-        "evidence": "our_satellite.capability.basis: operator records: propulsion nominal at last pass",
-        "effect": "Our satellite can execute a verified burn if needed"
-       },
-       {
-        "factor": "Mission constraints",
-        "evidence": "mission.notes: No mission constraints today.",
-        "effect": "No conflicts with planned operations"
-       }
-      ],
-      "mission_conflicts": [],
-      "message_to_other_operator": "",
-      "recheck_at_utc": "2026-10-25T05:30:00Z",
-      "confidence": 0.82,
-      "unknowns": [
-       "precise ephemeris availability",
-       "actual covariance values"
-      ],
-      "votes": {
-       "REQUEST_PRECISE_DATA": 2,
-       "MONITOR": 1
-      }
-     }
-    }
+    "votes": {
+     "REQUEST_PRECISE_DATA": 2,
+     "MONITOR": 1
+    },
+    "agreement": "no burn either way; took the more cautious of MONITOR and REQUEST_PRECISE_DATA"
    },
    "raw": {
     "correct": false,
@@ -11997,7 +11904,7 @@
     "reason": "expected ['MONITOR']"
    },
    "validation": {
-    "final_action": "ESCALATE",
+    "final_action": "REQUEST_PRECISE_DATA",
     "final_option_id": null,
     "overrides": [],
     "warnings": [],
@@ -12510,84 +12417,53 @@
    "arm": "nemotron-3-super-120b-a12b+hybrid",
    "rep": 0,
    "decision": {
-    "action": "ESCALATE",
-    "option_id": null,
-    "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy COORDINATE O1; model MANEUVER O1); a person should decide.",
+    "action": "COORDINATE",
+    "option_id": "O1",
+    "rationale": "High collision probability (Pc=0.0729) exceeds policy threshold for maneuver; a verified low-delta-v burn option (O1) exists that achieves a safe miss distance of 2 km; our satellite has confirmed propulsion capability; sufficient time (>30 min) remains for command upload before the burn; the other object's maneuver capability is unknown, requiring notification per policy.",
     "key_factors": [
      {
-      "factor": "route disagreement",
-      "evidence": "coded policy COORDINATE O1; model MANEUVER O1",
-      "effect": "escalate"
+      "factor": "Collision probability",
+      "evidence": "risk.pc = 0.07291984448273788",
+      "effect": "Exceeds maneuver threshold (Pc >= 1e-4) triggering red-level risk"
      },
      {
-      "factor": "policy",
-      "evidence": "both routes must agree",
-      "effect": "no automatic action"
+      "factor": "Verified burn option",
+      "evidence": "burn_options.options[0].id = O1, dv_ms = 0.1484, miss_after_km = 2.0",
+      "effect": "Provides a safe trajectory with low propellant cost"
+     },
+     {
+      "factor": "Our satellite maneuver capability",
+      "evidence": "our_satellite.capability.can_maneuver = yes, basis = operator records: propulsion nominal at last pass",
+      "effect": "We can execute the burn"
+     },
+     {
+      "factor": "Command upload time",
+      "evidence": "now_utc = 2026-10-24T21:34:27, burn_utc (O1) = 2026-10-24T22:11:13 \u2192 ~36 min available",
+      "effect": "Meets policy minimum 30 min for uplink"
+     },
+     {
+      "factor": "Other object maneuver capability",
+      "evidence": "other_object.capability.can_maneuver = unknown, basis = no checked, unit-specific source on propulsion",
+      "effect": "Policy requires notification of operational satellite with unknown capability"
+     },
+     {
+      "factor": "Space weather",
+      "evidence": "space_weather.kp = 2.0, note = Quiet geomagnetic conditions",
+      "effect": "No adverse drag or radiation concerns"
      }
     ],
     "mission_conflicts": [],
-    "recheck_at_utc": null,
-    "confidence": 0.0,
+    "message_to_other_operator": "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold.",
+    "recheck_at_utc": "",
+    "confidence": 0.92,
     "unknowns": [
-     "which route is right"
+     "other_object.capability.can_maneuver"
     ],
-    "agreement": "disagree",
-    "routes": {
-     "coded": {
-      "action": "COORDINATE",
-      "option_id": "O1",
-      "message_to_other_operator": "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold."
-     },
-     "model": {
-      "action": "MANEUVER",
-      "option_id": "O1",
-      "rationale": "High collision probability (Pc=0.0729) exceeds policy threshold for maneuver; a verified low-delta-v burn option (O1) exists that achieves a safe miss distance of 2 km; our satellite has confirmed propulsion capability; sufficient time (>30 min) remains for command upload before the burn; the other object's maneuver capability is unknown, requiring notification per policy.",
-      "key_factors": [
-       {
-        "factor": "Collision probability",
-        "evidence": "risk.pc = 0.07291984448273788",
-        "effect": "Exceeds maneuver threshold (Pc >= 1e-4) triggering red-level risk"
-       },
-       {
-        "factor": "Verified burn option",
-        "evidence": "burn_options.options[0].id = O1, dv_ms = 0.1484, miss_after_km = 2.0",
-        "effect": "Provides a safe trajectory with low propellant cost"
-       },
-       {
-        "factor": "Our satellite maneuver capability",
-        "evidence": "our_satellite.capability.can_maneuver = yes, basis = operator records: propulsion nominal at last pass",
-        "effect": "We can execute the burn"
-       },
-       {
-        "factor": "Command upload time",
-        "evidence": "now_utc = 2026-10-24T21:34:27, burn_utc (O1) = 2026-10-24T22:11:13 \u2192 ~36 min available",
-        "effect": "Meets policy minimum 30 min for uplink"
-       },
-       {
-        "factor": "Other object maneuver capability",
-        "evidence": "other_object.capability.can_maneuver = unknown, basis = no checked, unit-specific source on propulsion",
-        "effect": "Policy requires notification of operational satellite with unknown capability"
-       },
-       {
-        "factor": "Space weather",
-        "evidence": "space_weather.kp = 2.0, note = Quiet geomagnetic conditions",
-        "effect": "No adverse drag or radiation concerns"
-       }
-      ],
-      "mission_conflicts": [],
-      "message_to_other_operator": "We plan to execute a prograde burn (option O1, dv\u22480.15\u202fm/s) at 2026-10-24T22:11:13Z to mitigate a close approach with your satellite (SITRO\u2011AIS\u00a038). Please confirm if you intend to maneuver so we can avoid conflicting actions.",
-      "recheck_at_utc": "",
-      "confidence": 0.92,
-      "unknowns": [
-       "other_object.capability.can_maneuver"
-      ],
-      "votes": {
-       "MANEUVER": 2,
-       "COORDINATE": 1
-      }
-     }
-    }
+    "votes": {
+     "MANEUVER": 2,
+     "COORDINATE": 1
+    },
+    "agreement": "same burn; notify the other operator first"
    },
    "raw": {
     "correct": false,
@@ -12595,13 +12471,13 @@
     "reason": "expected ['COORDINATE', 'MANEUVER']"
    },
    "final": {
-    "correct": false,
+    "correct": true,
     "unsafe": false,
-    "reason": "expected ['COORDINATE', 'MANEUVER']"
+    "reason": ""
    },
    "validation": {
-    "final_action": "ESCALATE",
-    "final_option_id": null,
+    "final_action": "COORDINATE",
+    "final_option_id": "O1",
     "overrides": [],
     "warnings": [],
     "accepted_as_is": true
@@ -12623,88 +12499,57 @@
    "arm": "nemotron-3-super-120b-a12b+hybrid",
    "rep": 1,
    "decision": {
-    "action": "ESCALATE",
-    "option_id": null,
-    "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy COORDINATE O1; model MANEUVER O1); a person should decide.",
+    "action": "COORDINATE",
+    "option_id": "O1",
+    "rationale": "Pc is far above the maneuver threshold (0.0729 >> 1e-4), verified burn options exist with sufficient lead time for command upload (>30 min), and the other object's maneuver capability is unknown requiring notification. Precise ephemeris (simulated CDM-grade) supports the Pc estimate, and space weather is quiet, so no additional uncertainty.",
     "key_factors": [
      {
-      "factor": "route disagreement",
-      "evidence": "coded policy COORDINATE O1; model MANEUVER O1",
-      "effect": "escalate"
+      "factor": "Collision probability exceeds maneuver threshold",
+      "evidence": "risk.pc = 0.07291984448273788",
+      "effect": "Policy requires a maneuver when Pc >= 1e-4 and a verified option exists."
      },
      {
-      "factor": "policy",
-      "evidence": "both routes must agree",
-      "effect": "no automatic action"
+      "factor": "Verified burn option available with adequate lead time",
+      "evidence": "burn_options.options[0].id = O1, burn_utc = 2026-10-24T22:11:13.156166Z, lead_min = 143.2 (>30 min command upload)",
+      "effect": "Allows safe execution of a maneuver within policy limits (dv < 1.0 m/s)."
+     },
+     {
+      "factor": "Other object's maneuver capability unknown",
+      "evidence": "other_object.capability.can_maneuver = \"unknown\"",
+      "effect": "Policy mandates notifying the operator of an operational satellite with unknown capability before maneuvering."
+     },
+     {
+      "factor": "Precise ephemeris (simulated CDM-grade) available",
+      "evidence": "conjunction.data = \"precise ephemeris (simulated CDM)\"; risk.data_quality = \"cdm\"",
+      "effect": "Provides confidence in the Pc estimate; no need to request additional data before acting."
+     },
+     {
+      "factor": "Quiet space weather",
+      "evidence": "space_weather.kp = 2.0; note = \"Quiet geomagnetic conditions; no NOAA watches or warnings.\"",
+      "effect": "Minimizes drag-related uncertainty in the conjunction prediction."
+     },
+     {
+      "factor": "Operator policy directs maneuver for high Pc with verified option",
+      "evidence": "operator_policy.text: \"Manoeuvre when Pc >= 1e-4 and a verified option exists.\"",
+      "effect": "Directly authorizes the selected burn option."
+     },
+     {
+      "factor": "No mission constraints today",
+      "evidence": "mission.notes = \"No mission constraints today.\"",
+      "effect": "No conflict with mission-specific blackouts or excluded options."
      }
     ],
     "mission_conflicts": [],
-    "recheck_at_utc": null,
-    "confidence": 0.0,
+    "message_to_other_operator": "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold.",
+    "recheck_at_utc": "",
+    "confidence": 0.95,
     "unknowns": [
-     "which route is right"
+     "other object's maneuver capability"
     ],
-    "agreement": "disagree",
-    "routes": {
-     "coded": {
-      "action": "COORDINATE",
-      "option_id": "O1",
-      "message_to_other_operator": "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold."
-     },
-     "model": {
-      "action": "MANEUVER",
-      "option_id": "O1",
-      "rationale": "Pc is far above the maneuver threshold (0.0729 >> 1e-4), verified burn options exist with sufficient lead time for command upload (>30 min), and the other object's maneuver capability is unknown requiring notification. Precise ephemeris (simulated CDM-grade) supports the Pc estimate, and space weather is quiet, so no additional uncertainty.",
-      "key_factors": [
-       {
-        "factor": "Collision probability exceeds maneuver threshold",
-        "evidence": "risk.pc = 0.07291984448273788",
-        "effect": "Policy requires a maneuver when Pc >= 1e-4 and a verified option exists."
-       },
-       {
-        "factor": "Verified burn option available with adequate lead time",
-        "evidence": "burn_options.options[0].id = O1, burn_utc = 2026-10-24T22:11:13.156166Z, lead_min = 143.2 (>30 min command upload)",
-        "effect": "Allows safe execution of a maneuver within policy limits (dv < 1.0 m/s)."
-       },
-       {
-        "factor": "Other object's maneuver capability unknown",
-        "evidence": "other_object.capability.can_maneuver = \"unknown\"",
-        "effect": "Policy mandates notifying the operator of an operational satellite with unknown capability before maneuvering."
-       },
-       {
-        "factor": "Precise ephemeris (simulated CDM-grade) available",
-        "evidence": "conjunction.data = \"precise ephemeris (simulated CDM)\"; risk.data_quality = \"cdm\"",
-        "effect": "Provides confidence in the Pc estimate; no need to request additional data before acting."
-       },
-       {
-        "factor": "Quiet space weather",
-        "evidence": "space_weather.kp = 2.0; note = \"Quiet geomagnetic conditions; no NOAA watches or warnings.\"",
-        "effect": "Minimizes drag-related uncertainty in the conjunction prediction."
-       },
-       {
-        "factor": "Operator policy directs maneuver for high Pc with verified option",
-        "evidence": "operator_policy.text: \"Manoeuvre when Pc >= 1e-4 and a verified option exists.\"",
-        "effect": "Directly authorizes the selected burn option."
-       },
-       {
-        "factor": "No mission constraints today",
-        "evidence": "mission.notes = \"No mission constraints today.\"",
-        "effect": "No conflict with mission-specific blackouts or excluded options."
-       }
-      ],
-      "mission_conflicts": [],
-      "message_to_other_operator": "We plan to execute a prograde maneuver (option O1) at 2026-10-24T22:11:13Z to mitigate conjunction with your satellite SITRO-AIS 38 (Norad 61786). Please confirm receipt.",
-      "recheck_at_utc": "",
-      "confidence": 0.95,
-      "unknowns": [
-       "other object's maneuver capability"
-      ],
-      "votes": {
-       "MANEUVER": 3
-      }
-     }
-    }
+    "votes": {
+     "MANEUVER": 3
+    },
+    "agreement": "same burn; notify the other operator first"
    },
    "raw": {
     "correct": false,
@@ -12712,13 +12557,13 @@
     "reason": "expected ['COORDINATE', 'MANEUVER']"
    },
    "final": {
-    "correct": false,
+    "correct": true,
     "unsafe": false,
-    "reason": "expected ['COORDINATE', 'MANEUVER']"
+    "reason": ""
    },
    "validation": {
-    "final_action": "ESCALATE",
-    "final_option_id": null,
+    "final_action": "COORDINATE",
+    "final_option_id": "O1",
     "overrides": [],
     "warnings": [],
     "accepted_as_is": true
@@ -12740,83 +12585,52 @@
    "arm": "nemotron-3-super-120b-a12b+hybrid",
    "rep": 2,
    "decision": {
-    "action": "ESCALATE",
-    "option_id": null,
-    "message_to_other_operator": null,
-    "rationale": "The two decision routes disagree (coded policy COORDINATE O1; model MANEUVER O1); a person should decide.",
+    "action": "COORDINATE",
+    "option_id": "O1",
+    "rationale": "Collision probability is far above the policy threshold (Pc=0.0729 >> 1e-4) and a verified low-delta-v burn option exists that provides ample lead time for command upload and achieves a safe miss distance. Our satellite has confirmed maneuver capability, while the other object's capability is unknown, requiring notification per policy.",
     "key_factors": [
      {
-      "factor": "route disagreement",
-      "evidence": "coded policy COORDINATE O1; model MANEUVER O1",
-      "effect": "escalate"
+      "factor": "High collision probability",
+      "evidence": "risk.pc = 0.07291984448273788",
+      "effect": "Exceeds policy maneuver threshold (Pc >= 1e-4), necessitating a burn"
      },
      {
-      "factor": "policy",
-      "evidence": "both routes must agree",
-      "effect": "no automatic action"
+      "factor": "Precise ephemeris data quality",
+      "evidence": "risk.data_quality = 'cdm' and assumption note",
+      "effect": "Provides reliable PC; diluted flag is false, reducing chance of hidden higher risk"
+     },
+     {
+      "factor": "Our satellite can maneuver",
+      "evidence": "our_satellite.capability.can_maneuver = 'yes' (basis: operator records)",
+      "effect": "We are able to execute a burn option"
+     },
+     {
+      "factor": "Other object's maneuver capability unknown",
+      "evidence": "other_object.capability.can_maneuver = 'unknown'",
+      "effect": "Policy requires us to notify the other operator before maneuvering"
+     },
+     {
+      "factor": "Burn option O1 provides sufficient lead time",
+      "evidence": "burn_options.options[O1].lead_min = 143.2 min, burn_utc = 2026-10-24T22:11:13.156166Z, miss_after_km = 2.0 km",
+      "effect": "Allows >30 min for command upload and achieves safe miss distance well before TCA"
+     },
+     {
+      "factor": "Delta-v within policy limit",
+      "evidence": "burn_options.options[O1].dv_ms = 0.1484 m/s",
+      "effect": "Complies with max 1.0 m/s per burn constraint"
      }
     ],
     "mission_conflicts": [],
-    "recheck_at_utc": null,
-    "confidence": 0.0,
+    "message_to_other_operator": "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold.",
+    "recheck_at_utc": "",
+    "confidence": 0.96,
     "unknowns": [
-     "which route is right"
+     "Other object's propulsion capability and intent to maneuver"
     ],
-    "agreement": "disagree",
-    "routes": {
-     "coded": {
-      "action": "COORDINATE",
-      "option_id": "O1",
-      "message_to_other_operator": "Planned avoidance burn O1 at 2026-10-24T22:11:13.156166Z; please confirm you will hold."
-     },
-     "model": {
-      "action": "MANEUVER",
-      "option_id": "O1",
-      "rationale": "Collision probability is far above the policy threshold (Pc=0.0729 >> 1e-4) and a verified low-delta-v burn option exists that provides ample lead time for command upload and achieves a safe miss distance. Our satellite has confirmed maneuver capability, while the other object's capability is unknown, requiring notification per policy.",
-      "key_factors": [
-       {
-        "factor": "High collision probability",
-        "evidence": "risk.pc = 0.07291984448273788",
-        "effect": "Exceeds policy maneuver threshold (Pc >= 1e-4), necessitating a burn"
-       },
-       {
-        "factor": "Precise ephemeris data quality",
-        "evidence": "risk.data_quality = 'cdm' and assumption note",
-        "effect": "Provides reliable PC; diluted flag is false, reducing chance of hidden higher risk"
-       },
-       {
-        "factor": "Our satellite can maneuver",
-        "evidence": "our_satellite.capability.can_maneuver = 'yes' (basis: operator records)",
-        "effect": "We are able to execute a burn option"
-       },
-       {
-        "factor": "Other object's maneuver capability unknown",
-        "evidence": "other_object.capability.can_maneuver = 'unknown'",
-        "effect": "Policy requires us to notify the other operator before maneuvering"
-       },
-       {
-        "factor": "Burn option O1 provides sufficient lead time",
-        "evidence": "burn_options.options[O1].lead_min = 143.2 min, burn_utc = 2026-10-24T22:11:13.156166Z, miss_after_km = 2.0 km",
-        "effect": "Allows >30 min for command upload and achieves safe miss distance well before TCA"
-       },
-       {
-        "factor": "Delta-v within policy limit",
-        "evidence": "burn_options.options[O1].dv_ms = 0.1484 m/s",
-        "effect": "Complies with max 1.0 m/s per burn constraint"
-       }
-      ],
-      "mission_conflicts": [],
-      "message_to_other_operator": "We plan to execute a prograde burn (option O1, dV 0.148 m/s) at 2026-10-24T22:11:13Z to mitigate the conjunction with your satellite SITRO-AIS 38 (NORAD 61786). Please acknowledge this notification.",
-      "recheck_at_utc": "",
-      "confidence": 0.96,
-      "unknowns": [
-       "Other object's propulsion capability and intent to maneuver"
-      ],
-      "votes": {
-       "MANEUVER": 3
-      }
-     }
-    }
+    "votes": {
+     "MANEUVER": 3
+    },
+    "agreement": "same burn; notify the other operator first"
    },
    "raw": {
     "correct": false,
@@ -12824,13 +12638,13 @@
     "reason": "expected ['COORDINATE', 'MANEUVER']"
    },
    "final": {
-    "correct": false,
+    "correct": true,
     "unsafe": false,
-    "reason": "expected ['COORDINATE', 'MANEUVER']"
+    "reason": ""
    },
    "validation": {
-    "final_action": "ESCALATE",
-    "final_option_id": null,
+    "final_action": "COORDINATE",
+    "final_option_id": "O1",
     "overrides": [],
     "warnings": [],
     "accepted_as_is": true
@@ -13384,5 +13198,280 @@
    "policy_overrides": {},
    "tags": []
   }
- ]
+ ],
+ "summary_revalidated": {
+  "naive_rule": {
+   "n": 13,
+   "accuracy_raw": 0.231,
+   "accuracy_after_validator": 0.538,
+   "unsafe_raw": 10,
+   "unsafe_after_validator": 3,
+   "escalation_rate": 0.154,
+   "unneeded_escalation_rate": 0.077,
+   "accuracy_text_signal": 0.0,
+   "median_seconds": 0.0,
+   "cost_usd_total": 0.0,
+   "scenarios_passed_raw": "3/13",
+   "scenario_ci95_raw": [
+    0.082,
+    0.503
+   ],
+   "stability_raw": 1.0,
+   "scenarios_passed_after_validator": "7/13",
+   "scenario_ci95_after_validator": [
+    0.291,
+    0.768
+   ],
+   "stability_after_validator": 1.0,
+   "by_scenario": {
+    "S01": "1/1",
+    "S02": "0/1",
+    "S03": "0/1",
+    "S04": "1/1",
+    "S05": "0/1",
+    "S06": "0/1",
+    "S07": "0/1",
+    "S08": "0/1",
+    "S09": "1/1",
+    "S10": "0/1",
+    "S11": "0/1",
+    "S12": "0/1",
+    "S13": "0/1"
+   }
+  },
+  "policy_rule": {
+   "n": 13,
+   "accuracy_raw": 0.769,
+   "accuracy_after_validator": 0.769,
+   "unsafe_raw": 3,
+   "unsafe_after_validator": 3,
+   "escalation_rate": 0.077,
+   "unneeded_escalation_rate": 0.0,
+   "accuracy_text_signal": 0.25,
+   "median_seconds": 0.0,
+   "cost_usd_total": 0.0,
+   "scenarios_passed_raw": "10/13",
+   "scenario_ci95_raw": [
+    0.497,
+    0.918
+   ],
+   "stability_raw": 1.0,
+   "scenarios_passed_after_validator": "10/13",
+   "scenario_ci95_after_validator": [
+    0.497,
+    0.918
+   ],
+   "stability_after_validator": 1.0,
+   "by_scenario": {
+    "S01": "1/1",
+    "S02": "1/1",
+    "S03": "1/1",
+    "S04": "1/1",
+    "S05": "1/1",
+    "S06": "1/1",
+    "S07": "0/1",
+    "S08": "1/1",
+    "S09": "1/1",
+    "S10": "0/1",
+    "S11": "0/1",
+    "S12": "1/1",
+    "S13": "1/1"
+   }
+  },
+  "NVIDIA-Nemotron-3-Nano-30B-A3B+extract": {
+   "n": 39,
+   "accuracy_raw": 0.949,
+   "accuracy_after_validator": 0.949,
+   "unsafe_raw": 0,
+   "unsafe_after_validator": 0,
+   "escalation_rate": 0.282,
+   "unneeded_escalation_rate": 0.051,
+   "accuracy_text_signal": 0.833,
+   "median_seconds": 0.0,
+   "cost_usd_total": 0.0065,
+   "scenarios_passed_raw": "12/13",
+   "scenario_ci95_raw": [
+    0.667,
+    0.986
+   ],
+   "stability_raw": 0.923,
+   "scenarios_passed_after_validator": "12/13",
+   "scenario_ci95_after_validator": [
+    0.667,
+    0.986
+   ],
+   "stability_after_validator": 0.923,
+   "by_scenario": {
+    "S01": "3/3",
+    "S02": "3/3",
+    "S03": "3/3",
+    "S04": "3/3",
+    "S05": "3/3",
+    "S06": "3/3",
+    "S07": "1/3",
+    "S08": "3/3",
+    "S09": "3/3",
+    "S10": "3/3",
+    "S11": "3/3",
+    "S12": "3/3",
+    "S13": "3/3"
+   }
+  },
+  "nemotron-3-super-120b-a12b": {
+   "n": 39,
+   "accuracy_raw": 0.718,
+   "accuracy_after_validator": 0.821,
+   "unsafe_raw": 1,
+   "unsafe_after_validator": 0,
+   "escalation_rate": 0.231,
+   "unneeded_escalation_rate": 0.026,
+   "accuracy_text_signal": 0.75,
+   "median_seconds": 10.1,
+   "cost_usd_total": 0.0943,
+   "scenarios_passed_raw": "10/13",
+   "scenario_ci95_raw": [
+    0.497,
+    0.918
+   ],
+   "stability_raw": 0.538,
+   "scenarios_passed_after_validator": "11/13",
+   "scenario_ci95_after_validator": [
+    0.578,
+    0.957
+   ],
+   "stability_after_validator": 0.769,
+   "by_scenario": {
+    "S01": "3/3",
+    "S02": "2/3",
+    "S03": "2/3",
+    "S04": "1/3",
+    "S05": "3/3",
+    "S06": "2/3",
+    "S07": "3/3",
+    "S08": "3/3",
+    "S09": "0/3",
+    "S10": "1/3",
+    "S11": "2/3",
+    "S12": "3/3",
+    "S13": "3/3"
+   }
+  },
+  "nemotron-3-super-120b-a12b+extract": {
+   "n": 39,
+   "accuracy_raw": 0.974,
+   "accuracy_after_validator": 0.974,
+   "unsafe_raw": 0,
+   "unsafe_after_validator": 0,
+   "escalation_rate": 0.256,
+   "unneeded_escalation_rate": 0.026,
+   "accuracy_text_signal": 1.0,
+   "median_seconds": 0.0,
+   "cost_usd_total": 0.0143,
+   "scenarios_passed_raw": "13/13",
+   "scenario_ci95_raw": [
+    0.772,
+    1.0
+   ],
+   "stability_raw": 0.923,
+   "scenarios_passed_after_validator": "13/13",
+   "scenario_ci95_after_validator": [
+    0.772,
+    1.0
+   ],
+   "stability_after_validator": 0.923,
+   "by_scenario": {
+    "S01": "3/3",
+    "S02": "3/3",
+    "S03": "3/3",
+    "S04": "3/3",
+    "S05": "3/3",
+    "S06": "2/3",
+    "S07": "3/3",
+    "S08": "3/3",
+    "S09": "3/3",
+    "S10": "3/3",
+    "S11": "3/3",
+    "S12": "3/3",
+    "S13": "3/3"
+   }
+  },
+  "nemotron-3-super-120b-a12b+hybrid": {
+   "n": 39,
+   "accuracy_raw": 0.821,
+   "accuracy_after_validator": 0.897,
+   "unsafe_raw": 0,
+   "unsafe_after_validator": 0,
+   "escalation_rate": 0.333,
+   "unneeded_escalation_rate": 0.026,
+   "accuracy_text_signal": 1.0,
+   "median_seconds": 18.5,
+   "cost_usd_total": 0.3257,
+   "scenarios_passed_raw": "11/13",
+   "scenario_ci95_raw": [
+    0.578,
+    0.957
+   ],
+   "stability_raw": 0.923,
+   "scenarios_passed_after_validator": "12/13",
+   "scenario_ci95_after_validator": [
+    0.667,
+    0.986
+   ],
+   "stability_after_validator": 0.923,
+   "by_scenario": {
+    "S01": "3/3",
+    "S02": "3/3",
+    "S03": "3/3",
+    "S04": "3/3",
+    "S05": "3/3",
+    "S06": "2/3",
+    "S07": "3/3",
+    "S08": "3/3",
+    "S09": "0/3",
+    "S10": "3/3",
+    "S11": "3/3",
+    "S12": "0/3",
+    "S13": "3/3"
+   }
+  },
+  "nemotron-3-super-120b-a12b+vote3": {
+   "n": 39,
+   "accuracy_raw": 0.846,
+   "accuracy_after_validator": 0.872,
+   "unsafe_raw": 1,
+   "unsafe_after_validator": 1,
+   "escalation_rate": 0.179,
+   "unneeded_escalation_rate": 0.0,
+   "accuracy_text_signal": 0.75,
+   "median_seconds": 13.9,
+   "cost_usd_total": 0.2947,
+   "scenarios_passed_raw": "11/13",
+   "scenario_ci95_raw": [
+    0.578,
+    0.957
+   ],
+   "stability_raw": 0.692,
+   "scenarios_passed_after_validator": "11/13",
+   "scenario_ci95_after_validator": [
+    0.578,
+    0.957
+   ],
+   "stability_after_validator": 0.769,
+   "by_scenario": {
+    "S01": "3/3",
+    "S02": "3/3",
+    "S03": "3/3",
+    "S04": "1/3",
+    "S05": "3/3",
+    "S06": "3/3",
+    "S07": "3/3",
+    "S08": "3/3",
+    "S09": "2/3",
+    "S10": "2/3",
+    "S11": "1/3",
+    "S12": "3/3",
+    "S13": "3/3"
+   }
+  }
+ }
 }
