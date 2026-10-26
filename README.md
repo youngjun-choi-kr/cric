@@ -142,16 +142,17 @@ Globe of every tracked object, the close-approach list, and the incident pipelin
 verified burn options, cited dossiers, the Nemotron decision with its evidence, and the safety validator.
 **Replay** streams a recorded run with no API calls (works when credits run out); **Run live** calls
 Token Factory and Tavily. Recorded runs:
-- **IRIDIUM 149 x COSMOS 2251 DEB** (debris from the 2009 Iridium-Cosmos collision; 548 m on public TLE data):
-  the TLE Pc is red and two of three Super votes wanted to burn; the validator turned that into a request for
-  precise data, and with precise ephemeris the Pc drops to about 1e-31 (monitor). Public data finds candidates;
-  it does not decide burns.
-- **EOS-08 x SITRO-AIS 38** (17 m on TLE data, which is accurate to about a kilometre): quiet day, precise
-  ephemeris, an imaging pass over the cheapest burn, safe mode, the May 2024 storm replayed as tonight's weather,
-  and a mission note in Korean.
+- **EOS-08 x SITRO-AIS 38** (EOS-08 is a ~175 kg Earth-observation satellite; 17 m on public data, which is
+  accurate to about a kilometre): quiet day (ask for precise data), precise ephemeris and an imaging pass over
+  the cheapest burn (coordinate, then the later burn; flown with errors and cleared), safe mode (escalate), the
+  May 2024 storm replayed as tonight's weather (storm drag ~40 km: ask for data), a mission note in Korean, and a
+  planning screenshot shared in chat (read by Nemotron VL).
+- **CUTE-1 x FENGYUN 1C DEB** (a university CubeSat and debris from the 2007 anti-satellite test, 348 m on public
+  data): red on screening data and nobody can confirm the CubeSat can move, so CRIC hands it to a person and
+  asks for precise data; with precise data Pc is about 1e-8 and the answer is to monitor.
 - Two more pairs (yellow and green Pc) show the non-burn paths.
 
-In the demo we play the operator of EOS-08 and IRIDIUM 149 (a fictional operator scenario; the console tags it on screen, and nothing here speaks for their real operators): their propulsion state comes from
+In the demo we play the operator of EOS-08 (a fictional operator scenario; the console tags it on screen, and nothing here speaks for its real operator): its propulsion state comes from
 `fixtures/fleet.json`, standing in for telemetry, not from the web. Every run ends with an approve / reject
 step for a person; nothing is ever sent to a spacecraft.
 

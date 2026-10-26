@@ -50,15 +50,18 @@ SHOTS = [
     ("S9b", 10, "cine", "go-to-burn", "Flown with errors: conjunction cleared · Nebius Token Factory",
      "The burn is flown in simulation with real-world errors and checked again. Every model runs on Nebius "
      "Token Factory."),
-    ("S10", 20, "app", "app_60454-61786_storm_2024", "May 2024 · G5 · Kp 9 · storm drag ±40 km → get precise data",
-     "We replayed real storms, researched with Tavily. NASA's thermosphere model says the orbit could be off by "
-     "tens of kilometres. Nobody should burn on that: get better data first."),
+    ("S10a", 10, "app", "app_27844-37920_quiet", "CUTE-1 (university CubeSat) · Fengyun-1C debris · public data: red",
+     "A university CubeSat and debris from the 2007 anti-satellite test. On public data it looks dangerous, and "
+     "nobody can confirm the satellite can move. CRIC tells a person and asks for precise data."),
+    ("S10b", 10, "app", "app_27844-37920_precise", "Precise data: Pc ≈ 1e-8 · monitor, no burn",
+     "With precise data, the risk is gone. Nothing to do, and nothing spent."),
     ("S11", 15, "app", "app_60454-61786_korean_note", "Held-out 2: coded policy 5/8 · Nemotron 8/8",
      "Some of what matters lives only in an operator's note: Korean, Japanese, Spanish, ops jargon. On a held-out "
      "set written before any model saw it, a coded policy missed three of eight situations. Nemotron read all "
      "eight."),
-    ("S12", 20, "card", None, "102 test runs · 0 burns past the checks\nCode · Nemotron · People",
-     "Answers fixed before we ran them. Two routes must agree, or a person decides: no burn got past the checks. "
+    ("S12", 20, "card", None, "SOCRATES: 99.7% of encounters found\nPc matches NASA CARA test cases\n138 test runs · 0 burns past the checks\nCode · Nemotron · People",
+     "Checked against an independent catalog and NASA's own test cases. Answers fixed before we ran them; two "
+     "routes must agree, or a person decides: no burn got past the checks. "
      "Code for what can be checked. Nemotron for what must be read. People for what must be decided."),
     ("S13", 10, "cine", "pass-and-pullback", "Predicted miss: 17 m → 2 km", ""),
     ("S14", 4, "title", None, "CRIC\nBuilt with NVIDIA Nemotron on Nebius Token Factory · Tavily\ngithub.com/youngjun-choi-kr/cric", ""),
@@ -74,7 +77,7 @@ def _txt(tmp: Path, name: str, text: str) -> str:
 def _caption_filter(tmp: Path, sid: str, caption: str) -> str:
     if not caption:
         return ""
-    return (f",drawtext=fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_cap', caption)}':fontcolor=white:fontsize=40:"
+    return (f",drawtext=expansion=none:fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_cap', caption)}':fontcolor=white:fontsize=40:"
             f"x=(w-text_w)/2:y=h-150:box=1:boxcolor=black@0.45:boxborderw=18:line_spacing=10")
 
 
@@ -106,21 +109,21 @@ def segment(tmp: Path, sid: str, seconds: float, kind: str, source: str | None, 
     else:
         if kind == "title":
             lines = caption.split("\n")
-            vf = (f"drawtext=fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_t', lines[0])}':fontcolor=white:fontsize=120:"
+            vf = (f"drawtext=expansion=none:fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_t', lines[0])}':fontcolor=white:fontsize=120:"
                   f"x=(w-text_w)/2:y=h/2-140")
             if len(lines) > 1:
-                vf += (f",drawtext=fontfile='{FONT}':textfile='{_txt(tmp, sid + '_s', chr(10).join(lines[1:]))}':"
+                vf += (f",drawtext=expansion=none:fontfile='{FONT}':textfile='{_txt(tmp, sid + '_s', chr(10).join(lines[1:]))}':"
                        f"fontcolor=0x8196c4:fontsize=40:x=(w-text_w)/2:y=h/2+20:line_spacing=14")
         elif kind == "card":
             body = caption or vo
-            vf = (f"drawtext=fontfile='{FONT}':textfile='{_txt(tmp, sid + '_b', _wrap(body, 52))}':fontcolor=0xdbe6ff:"
+            vf = (f"drawtext=expansion=none:fontfile='{FONT}':textfile='{_txt(tmp, sid + '_b', _wrap(body, 52))}':fontcolor=0xdbe6ff:"
                   f"fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2:line_spacing=18")
         else:  # app placeholder: what to capture, and the caption it will carry
-            vf = (f"drawtext=fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_h', 'APP · ' + sid)}':fontcolor=0x4fe3a1:"
+            vf = (f"drawtext=expansion=none:fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_h', 'APP · ' + sid)}':fontcolor=0x4fe3a1:"
                   f"fontsize=44:x=120:y=140,"
-                  f"drawtext=fontfile='{FONT}':textfile='{_txt(tmp, sid + '_s', 'Capture: ' + source)}':fontcolor=0xdbe6ff:"
+                  f"drawtext=expansion=none:fontfile='{FONT}':textfile='{_txt(tmp, sid + '_s', 'Capture: ' + source)}':fontcolor=0xdbe6ff:"
                   f"fontsize=48:x=120:y=230,"
-                  f"drawtext=fontfile='{FONT}':textfile='{_txt(tmp, sid + '_v', _wrap(vo, 70))}':fontcolor=0x8196c4:"
+                  f"drawtext=expansion=none:fontfile='{FONT}':textfile='{_txt(tmp, sid + '_v', _wrap(vo, 70))}':fontcolor=0x8196c4:"
                   f"fontsize=34:x=120:y=360:line_spacing=12") + _caption_filter(tmp, sid, caption)
         vf += f",fade=t=in:st=0:d=0.3,fade=t=out:st={seconds - 0.3}:d=0.3"
         cmd = ["-f", "lavfi", "-i", f"color=c={BG}:s={W}x{H}:d={seconds}:r={FPS}", "-vf", vf]
@@ -129,14 +132,18 @@ def segment(tmp: Path, sid: str, seconds: float, kind: str, source: str | None, 
 
 
 def _wrap(text: str, width: int) -> str:
-    out, line = [], ""
-    for word in text.split():
-        if len(line) + len(word) + 1 > width:
-            out.append(line)
-            line = word
-        else:
-            line = f"{line} {word}".strip()
-    return "\n".join(out + [line])
+    """Word-wrap each paragraph; explicit line breaks are kept."""
+    out = []
+    for para in text.split("\n"):
+        line = ""
+        for word in para.split():
+            if len(line) + len(word) + 1 > width:
+                out.append(line)
+                line = word
+            else:
+                line = f"{line} {word}".strip()
+        out.append(line)
+    return "\n".join(out)
 
 
 def _ts(t: float) -> str:

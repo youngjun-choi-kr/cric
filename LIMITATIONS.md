@@ -45,9 +45,11 @@ CRIC is a research prototype for decision support. It is not an operational coll
   different results while the dossier and fleet-registry code was being fixed, and the demo showed the last. The
   demo situations were then re-recorded once each after every pipeline change (2026-10-25, and on 2026-10-26 for
   the final pipeline with constraints from notes, the agreement check, MSIS drag and the execution check); the
-  latest single takes replaced all earlier ones and were kept whatever they said. On the final pipeline EOS-08
-  "precise" escalates because the two routes chose different fallback burns, and the green pair escalates on a
-  three-way vote split.
+  latest single takes replaced all earlier ones and were kept whatever they said. A last round on 2026-10-26
+  followed agreement v2 and the exact Pc; the EOS-08 imaging take was then recorded once more after we found the
+  pipeline displayed but did not apply a "notify first" agreement outcome (fixed, with a test). IRIDIUM 149 left
+  the demo fleet (a large-constellation satellite contradicted the small-operator story); its recordings are
+  archived, and CUTE-1, a university CubeSat with its real, unknown propulsion state, took its place.
 - Constraints in free text are now read into quoted fields that code enforces, but a reading error becomes a
   wrong field the validator trusts: on held-out H03, "Super reads notes, code decides" burned after a contact
   cut-off in 2 of 3 runs. The pipeline's agreement check (model votes vs coded policy) caught every such case in
