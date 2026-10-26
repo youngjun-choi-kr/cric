@@ -1,0 +1,82 @@
+"""Where could it come down? Monte Carlo dispersion of the ascent, the way a launch range sizes its hazard areas.
+
+Each run perturbs thrust (1 sigma 1.5%), specific impulse (0.5%), dry mass (2%), the stage-1 pitch (0.3 deg) and
+the launch azimuth (0.3 deg), flies the same guidance, and records where the vehicle and every spent stage land
+(or whether it reaches orbit). From the impact points it fits 50% and 95% ellipses on the ground.
+
+It parallelises over processes on one machine and is written to run unchanged as a batch job
+(Nebius Serverless Jobs): `cric launch-dispersion --vehicle electron --runs 5000 --out /data/disp.json`.
+"""
+
+from __future__ import annotations
+
+import math
+import os
+
+import numpy as np
+
+from .ascent import Guidance, simulate
+from .vehicles import Vehicle
+
+SIGMA = {"thrust": 0.015, "isp": 0.005, "dry": 0.02, "kick_add": 0.3, "az_add": 0.3}
+
+def _one(arg) -> dict:
+    j, seed = arg
+    rng = np.random.default_rng(seed)
+    p = {"thrust": 1 + rng.normal(0, SIGMA["thrust"]), "isp": 1 + rng.normal(0, SIGMA["isp"]),
+         "dry": 1 + rng.normal(0, SIGMA["dry"]), "kick_add": rng.normal(0, SIGMA["kick_add"]),
+         "az_add": rng.normal(0, SIGMA["az_add"])}
+    r = simulate(j["veh"], j["payload"], j["g"], lat=j["lat"], lon=j["lon"], az=j["az"],
+                 target_alt_km=j["target"], dt=1.0, record=False, perturb=p)
+    return {"orbit": r["orbit"], "target": r["target_reached"], "perigee_km": r["perigee_km"],
+            "impact": r.get("impact"), "stages": [s for s in r["stage_impacts"] if "lat" in s]}
+
+
+def _ellipse(points: list[tuple[float, float]], lat0: float, lon0: float) -> dict | None:
+    """Mean and 50% / 95% ellipses in a local east-north plane (km), returned as lat/lon outlines."""
+    if len(points) < 5:
+        return None
+    k = math.cos(math.radians(lat0))
+    xy = np.array([((lo - lon0 + 540) % 360 - 180) * 111.32 * k for la, lo in points]), np.array([(la - lat0) * 110.57 for la, lo in points])
+    xy = np.vstack(xy)
+    mu = xy.mean(axis=1)
+    cov = np.cov(xy)
+    vals, vecs = np.linalg.eigh(cov)
+    out = {"center": [round(float(lat0 + mu[1] / 110.57), 4), round(float(lon0 + mu[0] / (111.32 * k)), 4)]}
+    for name, chi2 in (("p50", 1.386), ("p95", 5.991)):
+        ring = []
+        for a in np.linspace(0, 2 * math.pi, 49):
+            v = vecs @ (np.sqrt(np.maximum(vals, 1e-9) * chi2) * np.array([math.cos(a), math.sin(a)])) + mu
+            ring.append([round(float(lat0 + v[1] / 110.57), 4), round(float(lon0 + v[0] / (111.32 * k)), 4)])
+        out[name] = ring
+        out[f"{name}_axes_km"] = [round(float(math.sqrt(max(x, 0) * chi2)), 1) for x in vals[::-1]]
+    return out
+
+
+def _regional(e: dict | None, max_km: float = 2500.0) -> dict | None:
+    """An ellipse is only meaningful when impacts cluster; a vehicle that nearly reaches orbit re-enters
+    anywhere along its ground track, and then the scatter of points is the honest picture."""
+    return e if e and e["p95_axes_km"][0] <= max_km else None
+
+
+def dispersion(veh: Vehicle, payload_kg: float, g: Guidance, *, lat: float, lon: float, az: float,
+               target_alt_km: float, runs: int = 400, workers: int | None = None, seed: int = 0) -> dict:
+    from .ascent import pool
+
+    job = {"veh": veh, "payload": payload_kg, "g": g, "lat": lat, "lon": lon, "az": az, "target": target_alt_km}
+    args = [(job, seed * 1_000_003 + i) for i in range(runs)]
+    if workers == 1:
+        rows = [_one(a) for a in args]
+    else:
+        rows = list(pool().map(_one, args, chunksize=max(1, runs // ((os.cpu_count() or 1) * 4))))
+    impacts = [(r["impact"]["lat"], r["impact"]["lon"]) for r in rows if r.get("impact")]
+    out = {"runs": runs, "sigma": SIGMA, "p_orbit": round(sum(r["orbit"] for r in rows) / runs, 3),
+           "p_target": round(sum(r["target"] for r in rows) / runs, 3),
+           "vehicle_impacts": [list(x) for x in impacts[:600]],
+           "vehicle_ellipse": _regional(_ellipse(impacts, *impacts[0])) if impacts else None,
+           "stages": {}}
+    names = sorted({s["stage"] for r in rows for s in r["stages"]})
+    for n in names:
+        pts = [(s["lat"], s["lon"]) for r in rows for s in r["stages"] if s["stage"] == n]
+        out["stages"][n] = {"impacts": [list(x) for x in pts[:300]], "ellipse": _regional(_ellipse(pts, *pts[0]))}
+    return out

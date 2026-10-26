@@ -1,0 +1,49 @@
+{
+ "rows": [
+  {
+   "vehicle": "Nuri (KSLV-II)",
+   "site": "Naro Space Center (KR)",
+   "azimuth_deg": 189.96,
+   "orbit": "700 km SSO",
+   "inclination_flown_deg": 98.2,
+   "published_payload_kg": 1900,
+   "model_payload_kg": 1681,
+   "error_pct": -11.5,
+   "note": ""
+  },
+  {
+   "vehicle": "Electron",
+   "site": "Mahia Peninsula LC-1 (NZ)",
+   "azimuth_deg": 189.57,
+   "orbit": "500 km SSO",
+   "inclination_flown_deg": 97.4,
+   "published_payload_kg": 200,
+   "model_payload_kg": 184,
+   "error_pct": -8.0,
+   "note": ""
+  },
+  {
+   "vehicle": "SSLV",
+   "site": "Satish Dhawan, Sriharikota (IN)",
+   "azimuth_deg": 133.29,
+   "orbit": "500 km LEO",
+   "inclination_flown_deg": 45.0,
+   "published_payload_kg": 500,
+   "model_payload_kg": 492,
+   "error_pct": -1.6,
+   "note": ""
+  },
+  {
+   "vehicle": "Firefly Alpha",
+   "site": "Vandenberg (US)",
+   "azimuth_deg": 189.01,
+   "orbit": "500 km SSO",
+   "inclination_flown_deg": 97.4,
+   "published_payload_kg": 630,
+   "model_payload_kg": 502,
+   "error_pct": -20.3,
+   "note": ""
+  }
+ ],
+ "method": "largest payload the model places in the published orbit (bisection, guidance re-optimised per payload)"
+}
