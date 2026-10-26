@@ -26,7 +26,7 @@ ARMS = [("policy_rule", "Coded policy (fields only)"), ("nemotron-3-super-120b-a
         ("nemotron-3-super-120b-a12b+vote3", "Super, 3 votes"),
         ("NVIDIA-Nemotron-3-Nano-30B-A3B+extract", "Nano reads notes, code decides"),
         ("nemotron-3-super-120b-a12b+extract", "Super reads notes, code decides"),
-        ("nemotron-3-super-120b-a12b+hybrid", "Pipeline: votes and code must agree")]
+        ("nemotron-3-super-120b-a12b+hybrid", "CRIC pipeline: votes and code must agree")]
 
 
 def newest(pattern: str) -> Path | None:
@@ -59,8 +59,8 @@ def main() -> None:
         if name not in table:
             continue
         s = table[name]
-        lines += [f"## {label}", "", "| Arm | Scenarios passed (95% CI) | Runs right | Stable | Burns | $ per run |",
-                  "|---|---|---|---|---|---|"]
+        lines += [f"## {label}", "", "| Arm | Scenarios passed (95% CI) | Runs right | Stable | Burns | Escalations (unneeded) | $ per run |",
+                  "|---|---|---|---|---|---|---|"]
         for key, arm in ARMS:
             m = s.get(key)
             if not m:
@@ -69,7 +69,8 @@ def main() -> None:
             per = m["cost_usd_total"] / m["n"] if m["n"] else 0
             lines.append(f"| {arm} | {m['scenarios_passed_after_validator']} ({ci[0]:.2f}-{ci[1]:.2f}) | "
                          f"{m['accuracy_after_validator']:.2f} | {m['stability_raw'] if key != 'policy_rule' else '-'} | "
-                         f"{m['unsafe_raw']} -> {m['unsafe_after_validator']} | {per:.4f} |")
+                         f"{m['unsafe_raw']} -> {m['unsafe_after_validator']} | "
+                         f"{m.get('escalation_rate', 0):.2f} ({m.get('unneeded_escalation_rate', 0):.2f}) | {per:.4f} |")
         lines.append("")
     (OUT / "README.md").write_text("\n".join(lines) + "\n")
     print((OUT / "README.md").read_text())

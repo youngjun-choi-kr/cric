@@ -64,29 +64,31 @@ safety validator. Intervals are 95% Wilson **over scenarios, not runs**: these s
 intervals mean a difference is indicative, not proven. "Burns" are policy-violating burns that got past the
 validator, summed over runs. Every answer is in [`results/`](results/README.md).
 
-| Arm | Held-out 2 (8) | Held-out (9) | Tuning (13) | Storms (4) | Burns past the validator | $ per decision |
-|---|---|---|---|---|---|---|
-| Coded policy, structured fields only | 5/8 | 8/9 | 10/13 | 4/4 | 7 | 0 |
-| Nemotron Super, one call | 8/8 | 7/9 | 11/13 | 4/4 | 1 | 0.0025 |
-| Super, 3 votes | 8/8 | 8/9 | 11/13 | 4/4 | 2 | 0.0076 |
-| Nano reads the notes, code decides | 7/8 | 8/9 | 12/13 | 4/4 | 1 | 0.0003 |
-| Super reads the notes, code decides | 8/8 | 8/9 | **13/13** | 4/4 | 2 | 0.0006 |
-| **CRIC pipeline**: votes and code must agree | 7/8 | 6/9 | 11/13 | 4/4 | **0** | 0.0084 |
+| Arm | **Held-out 3 (12)**, run once | Held-out 2 (8) | Held-out (9) | Tuning (13) | Storms (4) | Burns past the validator | $ per decision |
+|---|---|---|---|---|---|---|---|
+| Coded policy, structured fields only | 11/12 | 5/8 | 8/9 | 10/13 | 4/4 | 8 | 0 |
+| Nemotron Super, one call | 9/12 | 8/8 | 7/9 | 11/13 | 4/4 | 2 | 0.0025 |
+| Super, 3 votes | - | 8/8 | 8/9 | 11/13 | 4/4 | 2 | 0.0076 |
+| Nano reads the notes, code decides | - | 7/8 | 8/9 | 12/13 | 4/4 | 1 | 0.0003 |
+| Super reads the notes, code decides | **12/12** | 8/8 | 8/9 | **13/13** | 4/4 | 2 | 0.0005 |
+| **CRIC pipeline**: votes and code must agree | 11/12 | 8/8 | 7/9 | 12/13 | 4/4 | **0 (138 runs)** | 0.0084 |
+
+**Held-out 3** was written after the final design, on six new real encounters (353-819 km, 6-15 km/s, also
+listed by SOCRATES), committed to GitHub before any model ran on it, and run exactly once on the final pipeline.
+The earlier sets shaped the design (the agreement rule was set on them), so they are no longer clean tests.
 
 What this shows, and what we chose:
-- **Reading free text is where the model earns its place.** Notes in Korean, Japanese, Spanish and ops jargon
-  decide held-out 2; the coded policy, which cannot read them, passes 5 of 8. Letting Super only *read* the
-  notes into quoted constraints and having code decide was the most accurate arm at a tenth of the cost.
-- **But a reading error becomes an unchecked action.** In 2 of 27 held-out runs that arm extracted a contact
-  cut-off as the wrong kind of constraint and burned after the cut-off; the validator trusts the extracted
-  fields, so nothing caught it.
-- **The CRIC pipeline therefore requires two independent routes to agree**: the model's 3-vote decision after
-  the hard rules, and the operator policy in code over the same fields. It is the only arm with **zero
-  policy-violating burns in all 102 runs**. Every miss is an escalation to a person (for example when the
-  routes pick different fallback burns), never a wrong action. We accept more escalations for that.
-- **Voting buys consistency, not accuracy**: same scenarios passed, stability up (tuning 0.54 -> 0.69,
-  held-out 0.78 -> 0.89).
-- Statistically, none of these differences is proven on sets this size; the burn counts are the clearest signal.
+- **Reading free text is where the model earns its place.** Super reading the notes into quoted constraints, with
+  code deciding, was the most accurate arm on every set (12/12 on held-out 3) at a tenth of a cent a decision.
+- **But a reading error becomes an unchecked action**: that arm burned after a ground-contact cut-off in 2 of
+  27 held-out runs, because the validator trusts the fields it was given.
+- **The CRIC pipeline requires two independent routes to agree** before anything spends propellant: Super's three
+  votes after the hard rules, and the operator policy in code. It is the only arm with **zero policy-violating
+  burns in all 138 runs**. Its misses are cautious: asking for precise data where monitoring was enough, or
+  escalating when the routes split on a burn (unneeded escalations: 3% on held-out 3).
+- The coded policy alone did well on held-out 3 (11/12) but burned once with a French note saying propulsion was
+  unavailable; it cannot read.
+- Intervals over scenarios are wide (held-out 3: 0.65-1.00 for 11/12); the burn counts are the clearest signal.
 
 **Screening checked against an independent source.** CelesTrak SOCRATES ran at 2026-10-24 15:00, five minutes
 before our snapshot. Of its 1,885 crossing pairs under 2 km in the same 24 h (both objects in our catalog), CRIC
