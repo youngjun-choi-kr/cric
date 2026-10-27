@@ -190,6 +190,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     s.el.innerHTML = `<b>${esc(v.name.replace(/\s*\(fictional\)/, ''))}</b><span>${fmt(s.r.height, 1)} m · ${fmt(mass / 1000, 1)} t</span>`;
   }
   function showBay(vehicles, currentId, current, payloadKg) {
+    const jump = mode !== 'bay';                                     // coming from a launch: cut, don't fly across
     mode = 'bay'; setVisible(true);
     root.querySelector('.cv-hud').hidden = true; root.querySelector('.cv-bay').hidden = false;
     clearSlots();
@@ -203,6 +204,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     }
     placeSlots();
     select(currentId);
+    if (jump && bayGoal) { cam.position.copy(bayGoal.pos); controls.target.copy(bayGoal.target); cam.up.set(0, 1, 0); }
   }
   function select(id) {
     selected = slots.find((s) => s.id === id) || slots[0];

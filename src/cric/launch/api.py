@@ -230,7 +230,8 @@ def deploy(b: dict) -> dict:
                                  "perigee_km": r["perigee_km"], "apogee_km": r["apogee_km"],
                                  "inclination_deg": r["inclination_deg"]})
     reg = dep.registry()[str(norad)]
-    cat = _catalog()
+    base = _catalog()          # a copy: launch screening (LCOLA) must not see satellites the studio launched
+    cat = type(base)(dict(base.sats), dict(base.names), base.source, base.fetched_at)
     dep.add_to_catalog(cat)
     epoch = liftoff + timedelta(seconds=r["insertion"]["t"])
     sat = cat.sats[norad]

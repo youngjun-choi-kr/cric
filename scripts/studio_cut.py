@@ -44,23 +44,29 @@ def facts() -> dict:
 F = facts()
 # (id, seconds, kind, source (act, from marker, to marker) or cine/card text, caption, voice-over)
 SHOTS = [
-    ("J1", 7, "cine", "overview-push", "18,806 tracked objects · real orbits",
+    ("J1", 6, "cine", "overview-push", "18,806 tracked objects · real orbits",
      "Eighteen thousand objects are already in orbit. Jimin wants to add one."),
-    ("J2", 5, "title", None, "CRIC Mission Studio\nYour rocket · your launch window · your satellite in orbit",
+    ("J2", 4, "title", None, "CRIC Mission Studio\nYour rocket · your launch window · your satellite in orbit",
      "This is CRIC Mission Studio."),
-    ("J3", 10, "app", ("act1", "start", "fly"), "Nemotron Nano reads the mission · inclination computed in code",
-     "Jimin describes the mission in a sentence. Nemotron Nano turns it into a target orbit, and code computes the inclination."),
-    ("J4", 12, "app", ("act1", "fly", "advise"), "3-DOF ascent · guidance optimised in parallel",
-     "The student rocket, Garage One, is flown in a three degree of freedom simulation. It doesn't make it: "
-     "its perigee is too low, and it comes back down."),
-    ("J5", 12, "app", ("act1", "advise", "apply"), "Every fix is re-flown before it is shown · Nemotron 3 Super explains",
-     "Nemotron 3 Super explains where the delta-v went. The fix comes from the simulator, not the model: each "
-     "option is flown again before it is shown."),
-    ("J6", 9, "app", ("act1", "apply", "disp"), f"{F['fix']} → {F['orbit']}",
-     "A bigger first stage. Now it reaches orbit, with a reserve."),
-    ("J7", 9, "app", ("act1", "disp", "end"), "500 dispersed flights · where stage 1 can fall",
-     "Five hundred flights with real-world scatter show where the first stage can fall, the way a launch range "
-     "sizes its hazard area."),
+    ("J3", 10, "app", ("act1", "start", "fly"), "Rockets built from their numbers · true scale · Nemotron Nano reads the mission",
+     "Jimin's student rocket, Garage One, stands beside real launchers, built from its own numbers. Nemotron Nano "
+     "reads the mission; code computes the orbit."),
+    ("J4", 10, "app", ("act1", "verdict", "maxq"), "Every motion from the 3-DOF simulation · plume and sky are illustration",
+     "Liftoff. Every motion on screen comes from the flight simulation."),
+    ("J5", 8, "app", ("act1", "maxq", "handoff"), "Max Q · stage separation · fairing",
+     "Max Q. Stage separation. Fairing away."),
+    ("J6", 8, "app", ("act1", "handoff", "advise"), "Perigee below the ~150 km needed: it falls back after one orbit",
+     "But it is too slow. The perigee is too low, and it falls back after one orbit."),
+    ("J7", 10, "app", ("act1", "advise", "apply"), "Every fix is re-flown before it is shown · Nemotron 3 Super explains",
+     "Nemotron 3 Super explains where the delta-v went. The fix comes from the simulator, not the model."),
+    ("J7b", 6, "app", ("act1", "apply", "fly2"), f"{F['fix']}",
+     "A bigger first stage."),
+    ("J7c", 10, "app", ("act1", "liftoff2", "handoff2"), f"Second flight → {F['orbit']}",
+     "This time it climbs all the way."),
+    ("J7d", 9, "app", ("act1", "deploy2", "landed2"), "Orbit · payload deployed",
+     "Orbit. JIMIN-1 is deployed."),
+    ("J7e", 7, "app", ("act1", "disp", "end"), "500 dispersed flights · where stage 1 can fall",
+     "Five hundred scattered flights show where the first stage can land."),
     ("J8", 9, "app", ("act2", "start", "hour"), "7 days × 9 sites · Open-Meteo · NOAA Kp · assumed small-launcher limits",
      "When to launch? Every site that can reach the orbit, hour by hour for a week: wind, rain, lightning, upper "
      "winds and space weather."),
@@ -80,7 +86,7 @@ SHOTS = [
      "the catalog, a cited dossier on the other satellite, three votes, and a validator in code."),
     ("J13", 9, "app", ("act3", "decision", "end"), f"{F['action']} · Jimin approves · logged, hash-chained · nothing is sent to a spacecraft",
      "And the last word is Jimin's."),
-    ("J14", 10, "card", None, "Code for what can be checked.\nNemotron for what must be read.\nPeople for what must be decided.",
+    ("J14", 9, "card", None, "Code for what can be checked.\nNemotron for what must be read.\nPeople for what must be decided.",
      "From a garage rocket to a satellite that is looked after. Code for what can be checked, Nemotron for what "
      "must be read, people for what must be decided."),
     ("J15", 5, "title", None, "CRIC Mission Studio\nNVIDIA Nemotron on Nebius Token Factory · Open-Meteo · NOAA · CelesTrak\n"
@@ -103,7 +109,7 @@ def app_segment(tmp: Path, sid: str, seconds: float, src: tuple, caption: str) -
     vf += f",trim=duration={seconds},scale={W}:{H},fade=t=in:st=0:d=0.25,fade=t=out:st={seconds - 0.25}:d=0.25"
     if speed > 1.6:    # time-lapse badge, bottom left, clear of the panels' controls
         vf += (f",drawtext=expansion=none:fontfile='{BOLD}':text='{speed:.0f}× speed':fontcolor=0x5ab0ff:fontsize=30:"
-               f"x=40:y=h-70:box=1:boxcolor=black@0.5:boxborderw=10")
+               f"x=w-tw-40:y=150:box=1:boxcolor=black@0.5:boxborderw=10")
     if act == "act2":  # the heatmap and the LCOLA strip fill the bottom: caption at the top
         vf += (f",drawtext=expansion=none:fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_cap', caption)}':fontcolor=white:"
                f"fontsize=40:x=(w-text_w)/2:y=110:box=1:boxcolor=black@0.55:boxborderw=18")

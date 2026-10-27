@@ -452,6 +452,7 @@ async function runAdvise() {
   $('fixBox').querySelectorAll('[data-fix]').forEach((b) => b.addEventListener('click', () => applyFix(S.fixes[+b.dataset.fix])));
 }
 function applyFix(x) {
+  S.lastFix = x.text;
   setView('bay');                                   // the hangar shows the rocket as it was, then the change
   if (x.kind === 'payload') { $('payload').value = x.payload_kg; S.prov.payload_kg = 'edited'; }
   else {
@@ -462,8 +463,8 @@ function applyFix(x) {
     st.source = { ...st.source, prop_kg: 'edited', dry_kg: 'edited', ...(x.kind === 'stage+thrust' ? { thrust_vac_n: 'edited' } : {}) };
   }
   if (S.method === 'form') renderForm();
-  setTimeout(() => CV.updateCurrent(S.vehicle, +$('payload').value || 5), 600);   // the stage grows, then it flies
-  setTimeout(fly, 2600);
+  setTimeout(() => CV.updateCurrent(S.vehicle, +$('payload').value || 5), 1500);  // the stage grows, then it flies
+  setTimeout(fly, 5000);
 }
 
 async function runDispersion() {

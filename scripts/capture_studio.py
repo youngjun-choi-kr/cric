@@ -43,7 +43,10 @@ class Recorder:
         self.cdp.send("Page.startScreencast", {"format": "jpeg", "quality": 92, "maxWidth": 1920, "maxHeight": 1080})
 
     def mark(self, name):
-        self.marks[name] = round(time.time() - self.t0, 2)
+        # on the video's own clock: the newest frame's timestamp (the page's frames can arrive late when busy)
+        self.page.wait_for_timeout(50)
+        ts = self.frames[-1][0] - self.frames[0][0] if self.frames else 0.0
+        self.marks[name] = round(ts, 2)
         print(f"  {name:14} {self.marks[name]:6.1f} s", flush=True)
 
     def hold(self, s):
@@ -55,21 +58,23 @@ class Recorder:
         self.hold(0.5)
         self.cdp.send("Page.stopScreencast")
         out = OUT / f"studio_{name}.mp4"
-        with tempfile.TemporaryDirectory() as d:
-            d, lines = Path(d), []
-            for i, (ts, jpg) in enumerate(self.frames):
-                (d / f"{i:05d}.jpg").write_bytes(jpg)
-                dur = (self.frames[i + 1][0] - ts) if i + 1 < len(self.frames) else 1 / 30
-                lines += [f"file '{d / f'{i:05d}.jpg'}'", f"duration {max(dur, 0.001):.4f}"]
-            lines.append(f"file '{d / f'{len(self.frames) - 1:05d}.jpg'}'")
-            (d / "list.txt").write_text("\n".join(lines) + "\n")
-            subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(d / "list.txt"),
-                            "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fps=30",
-                            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "16", str(out)], check=True)
-        # frame timestamps are wall-clock: shift marks so they are relative to the first frame
-        lag = self.frames[0][0] - self.t0
+        # Resample onto an exact 30 fps grid (the newest frame at each tick) and pipe to ffmpeg: a concat list of
+        # per-frame durations drifted by ~12 s over five minutes, which put the event markers out of step.
+        t0, ts = self.frames[0][0], [f[0] for f in self.frames]
+        n = int((ts[-1] - t0) * 30) + 1
+        ff = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-y", "-f", "image2pipe", "-framerate", "30", "-i", "-",
+                               "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
+                               "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "16", str(out)], stdin=subprocess.PIPE)
+        k = 0
+        for i in range(n):
+            while k + 1 < len(ts) and ts[k + 1] - t0 <= i / 30:
+                k += 1
+            ff.stdin.write(self.frames[k][1])
+        ff.stdin.close()
+        if ff.wait():
+            raise SystemExit("ffmpeg failed")
         print(f"{out}  {len(self.frames)} frames")
-        return {k: round(v - lag, 2) for k, v in self.marks.items()}
+        return dict(self.marks)
 
 
 def pick_hour(page) -> dict:
@@ -111,15 +116,36 @@ def main() -> None:
         idle = lambda: page.evaluate(IDLE)
 
         print("act 1: the rocket")
-        rec.start(); rec.hold(1.5); rec.mark("start")
+        flying = "document.body.classList.contains('flying')"
+        t_sim = "(studio.CV.flight && studio.CV.mode === 'launch' ? studio.CV.flight.t : -99)"
+
+        def until(name, cond, timeout=400000):
+            page.wait_for_function(cond, timeout=timeout); rec.mark(name)
+
+        def flight(tag):           # one launch: close-up, globe, (deploy), back
+            until(f"liftoff{tag}", f"{t_sim} >= 0")
+            until(f"maxq{tag}", f"studio.CV.flight && studio.CV.flight.maxq")
+            until(f"sep{tag}", f"studio.CV.flight && studio.CV.flight.hadSep.size > 0")
+            until(f"fairing{tag}", f"studio.CV.flight && studio.CV.flight.fairDone")
+            until(f"handoff{tag}", f"studio.CV.mode !== 'launch'")
+            until(f"deploy{tag}", f"!{flying} || (studio.CV.mode === 'launch' && studio.CV.flight.deploy)")
+            until(f"landed{tag}", f"!{flying}")
+
+        rec.start(); rec.hold(4); rec.mark("start")                  # the hangar line-up
         page.click("#targetBtn"); idle(); rec.mark("target"); rec.hold(2)
-        page.click("#flyBtn"); rec.mark("fly"); idle(); rec.mark("verdict"); rec.hold(9)
+        page.click("#flyBtn"); rec.mark("fly"); idle(); rec.mark("verdict")
+        flight("")
+        rec.hold(3)
         page.click("#adviseBtn"); rec.mark("advise"); idle(); rec.mark("fixes"); rec.hold(5)
-        page.click("[data-fix]"); rec.mark("apply"); idle(); rec.mark("orbit"); rec.hold(7)
+        page.click("[data-fix]")                                     # hangar: the stage grows, then it flies
+        until("apply", "studio.CV.mode === 'bay'", 10000)
+        until("fly2", "!document.getElementById('busy').hidden", 30000); idle(); rec.mark("verdict2")
+        flight("2")
+        rec.hold(3)
         page.click("#dispBtn"); rec.mark("disp"); idle(); rec.mark("disp_done"); rec.hold(5)
         marks["act1"] = rec.stop("act1")
         marks["act1_facts"] = page.evaluate("""() => ({verdict: document.getElementById('verdict').innerText,
-            fix: (studio.S.fixes || [])[0]?.text})""")
+            fix: studio.S.lastFix})""")
 
         print("choosing the launch hour (shown in the film as pre-screened)")
         hour = pick_hour(page)
