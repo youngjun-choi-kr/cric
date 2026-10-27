@@ -1,5 +1,112 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>CRIC</title>
-<meta http-equiv="refresh" content="0; url=web/">
-<style>body{background:#02040a;color:#dbe6ff;font:14px -apple-system,sans-serif;display:grid;place-items:center;height:100vh;margin:0}a{color:#5ab0ff}</style>
-</head><body><p>Opening the <a href="web/">CRIC console</a>…</p></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRIC · From your rocket to a satellite that is looked after</title>
+<meta name="description" content="Bring a rocket, find out if it reaches orbit, pick a launch window with weather and collision avoidance, and operate the satellite with an AI that knows when to ask. NVIDIA Nemotron on Nebius.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&display=swap">
+<style>
+  :root { --bg:#03060e; --panel:#0a1222; --line:rgba(120,160,255,.18); --text:#dbe6ff; --dim:#8196c4; --accent:#5ab0ff; --ok:#4fe3a1; --mid:#ffc857; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 -apple-system, "Segoe UI", Inter, sans-serif; }
+  a { color:var(--accent); }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 24px; }
+  header { padding:64px 0 32px; }
+  .brand { font-family:'Chakra Petch', sans-serif; letter-spacing:.14em; color:var(--dim); font-size:14px; }
+  h1 { font-family:'Chakra Petch', sans-serif; font-size:clamp(30px, 5vw, 52px); line-height:1.08; margin:10px 0 16px; letter-spacing:.01em; }
+  .lead { font-size:clamp(16px, 2vw, 19px); color:#b9c8ea; max-width:760px; }
+  .cta { display:flex; gap:12px; flex-wrap:wrap; margin-top:26px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:12px; text-decoration:none; font-weight:600; border:1px solid var(--line); color:var(--text); background:rgba(90,176,255,.08); }
+  .btn.primary { background:var(--accent); color:#001224; border-color:var(--accent); }
+  .btn small { font-weight:400; opacity:.75; }
+  .hero { margin-top:34px; border-radius:16px; overflow:hidden; border:1px solid var(--line); aspect-ratio:16/9; background:#000 center/cover; }
+  .steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; margin:56px 0 24px; }
+  .step { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .step img { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; border-bottom:1px solid var(--line); }
+  .step .b { padding:16px 18px 18px; }
+  .step .n { font-family:'Chakra Petch', sans-serif; color:var(--accent); font-size:13px; letter-spacing:.12em; }
+  .step h3 { margin:4px 0 8px; font-size:19px; }
+  .step p { margin:0; color:#b9c8ea; font-size:14.5px; }
+  .step ul { margin:10px 0 0; padding-left:18px; color:var(--dim); font-size:13.5px; }
+  h2 { font-family:'Chakra Petch', sans-serif; letter-spacing:.06em; font-size:22px; margin:56px 0 14px; }
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .card h3 { margin:0 0 8px; font-size:17px; }
+  .card p, .card li { color:#b9c8ea; font-size:14.5px; }
+  .card ul { margin:6px 0 0; padding-left:18px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  td, th { text-align:left; padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.07); vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  .tag { display:inline-block; font-size:11.5px; padding:1px 8px; border-radius:99px; background:rgba(79,227,161,.15); color:var(--ok); }
+  footer { color:var(--dim); font-size:13.5px; padding:48px 0 64px; border-top:1px solid var(--line); margin-top:56px; }
+  @media (max-width: 860px) { .steps, .split { grid-template-columns:1fr; } header { padding-top:36px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">CRIC · NEBIUS × NVIDIA GLOBAL AI HACKATHON</div>
+  <h1>From your rocket<br>to a satellite that is looked after.</h1>
+  <p class="lead">Bring a rocket and a satellite. CRIC tells you whether it reaches orbit and what to change if it does not,
+    when and where to launch around weather and other satellites, and then operates the satellite among
+    18,806 tracked objects, with an AI that does the work and knows when to ask a person.</p>
+  <div class="cta">
+    <a class="btn primary" href="web/studio.html">▶ Open Mission Studio <small>· a recorded run, no install</small></a>
+    <a class="btn" href="web/">Operations console <small>· recorded decisions</small></a>
+    <a class="btn" href="https://github.com/youngjun-choi-kr/cric">Code &amp; results</a>
+  </div>
+  <div class="hero" style="background-image:url(web/launch/img/deploy.jpg)"></div>
+</header>
+
+<section class="steps">
+  <div class="step"><img src="web/launch/img/hangar.jpg" alt="Hangar with rockets at true scale">
+    <div class="b"><div class="n">STEP 1 · YOUR ROCKET</div><h3>Does it reach orbit?</h3>
+      <p>Pick a published launcher, drop a spec sheet photo, or type your own numbers. A 3-DOF ascent flies it; if it falls
+        short, every suggested fix is flown again before you see it.</p>
+      <ul><li>Nemotron 3.5 Super VL reads the spec sheet; each number tagged read / derived / assumed</li>
+        <li>Stage impact areas from 500 dispersed flights</li></ul></div></div>
+  <div class="step"><img src="web/launch/img/window.jpg" alt="Launch window heatmap and collision strip">
+    <div class="b"><div class="n">STEP 2 · WHEN AND WHERE</div><h3>Pick the launch minute</h3>
+      <p>Seven days of weather and space weather for every site that can reach the orbit, then each liftoff minute
+        screened against the catalog. One minute can pass a satellite at under a kilometre; a few minutes later is clear.</p>
+      <ul><li>Weather, range and orbital-safety votes by Nemotron 3 Super</li>
+        <li>Mission director: Nemotron 3 Ultra, unable to pick a vetoed window</li></ul></div></div>
+  <div class="step"><img src="web/launch/img/ops.jpg" alt="Operations: passes and a close approach decision">
+    <div class="b"><div class="n">STEP 3 · OPERATE</div><h3>Look after it</h3>
+      <p>The satellite joins the catalog. CRIC tells you when it passes over home, screens it for close approaches,
+        and runs the same decision pipeline as the console, ending with your approval.</p>
+      <ul><li>Collision probability verified against NASA CARA test cases</li>
+        <li>Two routes must agree before any burn; otherwise a person decides</li></ul></div></div>
+</section>
+
+<h2>WHAT IS REAL, WHAT IS NOT</h2>
+<div class="split">
+  <div class="card"><h3>Real data, real models</h3><ul>
+    <li>CelesTrak orbits (SGP4), NOAA SWPC space weather, Open-Meteo forecasts</li>
+    <li>Published launcher figures, each number labelled with its source</li>
+    <li>NVIDIA Nemotron 3 Nano, Super, Ultra and 3.5 Super VL on Nebius Token Factory; Tavily for web evidence</li>
+    <li>Ascent model checked against published capacities: −2 % to −20 % (conservative)</li></ul></div>
+  <div class="card"><h3>Stated plainly</h3><ul>
+    <li>Garage One and JIMIN-1 are fictional; the launched satellite exists only in the simulation</li>
+    <li>Launch rules and dispersion scatter are our assumptions, not a range's</li>
+    <li>Rocket shapes are derived from the numbers; plume, smoke and sky are illustration</li>
+    <li>CRIC never commands a spacecraft. <a href="LIMITATIONS.md">All limits</a></li></ul></div>
+</div>
+
+<h2>HOW THE MODELS ARE USED</h2>
+<div class="card"><table>
+  <tr><th>Nemotron</th><th>What it does</th><th>What stops it going wrong</th></tr>
+  <tr><td>3 Nano</td><td>Turns “my 5 kg cubesat, 500 km sun-synchronous, I live in Seoul” into a target</td><td>Inclination computed in code</td></tr>
+  <tr><td>3.5 Super VL</td><td>Reads spec sheets and the team's screenshots</td><td>Every number labelled; gaps filled with stated defaults</td></tr>
+  <tr><td>3 Super</td><td>Explains a failed flight; launch-team votes; conjunction decisions (3 votes)</td><td>Fixes come from the simulator; a second route in code must agree</td></tr>
+  <tr><td>3 Ultra</td><td>Mission director's launch brief; escalation briefs for a person</td><td>Cannot pick a window a check or vote vetoed</td></tr>
+</table></div>
+
+<footer>
+  Team CRIC · 최영준, 김유진, 최승훈 · MIT licence ·
+  <a href="README.md">README</a> · <a href="ARCHITECTURE.md">Architecture</a> · <a href="LIMITATIONS.md">Limitations</a>
+</footer>
+</div>
+</body>
+</html>

@@ -18,9 +18,40 @@ const llv = (lat, lon, alt_km = 0) => {                 // geodetic-ish lat/lon 
 
 // ---------- API ----------
 const HAS_API = await fetch('/api/incidents', { method: 'HEAD' }).then((r) => r.ok).catch(() => false);
-if (!HAS_API) $('serverNote').hidden = false;
+// Without the server (GitHub Pages) the page replays one recorded run: every answer below comes from that run.
+const REPLAY = HAS_API ? null : await fetch('launch/replay/jimin1.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const NOW = () => (REPLAY ? Date.parse(REPLAY.recorded_utc) : Date.now());
+if (!HAS_API) {
+  $('serverNote').hidden = false;
+  if (REPLAY) $('serverNote').innerHTML = `<b>Hosted replay</b> of a run recorded on ${REPLAY.recorded_utc.slice(0, 10)} (Garage One from Naro → JIMIN-1):
+    every number comes from that run, nothing is computed in this page. To fly your own rocket, run it locally (SETUP.md).`;
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function vehDiff(a, b) {
+  if (!a || !b) return 0;
+  if (a.stages.length !== b.stages.length) return 1e9;
+  return a.stages.reduce((t, s, i) => t + Math.abs(s.prop_kg - b.stages[i].prop_kg) / (s.prop_kg || 1)
+    + Math.abs(s.thrust_vac_n - b.stages[i].thrust_vac_n) / (s.thrust_vac_n || 1), 0);
+}
+async function replayApi(path, body) {
+  const list = REPLAY.entries.filter((e) => e.path === path);
+  if (!list.length) throw new Error('Not in this recording. Run Mission Studio locally to try it (SETUP.md).');
+  let e = list[0];
+  if (body?.vehicle) {
+    e = list.reduce((a, x) => (vehDiff(x.req.vehicle, body.vehicle) < vehDiff(a.req.vehicle, body.vehicle) ? x : a));
+    const same = vehDiff(e.req.vehicle, body.vehicle) < 0.02 && e.req.site === body.site
+      && Math.abs(e.req.payload_kg - body.payload_kg) < 0.01 && Math.abs(e.req.target_alt_km - body.target_alt_km) < 0.01;
+    if (!same) throw new Error('This hosted page replays one recorded run: Garage One with a 5 kg cubesat from Naro to 500 km SSO, '
+      + 'before and after its verified fix. To fly another rocket or orbit, run Mission Studio locally (SETUP.md).');
+  }
+  await sleep(Math.min(2600, 500 + e.seconds * 120));             // a hint of the real wait, shortened
+  return structuredClone(e.res);
+}
 async function api(path, body, raw) {
-  if (!HAS_API) throw new Error('Mission Studio simulates on the local server: run web/serve.py and open http://localhost:8765/studio.html');
+  if (!HAS_API) {
+    if (REPLAY && path !== 'presets') return replayApi(path, body);
+    throw new Error('Mission Studio simulates on the local server: run web/serve.py and open http://localhost:8765/studio.html');
+  }
   const r = await fetch('/api/launch/' + path, raw ? { method: 'POST', headers: { 'Content-Type': raw.type }, body: raw }
     : body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({ error: r.statusText }));
@@ -142,6 +173,8 @@ function insets() {                 // the hangar centres between the panels tha
   CV.setInsets(innerWidth > 900 ? w('left1') : 0, innerWidth > 900 ? rw('right1') : 0);
 }
 addEventListener('resize', insets);
+const hudH = () => document.body.style.setProperty('--hudh', `${$('studioHud').getBoundingClientRect().bottom}px`);
+new ResizeObserver(hudH).observe($('studioHud'));
 function showBay() {
   insets();
   const id = P.vehicles[S.vehicle.id] ? S.vehicle.id : S.vehicle.id || 'custom';
@@ -247,6 +280,7 @@ $('sheetFile').addEventListener('change', (e) => e.target.files[0] && readSheet(
 async function readSheet(file) {
   $('sheetStatus').innerHTML = `Reading <b>${esc(file.name)}</b>…`;
   const r = await busy(`Reading the spec sheet (${file.type === 'application/pdf' ? 'Nemotron 3 Super' : 'Nemotron 3.5 Super VL'})…`, () => api('sheet', null, file));
+  if (REPLAY) r.vehicle.notes = `Replay: this is the recorded reading of the sample sheet (Garage One), whatever file was chosen. ${r.vehicle.notes || ''}`;
   const v = r.vehicle;
   if (v.missing.length) {             // fill what cannot be run without, and say so
     for (const st of v.stages) for (const k of ['prop_kg', 'dry_kg', 'thrust_vac_n']) if (st[k] == null) { st[k] = k === 'dry_kg' ? (st.prop_kg || 100) * 0.12 : k === 'prop_kg' ? 1000 : 20000; }
@@ -492,7 +526,7 @@ async function loadHeat() {
   for (const row of r.rows) {
     h += `<div class="hrow"><div class="nm" title="${esc(row.name)}">${esc(row.name.replace(/ \(.*/, ''))} <small>${row.azimuth_deg != null ? row.azimuth_deg.toFixed(0) + '°' : ''}</small></div>`;
     if (!row.reachable || row.error) h += `<div class="unreach">${esc(row.why || row.error)}</div></div>`;
-    else h += `<div class="cells" data-site="${row.site}">${row.hours.map((x, k) => (Date.parse(x.t) + 3600e3 < Date.now()
+    else h += `<div class="cells" data-site="${row.site}">${row.hours.map((x, k) => (Date.parse(x.t) + 3600e3 < NOW()
       ? '<i class="na" title="past"></i>' : `<i class="${x.status === 'n/a' ? 'na' : x.status}" data-k="${k}"></i>`)).join('')}</div></div>`;
   }
   $('heat').innerHTML = h + `<div class="small dim mt">Each cell is one hour (UTC). Green go · amber caution · red no-go. Click an hour to screen its minutes for collisions.</div>`;
@@ -510,7 +544,12 @@ async function loadHeat() {
 function tip(ev, html) { const t = $('tip'); t.innerHTML = html; t.hidden = false; t.style.left = Math.min(ev.clientX + 12, innerWidth - 300) + 'px'; t.style.top = (ev.clientY + 12) + 'px'; }
 
 async function pickHour(row, k, el) {
-  $('heat').querySelectorAll('i.sel').forEach((x) => x.classList.remove('sel')); el.classList.add('sel');
+  if (REPLAY && (row.site !== $('siteSel').value || row.hours[k].t !== REPLAY.hour)) {   // only that hour was recorded
+    row = S.heat.rows.find((x) => x.site === $('siteSel').value); k = row.hours.findIndex((h) => h.t === REPLAY.hour);
+    el = $('heat').querySelector(`.cells[data-site="${row.site}"] i[data-k="${k}"]`);
+    $('heatNote').textContent = `Replay: the recorded hour (${REPLAY.hour.slice(0, 16).replace('T', ' ')} UTC) is shown.`;
+  }
+  $('heat').querySelectorAll('i.sel').forEach((x) => x.classList.remove('sel')); el?.classList.add('sel');
   if (row.site !== $('siteSel').value) {                // another site: fly from there first
     $('siteSel').value = row.site; S.site = row.site; updateAz();
     await fly(); showStep(2);
@@ -536,6 +575,7 @@ async function pickHour(row, k, el) {
   strip.addEventListener('mouseleave', () => { $('tip').hidden = true; });
   strip.addEventListener('click', (ev) => { const i = ev.target.dataset.i; if (i != null) toggleCand(r.rows[i].liftoff_utc); });
   S.cands = [...new Set([worst?.liftoff_utc, ...best.slice(0, 2).map((x) => x.liftoff_utc)].filter(Boolean))].slice(0, 4);
+  if (REPLAY) S.cands = REPLAY.entries.find((e) => e.path === 'gonogo')?.req.candidates || S.cands;   // what the team voted on
   renderCands();
 }
 function toggleCand(t) {
@@ -576,7 +616,8 @@ let catSats = [], catPts = new THREE.Points(), catPos = null, simMs = Date.now()
 scene.add(catPts); catPts.visible = false;
 async function loadCatalog() {
   if (catSats.length) return;
-  const txt = (await Promise.all(['/data/celestrak_active.tle', '/data/celestrak_debris.tle'].map((u) => fetch(u).then((r) => (r.ok ? r.text() : '')).catch(() => ''))) ).join('\n');
+  const base = HAS_API ? '/data/' : '../fixtures/snapshot_20261025/';
+  const txt = (await Promise.all([base + 'celestrak_active.tle', base + 'celestrak_debris.tle'].map((u) => fetch(u).then((r) => (r.ok ? r.text() : '')).catch(() => ''))) ).join('\n');
   const ls = txt.split('\n').map((l) => l.trimEnd()).filter(Boolean);
   for (let i = 0; i + 2 < ls.length; i += 3) catSats.push(satellite.twoline2satrec(ls[i + 1], ls[i + 2]));
   catPos = new Float32Array(catSats.length * 3);
@@ -641,8 +682,22 @@ const STEP_TXT = {
 function assess(enc) {
   const out = $('incOut');
   out.innerHTML = `<h2 class="mt">CRIC · ${esc(enc.object_a.name)} × ${esc(enc.object_b.name)}</h2><div class="stream" id="stream"></div>`;
-  const es = new EventSource(`/api/incident?ours=${enc.object_a.norad_id}&other=${enc.object_b.norad_id}&preset=quiet&mode=live`);
   const add = (t, k = '•') => { const d = document.createElement('div'); d.innerHTML = `<span class="k">${k}</span>${esc(t)}`; $('stream').append(d); };
+  if (!HAS_API) {                                   // replay the recorded stream at a quicker pace
+    const ev = REPLAY?.incidents?.[`${enc.object_a.norad_id}-${enc.object_b.norad_id}`];
+    if (!ev) { add('Not in this recording: run Mission Studio locally for a live decision.', '⚠'); return; }
+    add('Replay of the recorded live run (Token Factory + Tavily)', '⟲');
+    (async () => {
+      let last = 0;
+      for (const e of ev) {
+        await sleep(Math.min(1200, Math.max(60, ((e.t ?? last) - last) * 250))); last = e.t ?? last;
+        if (STEP_TXT[e.kind]) add(STEP_TXT[e.kind](e));
+        if (e.kind === 'result') showDecision(e);
+      }
+    })();
+    return;
+  }
+  const es = new EventSource(`/api/incident?ours=${enc.object_a.norad_id}&other=${enc.object_b.norad_id}&preset=quiet&mode=live`);
   add('Live run: Token Factory + Tavily (about a minute, ~$0.03)', '▶');
   es.onmessage = (m) => {
     const e = JSON.parse(m.data);
@@ -666,6 +721,7 @@ function showDecision(e) {
   const send = async (verdict) => {
     const reason = verdict === 'reject' ? prompt('Why reject?') : '';
     if (verdict === 'reject' && !reason) return;
+    if (!HAS_API) { $('apOut').innerHTML = `Replay: ${esc(verdict)} noted on this page only. With the server, the decision is logged and hash-chained.`; return; }
     const r = await fetch('/api/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ file: e.file, action: fin, option_id: e.validation.final_option_id || '', verdict, reason, operator: $('opName').value }) }).then((x) => x.json());
     $('apOut').innerHTML = `✓ ${esc(verdict)}d by ${esc(r.operator)} · logged (hash ${esc(r.hash?.slice(0, 10))}…) · ${esc(r.note)}`;

@@ -1,11 +1,23 @@
-# CRIC — Cosmic Response & Intelligence Console
+# CRIC — from your rocket to a satellite that is looked after
 
-AI mission control for small satellite operators. CRIC watches real orbits and space weather, works out who can manoeuvre when two objects get close, plans a response, checks it in physics, and hands it to a human for approval.
+Bring a rocket and a satellite. CRIC tells you whether the rocket reaches orbit and what to change if it does not,
+when and where to launch around weather and other satellites, and then operates the satellite among 18,806 tracked
+objects: it watches real orbits and space weather, works out who can manoeuvre when two objects get close, plans a
+response, checks it in physics, and hands it to a person for approval.
 
-Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/) (Physical AI track).
+Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/).
 
-**Live demo (no install, replays recorded runs): https://youngjun-choi-kr.github.io/cric/web/**
-Pick a situation in the left panel and press *Replay recorded run*. Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
+**Live demo, no install: https://youngjun-choi-kr.github.io/cric/**
+- **Mission Studio** (rocket → launch window → operate): a recorded run of the JIMIN-1 story, replayed in the page.
+- **Operations console**: recorded conjunction decisions; pick a situation and press *Replay recorded run*.
+
+Both run live (your own rocket, live decisions) with the local server and API keys: [SETUP.md](SETUP.md).
+Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+| 1 · Your rocket | 2 · When and where | 3 · Operate |
+|---|---|---|
+| ![Hangar](web/launch/img/hangar.jpg) | ![Launch window](web/launch/img/window.jpg) | ![Operations](web/launch/img/ops.jpg) |
+| Does it reach orbit? If not, fixes that are flown again before you see them. | Weather, space weather and every liftoff minute screened against the catalog. | Passes over home, close approaches, the CRIC decision pipeline, your approval. |
 
 ![How CRIC works: sense, read, two routes must agree, a person, act and sense again](docs/how-it-works.svg)
 

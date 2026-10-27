@@ -131,7 +131,7 @@ pre.tle { font-size:10px; background:rgba(0,0,0,.35); padding:6px; border-radius
 .cv-baybar label { display:flex; gap:6px; align-items:center; cursor:pointer; } .cv-baybar input { width:auto; }
 .cv-legend { color:var(--dim); font-size:11px; } .cv-legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin:0 3px 0 8px; vertical-align:-1px; }
 .cv-hud { position:absolute; inset:0; pointer-events:none; font-family:'Chakra Petch', -apple-system, sans-serif; }
-.cv-top { position:absolute; top:84px; left:24px; }
+.cv-top { position:absolute; top:calc(var(--hudh, 64px) + 20px); left:24px; }
 .cv-live b { color:#ff5a4f; letter-spacing:.12em; font-size:13px; } .cv-live b::before { content:'● '; animation:pulse 1.2s infinite; }
 .cv-live span { color:#fff; font-size:15px; margin-left:6px; text-shadow:0 1px 4px #000; }
 .cv-note { color:rgba(219,230,255,.7); font-size:11px; margin-top:3px; text-shadow:0 1px 3px #000; font-family:-apple-system, sans-serif; }
@@ -140,7 +140,7 @@ pre.tle { font-size:10px; background:rgba(0,0,0,.35); padding:6px; border-radius
   text-shadow:0 0 18px rgba(90,176,255,.8), 0 2px 6px #000; white-space:nowrap; }
 .cv-toast.show { animation:toast 3.2s ease forwards; }
 @keyframes toast { 0% { opacity:0; transform:translate(-50%, 8px); } 12% { opacity:1; transform:translate(-50%, 0); } 80% { opacity:1; } 100% { opacity:0; } }
-.cv-cams { position:absolute; top:84px; right:24px; display:flex; gap:4px; pointer-events:auto; }
+.cv-cams { position:absolute; top:calc(var(--hudh, 64px) + 20px); right:24px; display:flex; gap:4px; pointer-events:auto; }
 .cv-cams button { font-size:11px; padding:4px 9px; background:rgba(4,8,18,.6); }
 .cv-bottom { position:absolute; left:0; right:0; bottom:0; height:120px; display:grid; grid-template-columns:1fr 1.6fr 1fr; align-items:end; gap:24px;
   padding:0 34px 22px; background:linear-gradient(transparent, rgba(0,0,0,.72)); }
@@ -159,4 +159,4 @@ pre.tle { font-size:10px; background:rgba(0,0,0,.35); padding:6px; border-radius
 #viewSw { position:fixed; top:84px; left:50%; transform:translateX(-50%); z-index:3; display:flex; gap:4px; background:var(--panel);
   border:1px solid var(--line); border-radius:99px; padding:4px; }
 #viewSw button { border-radius:99px; font-size:11.5px; padding:4px 12px; }
-body.flying .scol, body.flying #viewSw { display:none !important; }
+body.flying .scol, body.flying #viewSw, body.flying #serverNote { display:none !important; }
