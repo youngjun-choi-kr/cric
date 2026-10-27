@@ -198,15 +198,20 @@ derived from the data; plume, smoke and sky are illustration.
    the orbit with a 50 m/s reserve); Super explains why. A Monte Carlo (thrust, Isp, mass, pitch, azimuth
    scatter) draws the impact areas.
 2. **When and where.** A seven-day hourly go / caution / no-go map for every launch site that can reach the orbit
-   over its sea corridor (Open-Meteo winds, rain, lightning potential, upper winds; NOAA Kp). Pick an hour and
+   over its sea corridor (Open-Meteo winds, rain, lightning potential, upper winds; NOAA Kp). For a sun-synchronous
+   imaging satellite the launch time sets the local time it crosses the equator (LTDN, e.g. 10:30 like Sentinel-2):
+   the map outlines the hours that hit the target and lists the best three. Notes from the team, the customer and
+   the range (any language) become checked rules that can close a window. Pick an hour and
    the studio screens every liftoff minute against the catalog for the first orbit after insertion (LCOLA): one
    minute can pass a kilometre or two from another satellite while a few minutes later is clear. Three launch-team roles vote
    on the candidate minutes and Nemotron 3 Ultra, as mission director, picks one; code refuses any pick that a
    check or a vote vetoed.
 3. **Operate.** The insertion state becomes a TLE (mean elements fitted so SGP4 reproduces it), the satellite
    joins the catalog under a studio NORAD ID (99001+), and CRIC shows its passes over home and screens it for 72 h.
+   Passes in daylight and high enough to photograph home are marked, with each pass's track across the sky.
    Any close approach opens the same incident pipeline as the console (dossier from the owner's registration, not
-   the web), ending in the owner's approve / reject.
+   the web); when public data is not enough, the provider's precise ephemeris can arrive and CRIC decides again,
+   ending in the owner's approve / reject.
 
 How the Studio's models do, on scenarios written before they ran (`fixtures/launch/eval_launch_agents.json`,
 `scripts/eval_launch_agents.py`, 3 runs each, results in `results/launch_agents_eval_*.json`):

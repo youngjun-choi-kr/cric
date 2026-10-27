@@ -158,7 +158,17 @@ def target(b: dict) -> dict:
 
 def windows_(b: dict) -> dict:
     sites = b.get("sites")
-    return windows.heatmap(float(b["incl_deg"]), sites=sites if isinstance(sites, list) else None)
+    hm = windows.heatmap(float(b["incl_deg"]), sites=sites if isinstance(sites, list) else None)
+    if b.get("vehicle") and b.get("guidance"):          # the flight is known: LTAN for each hour at its site
+        from .insertion import ltan_hours
+
+        m = _mission(b)
+        r = _fly(m)
+        if r["orbit"]:
+            for row in hm["rows"]:
+                if row["site"] == m["site"].id and row.get("hours"):
+                    row["ltan_h"] = [round(ltan_hours(r, parse_utc(h["t"])), 3) for h in row["hours"]]
+    return hm
 
 
 def lcola(b: dict) -> dict:

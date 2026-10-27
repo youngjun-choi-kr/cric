@@ -26,6 +26,7 @@ URL = "http://localhost:8765"
 H = {"Host": "localhost:8765"}
 TEXT = "My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit."
 NOTES = html.unescape(re.search(r'<textarea id="teamNotes"[^>]*>(.*?)</textarea>', (ROOT / "web" / "studio.html").read_text(), re.S).group(1))
+LTDN_H, LTDN_TOL_H = 10.5, 0.75          # imaging orbit: equator crossing 10:30 local, as the page defaults
 entries: list[dict] = []
 
 
@@ -66,12 +67,16 @@ def main() -> None:
     ok = call("simulate", m2 | {"guidance": None})
     m_ok = m2 | {"guidance": ok["guidance"]}
     call("dispersion", m_ok | {"runs": 500})
-    heat = call("windows", {"incl_deg": m["incl_deg"]})
+    heat = call("windows", m_ok)
     # the launch hour: the first upcoming go hour at the site whose minutes show a close call and a clear one
     row = next(r for r in heat["rows"] if r["site"] == site)
     now = datetime.now(timezone.utc).timestamp()
     best = None
-    for h in [h for h in row["hours"] if h["status"] == "go" and datetime.fromisoformat(h["t"].replace("Z", "+00:00")).timestamp() > now + 3 * 3600][:8]:
+    ltdn_ok = lambda k: abs(((row["ltan_h"][k] + 12) % 24 - LTDN_H + 36) % 24 - 12) <= LTDN_TOL_H   # the page's default target
+    hours = [h for k, h in enumerate(row["hours"]) if h["status"] == "go" and ltdn_ok(k)
+             and datetime.fromisoformat(h["t"].replace("Z", "+00:00")).timestamp() > now + 3 * 3600]
+    print(f"  {len(hours)} go hours on the LTDN target", flush=True)
+    for h in hours[:8]:
         lc = call("lcola", m_ok | {"start_utc": h["t"], "minutes": 60}, keep=False)
         rows = [x for x in lc["rows"] if x["closest_km"] is not None]
         worst = min(rows, key=lambda x: x["closest_km"])

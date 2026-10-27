@@ -128,8 +128,31 @@ def passes(sat: Satrec, lat: float, lon: float, start: datetime, hours: float = 
             inside = False
             seg = el[k0:k]
             km = k0 + int(np.argmax(seg))
-            out.append({"rise_utc": (start + timedelta(seconds=float(offs[k0]))).isoformat().replace("+00:00", "Z"),
+            east = np.array([-math.sin(l), math.cos(l), 0.0])
+            north = np.cross(up, east)
+            dd = d[k0:k + 1]
+            az = (np.degrees(np.arctan2(dd @ east, dd @ north)) + 360) % 360
+            out.append({"track": [[round(float(a), 1), round(float(e), 1)] for a, e in zip(az[::3], el[k0:k + 1][::3])],
+                        "rise_utc": (start + timedelta(seconds=float(offs[k0]))).isoformat().replace("+00:00", "Z"),
                         "max_utc": (start + timedelta(seconds=float(offs[km]))).isoformat().replace("+00:00", "Z"),
                         "set_utc": (start + timedelta(seconds=float(offs[k]))).isoformat().replace("+00:00", "Z"),
                         "max_elevation_deg": round(float(seg.max()), 1)})
     return out
+
+
+def sun_ra_deg(t: datetime) -> float:
+    """Right ascension of the Sun (deg), low-precision almanac formula (about 0.01 deg)."""
+    n = (t - datetime(2000, 1, 1, 12, tzinfo=timezone.utc)).total_seconds() / 86400.0
+    L = math.radians((280.460 + 0.9856474 * n) % 360)
+    g = math.radians((357.528 + 0.9856003 * n) % 360)
+    lam = L + math.radians(1.915) * math.sin(g) + math.radians(0.020) * math.sin(2 * g)
+    eps = math.radians(23.439 - 4e-7 * n)
+    return math.degrees(math.atan2(math.cos(eps) * math.sin(lam), math.cos(lam))) % 360
+
+
+def ltan_hours(result: dict, liftoff: datetime) -> float:
+    """Local time of the ascending node (hours) of the orbit a flight reaches when it lifts off at `liftoff`.
+    For a sun-synchronous imaging satellite this is the local time it sees the ground, and the launch time sets it."""
+    r, v, epoch = insertion_teme(result, liftoff)
+    raan = math.degrees(rv_to_elements(r, v)["raan"])
+    return (12 + (raan - sun_ra_deg(epoch)) / 15) % 24

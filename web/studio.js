@@ -60,11 +60,18 @@ async function api(path, body, raw) {
 }
 let busyN = 0;
 async function busy(text, fn) {
-  busyN++; $('busy').hidden = false; $('busyTxt').textContent = text;
+  busyN++; $('busy').hidden = false;
+  const t0 = performance.now(), tick = () => { $('busyTxt').textContent = `${text} ${Math.round((performance.now() - t0) / 1000)} s`; };
+  tick(); const iv = setInterval(tick, 500);
   try { return await fn(); }
   catch (e) { alert(e.message); throw e; }
-  finally { if (--busyN === 0) $('busy').hidden = true; }
+  finally { clearInterval(iv); if (--busyN === 0) $('busy').hidden = true; }
 }
+// LTDN: local time when the orbit crosses the equator going south (the imaging side of a sun-synchronous orbit)
+const ltdnOf = (ltan) => (ltan + 12) % 24;
+const hm = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`;
+function ltdnTarget() { const [a, b] = ($('ltdnT')?.value || '10:30').split(':').map(Number); return a + (b || 0) / 60; }
+const ltdnOk = (ltan) => { const d = Math.abs(((ltdnOf(ltan) - ltdnTarget() + 36) % 24) - 12); return d <= (+$('ltdnTol')?.value || 45) / 60; };
 
 // ---------- globe ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -523,8 +530,12 @@ async function runDispersion() {
 
 // ---------- step 2: windows ----------
 async function loadHeat() {
-  const r = await busy('Weather (Open-Meteo) and space weather (NOAA SWPC) for every site that can reach your orbit…', () => api('windows', { incl_deg: +$('incl').value }));
+  const r = await busy('Weather (Open-Meteo) and space weather (NOAA SWPC) for every site that can reach your orbit…', () => api('windows', mission()));
   S.heat = r;
+  renderHeat(r);
+}
+['ltdnT', 'ltdnTol'].forEach((id) => $(id).addEventListener('change', () => S.heat && renderHeat(S.heat)));
+function renderHeat(r) {
   const first = r.rows.find((x) => x.hours)?.hours[0].t;
   const day0 = first ? new Date(first) : new Date();
   $('heatNote').textContent = `assumed small-launcher thresholds: gusts ≥ ${r.criteria.gust_ms[1]} m/s, rain ≥ ${r.criteria.precip_pct[1]}%, CAPE ≥ ${r.criteria.cape_jkg[1]} J/kg, 250 hPa wind ≥ ${r.criteria.wind250_ms[1]} m/s → no-go`;
@@ -533,15 +544,22 @@ async function loadHeat() {
     h += `<div class="hrow"><div class="nm" title="${esc(row.name)}">${esc(row.name.replace(/ \(.*/, ''))} <small>${row.azimuth_deg != null ? row.azimuth_deg.toFixed(0) + '°' : ''}</small></div>`;
     if (!row.reachable || row.error) h += `<div class="unreach">${esc(row.why || row.error)}</div></div>`;
     else h += `<div class="cells" data-site="${row.site}">${row.hours.map((x, k) => (Date.parse(x.t) + 3600e3 < NOW()
-      ? '<i class="na" title="past"></i>' : `<i class="${x.status === 'n/a' ? 'na' : x.status}" data-k="${k}"></i>`)).join('')}</div></div>`;
+      ? '<i class="na" title="past"></i>' : `<i class="${x.status === 'n/a' ? 'na' : x.status}${row.ltan_h ? (ltdnOk(row.ltan_h[k]) ? ' lt' : ' ltoff') : ''}" data-k="${k}"></i>`)).join('')}</div></div>`;
   }
-  $('heat').innerHTML = h + `<div class="small dim mt">Each cell is one hour (UTC). Green go · amber caution · red no-go. Click an hour to screen its minutes for collisions.</div>`;
+  const site = r.rows.find((x) => x.site === $('siteSel').value && x.ltan_h);
+  const top = site ? site.hours.map((x, k) => ({ x, k })).filter(({ x, k }) => x.status === 'go' && Date.parse(x.t) > NOW() + 3 * 3600e3 && ltdnOk(site.ltan_h[k])).slice(0, 3) : [];
+  $('heat').innerHTML = h + `<div class="small dim mt">Each cell is one hour (UTC). Green go · amber caution · red no-go.${site ? ' Outlined hours put the satellite on the target equator-crossing time (LTDN); the rest are dimmed.' : ''} Click an hour to screen its minutes for collisions.</div>
+    ${site ? `<div class="top3"><b>Best windows</b> <span class="dim small">go weather · LTDN ${hm(ltdnTarget())} ± ${+$('ltdnTol').value} min · ${esc(site.name.replace(/ \(.*/, ''))}</span>
+      ${top.map(({ x, k }) => `<button data-top="${k}">${x.t.slice(5, 10)} ${x.t.slice(11, 16)} UTC · LTDN ${hm(ltdnOf(site.ltan_h[k]))}</button>`).join('') || '<span class="dim small">none in the next 7 days: widen the tolerance or another site</span>'}</div>` : ''}`;
+  $('heat').querySelectorAll('[data-top]').forEach((b) => b.addEventListener('click', () => {
+    const k = +b.dataset.top; pickHour(site, k, $('heat').querySelector(`.cells[data-site="${site.site}"] i[data-k="${k}"]`));
+  }));
   $('heat').querySelectorAll('.cells').forEach((c) => {
     const row = r.rows.find((x) => x.site === c.dataset.site);
     c.addEventListener('mousemove', (ev) => {
       const k = ev.target.dataset.k; if (k == null) return;
       const x = row.hours[k];
-      tip(ev, `<b>${esc(row.name)}</b><br>${x.t.slice(0, 16).replace('T', ' ')} UTC · <b>${x.status}</b><br>${x.checks.map((c2) => `${c2.check}: ${c2.value ?? '–'}${c2.unit}`).join('<br>')}`);
+      tip(ev, `<b>${esc(row.name)}</b><br>${x.t.slice(0, 16).replace('T', ' ')} UTC · <b>${x.status}</b>${row.ltan_h ? `<br>orbit LTDN ${hm(ltdnOf(row.ltan_h[k]))} (target ${hm(ltdnTarget())})` : ''}<br>${x.checks.map((c2) => `${c2.check}: ${c2.value ?? '–'}${c2.unit}`).join('<br>')}`);
     });
     c.addEventListener('mouseleave', () => { $('tip').hidden = true; });
     c.addEventListener('click', (ev) => { const k = ev.target.dataset.k; if (k != null) pickHour(row, +k, ev.target); });
@@ -576,7 +594,8 @@ async function pickHour(row, k, el) {
   const strip = $('lcolaBox').querySelector('.strip');
   strip.addEventListener('mousemove', (ev) => {
     const i = ev.target.dataset.i; if (i == null) return; const x = r.rows[i];
-    tip(ev, `<b>Liftoff ${hhmm(x.liftoff_utc)} UTC</b> · ${x.status}<br>${x.closest_km != null ? `closest: ${fmt(x.closest_km, 2)} km from ${esc(x.object)}<br>${fmt(x.minutes_after_insertion, 1)} min after insertion` : 'nothing within the search radius'}`);
+    const lt = S.hour?.row?.ltan_h ? `<br>orbit LTDN ${hm(ltdnOf(S.hour.row.ltan_h[S.hour.k] + (Date.parse(x.liftoff_utc) - Date.parse(S.hour.start)) / 3600e3))}` : '';
+    tip(ev, `<b>Liftoff ${hhmm(x.liftoff_utc)} UTC</b> · ${x.status}${lt}<br>${x.closest_km != null ? `closest: ${fmt(x.closest_km, 2)} km from ${esc(x.object)}<br>${fmt(x.minutes_after_insertion, 1)} min after insertion` : 'nothing within the search radius'}`);
   });
   strip.addEventListener('mouseleave', () => { $('tip').hidden = true; });
   strip.addEventListener('click', (ev) => { const i = ev.target.dataset.i; if (i != null) toggleCand(r.rows[i].liftoff_utc); });
@@ -672,11 +691,18 @@ $('deployBtn').addEventListener('click', async () => {
     <pre class="tle">${esc(r.name)}\n${esc(r.tle[0])}\n${esc(r.tle[1])}</pre>
     <div class="small dim">Tracked with ${fmt(r.objects_in_catalog - 1)} catalogued objects. The TLE reproduces the simulated insertion state at epoch.</div></div>`;
   const kst = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().slice(5, 16).replace('T', ' ');
-  $('opsOut').innerHTML = `${r.passes?.length ? `<h2 class="mt">PASSES OVER ${esc(home.toUpperCase())}</h2>${r.passes.slice(0, 6).map((p) => `<div class="pass"><span>${p.rise_utc.slice(5, 16).replace('T', ' ')} UTC <span class="dim">(${kst(p.rise_utc)} KST)</span></span><b>max ${p.max_elevation_deg}°</b></div>`).join('')}` : ''}
+  const imaging = (p) => p.max_elevation_deg >= 30 && sunElev(new Date(p.max_utc), lat, lon) > 5;   // daylight, high enough
+  $('opsOut').innerHTML = `${r.passes?.length ? `<h2 class="mt">PASSES OVER ${esc(home.toUpperCase())}</h2>
+    <div class="small dim">📷 = a photo opportunity: daylight in ${esc(home)} and at least 30° up. Click a pass for its track across the sky.</div>
+    ${r.passes.slice(0, 8).map((p, i) => `<div class="pass${imaging(p) ? ' img' : ''}" data-pass="${i}"><span>${imaging(p) ? '📷 ' : ''}${p.rise_utc.slice(5, 16).replace('T', ' ')} UTC <span class="dim">(${kst(p.rise_utc)} KST)</span></span><b>max ${p.max_elevation_deg}°</b></div>`).join('')}
+    <canvas id="skyPlot" width="420" height="420"></canvas>` : ''}
     <h2 class="mt">CLOSE APPROACHES · next ${r.screen_hours} h</h2>
     ${r.encounters.length ? r.encounters.map((e, i) => `<div class="enc"><span><b>${esc(e.object_b.name)}</b><br><span class="dim">${e.tca_utc.slice(5, 16).replace('T', ' ')} UTC · ${fmt(e.miss_distance_km * 1000)} m · ${e.relative_speed_kms} km/s</span></span>
       <button data-enc="${i}" class="primary">Assess with CRIC</button></div>`).join('') : '<div class="dim">No approach within 5 km. CRIC keeps screening daily.</div>'}`;
   $('opsOut').querySelectorAll('[data-enc]').forEach((b) => b.addEventListener('click', () => assess(r.encounters[+b.dataset.enc])));
+  const pick = (i) => { $('opsOut').querySelectorAll('.pass').forEach((el) => el.classList.toggle('on', +el.dataset.pass === i)); skyPlot(r.passes[i], home); };
+  $('opsOut').querySelectorAll('[data-pass]').forEach((el) => el.addEventListener('click', () => pick(+el.dataset.pass)));
+  if (r.passes?.length) pick(Math.max(0, r.passes.findIndex(imaging)));
   controls.target.set(0, 0, 0); camGoal = ring[0].clone().normalize().multiplyScalar(17);   // look at the new satellite
 });
 
@@ -749,6 +775,30 @@ function showDecision(e, enc, preset, prev) {
   };
   q('.apOk').onclick = () => send('approve'); q('.apNo').onclick = () => send('reject');
   if (q('.nextPrecise')) q('.nextPrecise').onclick = () => { q('.nextPrecise').disabled = true; assess(enc, 'precise', e.risk); };
+}
+
+// sky track of one pass: azimuth around, elevation inward (90° at the centre)
+function skyPlot(p, home) {
+  const c = $('skyPlot'); if (!c || !p?.track) return;
+  const g = c.getContext('2d'), R = c.width / 2 - 26, cx = c.width / 2, cy = c.height / 2;
+  const xy = (az, el) => { const r = R * (1 - el / 90), a = az * D2R; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+  g.clearRect(0, 0, c.width, c.height);
+  g.strokeStyle = 'rgba(120,160,255,.3)'; g.lineWidth = 1.5;
+  for (const el of [0, 30, 60]) { g.beginPath(); g.arc(cx, cy, R * (1 - el / 90), 0, 7); g.stroke(); }
+  g.fillStyle = 'rgba(219,230,255,.75)'; g.font = '20px sans-serif'; g.textAlign = 'center';
+  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([n, az]) => { const [x, y] = xy(az, -12); g.fillText(n, x, y + 7); });
+  g.strokeStyle = '#4fe3a1'; g.lineWidth = 4; g.beginPath();
+  p.track.forEach(([az, el], i) => { const [x, y] = xy(az, Math.max(0, el)); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+  const [x0, y0] = xy(p.track[0][0], p.track[0][1]); g.fillStyle = '#4fe3a1'; g.beginPath(); g.arc(x0, y0, 6, 0, 7); g.fill();
+  g.fillStyle = 'rgba(219,230,255,.85)'; g.textAlign = 'left'; g.font = '18px sans-serif';
+  g.fillText(`${home} · ${p.max_utc.slice(11, 16)} UTC · max ${p.max_elevation_deg}°`, 10, c.height - 10);
+}
+function sunElev(t, lat, lon) {                     // same almanac as the server (cric.launch.sun)
+  const doy = (t - Date.UTC(t.getUTCFullYear(), 0, 0)) / 864e5, gm = 2 * Math.PI / 365.25 * (doy - 1);
+  const decl = 0.006918 - 0.399912 * Math.cos(gm) + 0.070257 * Math.sin(gm) - 0.006758 * Math.cos(2 * gm) + 0.000907 * Math.sin(2 * gm) - 0.002697 * Math.cos(3 * gm) + 0.00148 * Math.sin(3 * gm);
+  const eot = 229.18 * (0.000075 + 0.001868 * Math.cos(gm) - 0.032077 * Math.sin(gm) - 0.014615 * Math.cos(2 * gm) - 0.040849 * Math.sin(2 * gm));
+  const ha = ((t.getUTCHours() * 60 + t.getUTCMinutes() + eot + 4 * lon) / 4 - 180) * D2R, la = lat * D2R;
+  return Math.asin(Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(ha)) / D2R;
 }
 
 // ---------- loop ----------

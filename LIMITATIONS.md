@@ -126,6 +126,9 @@ CRIC is a research prototype for decision support. It is not an operational coll
   misread unit would propagate; the form shows every value for the owner to check.
 - Dispersion sigmas (thrust 1.5%, Isp 0.5%, dry mass 2%, pitch 0.3 deg, azimuth 0.3 deg) are assumptions, not
   any vehicle's data. Impacts ignore wind drift and break-up.
+- LTAN/LTDN comes from the simulated insertion state (osculating elements) and a low-precision Sun position: good
+  to a few minutes, not an orbit-design tool; drift of the node over the mission is not modelled.
+- Photo opportunities use pass elevation and the Sun at home only (no clouds, sensor geometry or off-nadir limits).
 - The land check uses Natural Earth 1:50m outlines: small islands and coastlines are approximate (a few km), and it
   ignores wind drift and debris spread beyond the dispersion runs. A range's hazard areas are larger and official.
 - Team notes are read by a model and checked in code (quote present, no instruction-like text, values in range).

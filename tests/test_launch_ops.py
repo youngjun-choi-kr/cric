@@ -129,3 +129,11 @@ def test_notes_guards_and_rules(monkeypatch):
     assert eff("2026-10-31T13:00:00Z")["daylight_only"] == "nogo"                          # 22:00 KST
     b = agents.director([{"liftoff_utc": "2026-10-31T23:55:00Z", "status": "go"}], {}, needs_person="test")
     assert b["decision"] == "hold"
+
+
+def test_ltan_follows_the_launch_time(flight):
+    from cric.launch.insertion import ltan_hours
+
+    a = ltan_hours(flight, T0)
+    b = ltan_hours(flight, T0.replace(hour=T0.hour + 3))
+    assert abs(((b - a) % 24) - 3.0) < 0.15          # three hours later, the node is three hours later in local time

@@ -83,9 +83,10 @@ def pick_hour(page) -> dict:
         body: JSON.stringify(b)}).then(r => r.json());
       const m = {vehicle: S.vehicle, payload_kg: +document.getElementById('payload').value, site: 'naro',
                  target_alt_km: +document.getElementById('alt').value, incl_deg: +document.getElementById('incl').value, guidance: S.guidance};
-      const heat = await call('windows', {incl_deg: m.incl_deg, sites: ['naro']});
-      const hours = heat.rows[0].hours.map((h, k) => ({...h, k}))
-        .filter(h => h.status === 'go' && Date.parse(h.t) > Date.now() + 3 * 3600e3).slice(0, 8);
+      const heat = await call('windows', {...m, sites: ['naro']});
+      const row = heat.rows[0], ltdnOk = (k) => !row.ltan_h || Math.abs((((row.ltan_h[k] + 12) % 24) - 10.5 + 36) % 24 - 12) <= 0.75;
+      const hours = row.hours.map((h, k) => ({...h, k}))     // the page's default imaging target: LTDN 10:30 +- 45 min
+        .filter(h => h.status === 'go' && ltdnOk(h.k) && Date.parse(h.t) > Date.now() + 3 * 3600e3).slice(0, 8);
       let best = null;
       for (const h of hours) {
         const r = await call('lcola', {...m, start_utc: h.t, minutes: 60});
