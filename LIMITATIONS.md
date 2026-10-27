@@ -3,7 +3,7 @@
 CRIC is a research prototype for decision support. It is not an operational collision-avoidance service.
 
 ## Data
-- Orbits come from public CelesTrak GP/TLE data, accurate to roughly a kilometre. Close-approach distances
+- Orbits come from public CelesTrak GP/TLE data, accurate to roughly a kilometer. Close-approach distances
   from this data are screening-grade.
 - No real CDM for our encounters was available. `cric cdm` reads CDMs and was checked on NASA's sample CDMs, but the eval's "precise data" still uses a **simulated** covariance. Pc otherwise uses an **assumed** covariance (TLE age and Kp driven). The
   "precise data" mode in the eval uses a **simulated** CDM-grade covariance (~100 m along-track), not real data.
@@ -19,7 +19,7 @@ CRIC is a research prototype for decision support. It is not an operational coll
 - Burns are impulsive; no finite-burn duration or execution error.
 - A burn's effect is a Clohessy-Wiltshire offset on top of the SGP4 path. Checked against a two-body
   integration (about 1% error for the burns tested), valid for hours to about a day after the burn.
-- Re-screening covers catalogued objects whose altitude band overlaps; uncatalogued debris is not modelled.
+- Re-screening covers cataloged objects whose altitude band overlaps; uncatalogued debris is not modeled.
 - Pc is Foster's 2D integral computed exactly over the hard-body disk (20 m combined radius), verified against NASA CARA test values; it is a 2D method, and NASA's case 08 shows 3D effects can make the true Pc far larger for slow, long encounters. Each Pc
   also comes with a sensitivity sweep (assumed sigmas x0.5-x2, combined radius 10-40 m); the console shows the
   range and whether the risk level holds across it.
@@ -57,7 +57,7 @@ CRIC is a research prototype for decision support. It is not an operational coll
 - Eval statistics: intervals are over scenarios (8-13 per set), so no difference between arms is statistically
   established; earlier versions of this README computed intervals over repeated runs, which overstated certainty.
 - Voting and the agreement check cost about $0.008 per decision (one call: $0.0025; reading notes only: $0.0006).
-- The eval's "policy-violating burns" count manoeuvres the scenario does not accept under the operator policy
+- The eval's "policy-violating burns" count maneuvers the scenario does not accept under the operator policy
   (for example burning on storm-degraded TLE data while there is time to get precise data). Some operators would
   burn in those cases; they are policy violations, not necessarily collision risks. Earlier commits called this
   "unsafe".
@@ -118,21 +118,21 @@ CRIC is a research prototype for decision support. It is not an operational coll
 ## Mission Studio
 - The ascent is 3-DOF in one plane: no yaw steering or dog-legs, no winds in the powered flight (winds aloft only
   move falling stages), the US 1976 standard atmosphere, a constant drag coefficient. Guidance is a four-number
-  pitch program found by an optimiser, not real closed-loop guidance; the engine-out what-if flies the same plan
+  pitch program found by an optimizer, not real closed-loop guidance; the engine-out what-if flies the same plan
   without re-planning. Against published capacities it is within -17% to +4% (README); for a rocket that has never
   flown, treat "reaches orbit" as a first check, not a qualification.
 - Wind drift of falling stages uses terminal speed below 12 km and the forecast profile at five pressure levels,
   with 20% speed and 15 deg direction error per run; break-up and lift are ignored.
 - LCOLA collision probability uses assumed uncertainties (new satellite 1 / 6 / 1 km radial / along-track /
-  normal, catalogue 0.4 / 2 / 0.4 km) and a 10 m hard-body radius; real values come from the launch provider.
+  normal, catalog 0.4 / 2 / 0.4 km) and a 10 m hard-body radius; real values come from the launch provider.
 - Preset numbers mix published figures with derived and assumed ones; each field says which. Garage One is
   fictional.
-- Spec-sheet reading copies numbers it can see; gaps are filled with labelled defaults and listed as missing. A
+- Spec-sheet reading copies numbers it can see; gaps are filled with labeled defaults and listed as missing. A
   misread unit would propagate; the form shows every value for the owner to check.
 - Dispersion sigmas (thrust 1.5%, Isp 0.5%, dry mass 2%, pitch 0.3 deg, azimuth 0.3 deg) are assumptions, not
   any vehicle's data. Impacts ignore wind drift and break-up.
 - LTAN/LTDN comes from the simulated insertion state (osculating elements) and a low-precision Sun position: good
-  to a few minutes, not an orbit-design tool; drift of the node over the mission is not modelled.
+  to a few minutes, not an orbit-design tool; drift of the node over the mission is not modeled.
 - Photo opportunities use pass elevation and the Sun at home only (no clouds, sensor geometry or off-nadir limits).
 - The land check uses Natural Earth 1:50m outlines: small islands and coastlines are approximate (a few km), and it
   ignores wind drift and debris spread beyond the dispersion runs. A range's hazard areas are larger and official.
@@ -152,4 +152,4 @@ CRIC is a research prototype for decision support. It is not an operational coll
 ## History
 - An earlier spike let Nemotron search burn parameters with tools. It found a valid burn but used 45% more
   delta-v than exhaustive search, took about 2 minutes, and its first prompt version failed outright.
-  Numeric search was moved to the optimiser; see ARCHITECTURE.md section 4.
+  Numeric search was moved to the optimizer; see ARCHITECTURE.md section 4.

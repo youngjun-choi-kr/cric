@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRIC · From your rocket to a satellite that is looked after</title>
-<meta name="description" content="Bring a rocket, find out if it reaches orbit, pick a launch window with weather and collision avoidance, and operate the satellite with an AI that knows when to ask. NVIDIA Nemotron on Nebius.">
+<title>CRIC · From a garage rocket to a safe orbit</title>
+<meta name="description" content="Fly your rocket, pick a launch time, and keep your satellite safe in orbit. NVIDIA Nemotron on Nebius.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&display=swap">
 <style>
   :root { --bg:#03060e; --panel:#0a1222; --line:rgba(120,160,255,.18); --text:#dbe6ff; --dim:#8196c4; --accent:#5ab0ff; --ok:#4fe3a1; --mid:#ffc857; }
@@ -47,12 +47,12 @@
 <div class="wrap">
 <header>
   <div class="brand">CRIC · NEBIUS × NVIDIA GLOBAL AI HACKATHON</div>
-  <h1>From your rocket<br>to a satellite that is looked after.</h1>
-  <p class="lead">Bring a rocket and a satellite. CRIC tells you whether it reaches orbit and what to change if it does not,
-    when and where to launch around weather and other satellites, and then operates the satellite among
-    18,806 tracked objects, with an AI that does the work and knows when to ask a person.</p>
+  <h1>From a garage rocket<br>to a safe orbit.</h1>
+  <p class="lead">Bring your rocket and your satellite. CRIC tells you if the rocket makes it to orbit, and what to change if it
+    doesn't. It finds a good time to launch. Then it watches your satellite among 18,806 other objects. CRIC does the
+    heavy lifting, and asks you when it matters.</p>
   <div class="cta">
-    <a class="btn primary" href="web/studio.html">▶ Open Mission Studio <small>· a recorded run, no install</small></a>
+    <a class="btn primary" href="web/studio.html">▶ Open Mission Studio <small>· no install</small></a>
     <a class="btn" href="web/">Operations console <small>· recorded decisions</small></a>
     <a class="btn" href="https://github.com/youngjun-choi-kr/cric">Code &amp; results</a>
   </div>
@@ -62,49 +62,49 @@
 <section class="steps">
   <div class="step"><img src="web/launch/img/hangar.jpg" alt="Hangar with rockets at true scale">
     <div class="b"><div class="n">STEP 1 · YOUR ROCKET</div><h3>Does it reach orbit?</h3>
-      <p>Pick a published launcher, drop a spec sheet photo, or type your own numbers. A 3-DOF ascent flies it; if it falls
-        short, every suggested fix is flown again before you see it.</p>
-      <ul><li>Nemotron 3.5 Super VL reads the spec sheet; each number tagged read / derived / assumed</li>
-        <li>Stage impact areas from 500 dispersed flights</li></ul></div></div>
+      <p>Pick a real rocket, drop in a spec sheet, or type your own numbers. Watch it fly. If it falls short, CRIC
+        suggests fixes, and test-flies each one first.</p>
+      <ul><li>Nemotron 3.5 Super VL reads the spec sheet</li>
+        <li>500 test flights show where the spent stages land</li></ul></div></div>
   <div class="step"><img src="web/launch/img/window.jpg" alt="Launch window heatmap and collision strip">
     <div class="b"><div class="n">STEP 2 · WHEN AND WHERE</div><h3>Pick the launch minute</h3>
-      <p>Seven days of weather and space weather for every site that can reach the orbit, then each liftoff minute
-        screened against the catalog. One minute can pass a satellite at under a kilometre; a few minutes later is clear.</p>
-      <ul><li>Weather, range and orbital-safety votes by Nemotron 3 Super</li>
-        <li>Mission director: Nemotron 3 Ultra, unable to pick a vetoed window</li></ul></div></div>
+      <p>A week of weather for every launch site, then every minute checked against the satellites already up there.
+        One minute can pass another satellite at under a kilometer. A few minutes later, the sky is clear.</p>
+      <ul><li>Three launch-team votes by Nemotron 3 Super</li>
+        <li>Nemotron 3 Ultra makes the call, and can't overrule a veto</li></ul></div></div>
   <div class="step"><img src="web/launch/img/ops.jpg" alt="Operations: passes and a close approach decision">
     <div class="b"><div class="n">STEP 3 · OPERATE</div><h3>Look after it</h3>
-      <p>The satellite joins the catalog. CRIC tells you when it passes over home, screens it for close approaches,
-        and runs the same decision pipeline as the console, ending with your approval.</p>
-      <ul><li>Collision probability verified against NASA CARA test cases</li>
-        <li>Two routes must agree before any burn; otherwise a person decides</li></ul></div></div>
+      <p>Your satellite joins the catalog. CRIC tells you when it flies over home and warns you about close approaches.
+        You make the final call.</p>
+      <ul><li>Collision math checked against NASA test cases</li>
+        <li>No burn unless the model and the rules agree</li></ul></div></div>
 </section>
 
-<h2>WHAT IS REAL, WHAT IS NOT</h2>
+<h2>WHAT'S REAL</h2>
 <div class="split">
-  <div class="card"><h3>Real data, real models</h3><ul>
+  <div class="card"><h3>Real data</h3><ul>
     <li>CelesTrak orbits (SGP4), NOAA SWPC space weather, Open-Meteo forecasts</li>
-    <li>Published launcher figures, each number labelled with its source</li>
+    <li>Published launcher figures, each number labeled with its source</li>
     <li>NVIDIA Nemotron 3 Nano, Super, Ultra and 3.5 Super VL on Nebius Token Factory; Tavily for web evidence</li>
     <li>Ascent model checked against published capacities: −17 % to +4 %</li></ul></div>
-  <div class="card"><h3>Stated plainly</h3><ul>
-    <li>Garage One and JIMIN-1 are fictional; the launched satellite exists only in the simulation</li>
-    <li>Launch rules and dispersion scatter are our assumptions, not a range's</li>
-    <li>Rocket shapes are derived from the numbers; plume, smoke and sky are illustration</li>
-    <li>CRIC never commands a spacecraft. <a href="LIMITATIONS.md">All limits</a></li></ul></div>
+  <div class="card"><h3>What's simulated</h3><ul>
+    <li>Garage One and JIMIN-1 are made up. The satellite only exists in the simulation.</li>
+    <li>Launch rules and flight scatter are our assumptions, not a launch range's</li>
+    <li>Rocket shapes come from the numbers. Flame, smoke and sky are for show.</li>
+    <li>CRIC never sends commands to a spacecraft. <a href="LIMITATIONS.md">All limits</a></li></ul></div>
 </div>
 
 <h2>HOW THE MODELS ARE USED</h2>
 <div class="card"><table>
-  <tr><th>Nemotron</th><th>What it does</th><th>What stops it going wrong</th></tr>
-  <tr><td>3 Nano</td><td>Turns “my 5 kg cubesat, 500 km sun-synchronous, I live in Seoul” into a target</td><td>Inclination computed in code</td></tr>
-  <tr><td>3.5 Super VL</td><td>Reads spec sheets and the team's screenshots</td><td>Every number labelled; gaps filled with stated defaults</td></tr>
-  <tr><td>3 Super</td><td>Explains a failed flight; launch-team votes; conjunction decisions (3 votes)</td><td>Fixes come from the simulator; a second route in code must agree</td></tr>
-  <tr><td>3 Ultra</td><td>Mission director's launch brief; escalation briefs for a person</td><td>Cannot pick a window a check or vote vetoed</td></tr>
+  <tr><th>Nemotron</th><th>What it does</th><th>Safety check</th></tr>
+  <tr><td>3 Nano</td><td>Turns “my 5 kg cubesat, 500 km sun-synchronous, I live in Seoul” into an orbit</td><td>The orbit math is done in code</td></tr>
+  <tr><td>3.5 Super VL</td><td>Reads spec sheets and the team's screenshots</td><td>Every number labeled; gaps filled with marked defaults</td></tr>
+  <tr><td>3 Super</td><td>Explains a failed flight, reads team notes, votes on launches and close approaches</td><td>Fixes come from the simulator; rules in code must agree</td></tr>
+  <tr><td>3 Ultra</td><td>Makes the launch call; writes briefs when a person has to decide</td><td>Can't pick a vetoed window</td></tr>
 </table></div>
 
 <footer>
-  Team CRIC · 최영준, 김유진, 최승훈 · MIT licence ·
+  Team CRIC · 최영준, 김유진, 최승훈 · MIT license ·
   <a href="README.md">README</a> · <a href="ARCHITECTURE.md">Architecture</a> · <a href="LIMITATIONS.md">Limitations</a>
 </footer>
 </div>

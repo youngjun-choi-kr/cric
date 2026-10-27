@@ -1,6 +1,6 @@
 // A rocket built from its numbers: no 3D assets, so any vehicle (preset, spec sheet, form) gets a body.
-// Shape is derived and labelled as such: stage length from propellant volume over the cross-section, engine count
-// and bell size from thrust over the base area. Units: metres, +Y up, y = 0 at the bottom of stage 1.
+// Shape is derived and labeled as such: stage length from propellant volume over the cross-section, engine count
+// and bell size from thrust over the base area. Units: meters, +Y up, y = 0 at the bottom of stage 1.
 import * as THREE from 'three';
 
 export const PROV_COL = { published: 0x4fe3a1, read: 0x4fe3a1, derived: 0x5ab0ff, assumed: 0xffc857, edited: 0xd3a6ff, missing: 0xff6b57 };

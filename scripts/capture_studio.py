@@ -198,7 +198,9 @@ def main() -> None:
         marks["act3_facts"] = page.evaluate("""() => ({deployed: {norad: studio.S.deployed.norad_id, n: studio.S.deployed.objects_in_catalog,
             enc: studio.S.deployed.encounters[0], passes: studio.S.deployed.passes?.length},
             decision: document.querySelector('.decision')?.innerText,
-            decision2: [...document.querySelectorAll('.decision')].pop()?.innerText})""")
+            decision2: [...document.querySelectorAll('.decision')].pop()?.innerText,
+            action: document.querySelector('.decision')?.dataset.action,
+            action2: [...document.querySelectorAll('.decision')].pop()?.dataset.action})""")
         browser.close()
     (OUT / "studio_markers.json").write_text(json.dumps(marks, indent=1, ensure_ascii=False))
     print(OUT / "studio_markers.json")

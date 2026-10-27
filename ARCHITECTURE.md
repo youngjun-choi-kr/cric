@@ -31,7 +31,7 @@ flowchart TB
     subgraph Physics["Physics (deterministic, no LLM)"]
         SCR[Screening<br/>SGP4 batch, KD-tree, linear TCA]
         RISK[Pc from assumed covariance<br/>Kp inflates along-track, dilution check]
-        OPT[Optimiser<br/>min_dv / latest / out_of_plane burns,<br/>each re-screened, CW checked vs 2-body]
+        OPT[Optimizer<br/>min_dv / latest / out_of_plane burns,<br/>each re-screened, CW checked vs 2-body]
     end
 
     subgraph Models["NVIDIA Nemotron on Nebius Token Factory"]
@@ -69,13 +69,13 @@ flowchart TB
 | Work | Done by | Why |
 |---|---|---|
 | Orbit propagation, screening, burn effect, re-screen | Code (SGP4, Clohessy-Wiltshire) | Exact and fast; never sent through a model |
-| Choosing the burn parameters | Optimiser | The first spike let Nemotron search with tools: valid burn, 45% more delta-v, 116 s |
-| Collision probability | Code, assumed covariance | No CDMs in public data; labelled "assumed" or "simulated" everywhere |
+| Choosing the burn parameters | Optimizer | The first spike let Nemotron search with tools: valid burn, 45% more delta-v, 116 s |
+| Collision probability | Code, assumed covariance | No CDMs in public data; labeled "assumed" or "simulated" everywhere |
 | Kp used for the covariance | NOAA numbers | The VL model's read is context, not an input to physics |
 | Image read vs NOAA | Code (`perception.cross_check`) | If the image reads higher drag risk than Kp implies, flag it and require a recheck time; never changes Pc |
 | Sun image + NOAA read | Nemotron 3.5 Super VL | Qualitative read with observed / inferred / unknown |
-| Who can manoeuvre (other object) | Nemotron Super + Tavily, claim-checked | Facts are scattered across operator pages and papers |
-| Who can manoeuvre (our satellite) | Fleet registry | An operator knows this from telemetry, not the web |
+| Who can maneuver (other object) | Nemotron Super + Tavily, claim-checked | Facts are scattered across operator pages and papers |
+| Who can maneuver (our satellite) | Fleet registry | An operator knows this from telemetry, not the web |
 | Act, wait for data, notify or escalate; which option | Nemotron Super | Needs policy and mission notes written in plain language |
 | Hard rules | Safety validator (code) | Checkable on structured fields; a prompt can be ignored |
 | Message to the other operator / brief for the on-call engineer | Nemotron Ultra | Runs only when a person must act |
@@ -87,12 +87,12 @@ Every call uses `response_format: json_schema` plus an explicit JSON skeleton in
 
 The validator never makes a decision riskier; it accepts, or overrides to a safer action and records why.
 
-1. A burn must use an option the optimiser verified.
+1. A burn must use an option the optimizer verified.
 2. Our propulsion must be verified ("yes"); otherwise escalate.
 3. The burn must leave the command-upload window from now and stay under the policy delta-v cap.
 4. The burn must not fall in a structured mission blackout.
 5. On a diluted or yellow Pc with time before the latest burn, get precise data first.
-6. If the other object can manoeuvre, or is an operational satellite with unknown propulsion, notify before burning.
+6. If the other object can maneuver, or is an operational satellite with unknown propulsion, notify before burning.
 7. Monitoring a red, non-diluted Pc is escalated.
 8. Coordinating with an intended burn drops the burn when our propulsion is unverified.
 

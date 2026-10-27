@@ -1,7 +1,7 @@
 // Sky track of a pass (polar plot) and the Sun's elevation at a place: for photo opportunities over home.
 const D2R = Math.PI / 180;
 
-// sky track of one pass: azimuth around, elevation inward (90° at the centre)
+// sky track of one pass: azimuth around, elevation inward (90° at the center)
 export function skyPlot(p, home) {
   const c = document.getElementById('skyPlot'); if (!c || !p?.track) return;
   const g = c.getContext('2d'), R = c.width / 2 - 26, cx = c.width / 2, cy = c.height / 2;

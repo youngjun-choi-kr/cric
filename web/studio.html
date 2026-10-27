@@ -19,7 +19,7 @@
 
 <div class="panel" id="studioHud">
   <h1><a href="../" style="color:inherit;text-decoration:none" title="CRIC home">CRIC MISSION STUDIO</a></h1>
-  <div class="sub">Your rocket → your launch window → your satellite in orbit · 3-DOF ascent · Open-Meteo · NOAA SWPC · CelesTrak · NVIDIA Nemotron on Nebius</div>
+  <div class="sub" title="3-DOF ascent · weather: Open-Meteo · space weather: NOAA SWPC · orbits: CelesTrak · NVIDIA Nemotron on Nebius">Your rocket, your launch, your satellite in orbit.</div>
   <nav id="steps">
     <button data-step="1" class="on"><b>1</b> Rocket</button>
     <button data-step="2" disabled><b>2</b> Launch window</button>
@@ -31,7 +31,7 @@
 
 <!-- ======================= STEP 1 ======================= -->
 <div class="panel scol" id="left1" data-for="1">
-  <h2>YOUR ROCKET</h2>
+  <h2>Your rocket</h2>
   <div class="tabs" id="methodTabs">
     <button data-m="preset" class="on">Published rockets</button>
     <button data-m="sheet">Spec sheet (photo / PDF)</button>
@@ -44,17 +44,17 @@
   <div data-mp="sheet" hidden>
     <label id="drop" class="drop">
       <input type="file" id="sheetFile" accept="image/png,image/jpeg,image/webp,application/pdf" hidden>
-      <div><b>Drop a spec sheet</b> or click to choose<br><span class="dim">PNG / JPEG / PDF · read by Nemotron 3.5 Super VL (images) or Nemotron 3 Super (PDF text)</span></div>
+      <div><b>Drop a spec sheet</b> or click to choose<br><span class="dim">PNG, JPEG or PDF. Read by Nemotron 3.5 Super VL.</span></div>
     </label>
     <div class="dim small">Try <a href="launch/garage_one_spec.png" target="_blank">a sample sheet</a> (save it, then drop it here).</div>
     <div id="sheetStatus" class="small"></div>
   </div>
   <div data-mp="form" hidden>
-    <div class="small dim">Every number carries where it came from: <span class="prov published">published</span> <span class="prov read">read</span> <span class="prov derived">derived</span> <span class="prov assumed">assumed</span> <span class="prov edited">edited</span> <span class="prov missing">missing</span></div>
+    <div class="small dim">Each number shows where it came from: <span class="prov published">published</span> <span class="prov read">read</span> <span class="prov derived">derived</span> <span class="prov assumed">assumed</span> <span class="prov edited">edited</span> <span class="prov missing">missing</span></div>
     <div id="vehForm"></div>
   </div>
 
-  <h2 class="mt">YOUR ORBIT</h2>
+  <h2 class="mt">Your orbit</h2>
   <div class="ctl"><textarea id="targetText" rows="2" placeholder="e.g. My 5 kg cubesat JIMIN-1 should photograph Seoul from a 500 km sun-synchronous orbit."></textarea></div>
   <div class="ctl"><button id="targetBtn">Read it <span class="model">Nemotron Nano</span></button><span id="targetStatus" class="small dim"></span></div>
   <div class="grid2">
@@ -81,28 +81,28 @@
 
 <!-- ======================= STEP 2 ======================= -->
 <div class="panel" id="bottom2" data-for="2" hidden>
-  <h2><span>WHEN AND WHERE · next 7 days, hourly</span><span class="ltdn small">imaging orbit: equator crossing (<abbr class="g" title="Local time of the descending node: the local clock time when the satellite crosses the equator going south. A sun-synchronous orbit keeps it fixed, so every image of a place has the same lighting.">LTDN</abbr>)
+  <h2><span>When and where (next 7 days)</span><span class="ltdn small">camera orbit: crosses the equator at (<abbr class="g" title="Local time of the descending node: the local clock time when the satellite crosses the equator going south. A sun-synchronous orbit keeps it fixed, so every image of a place has the same lighting.">LTDN</abbr>)
     <input id="ltdnT" value="10:30" size="5"> ± <input id="ltdnTol" value="45" size="3"> min</span><span class="dim small" id="heatNote"></span></h2>
   <div id="heat"></div>
   <div id="lcolaBox"></div>
 </div>
 <div class="panel scol" id="right2" data-for="2" hidden>
-  <h2>GO / NO-GO</h2>
-  <div class="small dim">Pick an hour on the map, then minutes on the collision strip (up to 4). Three launch-team roles vote on each window (Nemotron 3 Super); the mission director (Nemotron 3 Ultra) writes the brief. A window graded no-go by the checks cannot be chosen.</div>
-  <label class="full">Notes from the team, the customer and the range <span class="dim">(any language · these are example notes: edit them)</span>
+  <h2>Go / no-go</h2>
+  <div class="small dim">Pick an hour, then up to 4 minutes. The team votes; a vetoed minute can’t win.</div>
+  <label class="full">Notes from the team, the customer and the range <span class="dim">(any language · example notes, edit them)</span>
     <textarea id="teamNotes" rows="5">Range notice (Naro): the sea area south of the pad is closed to launches from 11:25 to 11:30 KST on 1 Nov for a fishing fleet transit.
 고객사 요청: 발사는 현지 일출 이후에만 해 주세요.
 Weather officer: for this campaign treat gusts of 12 m/s or more as no-go.
 If several windows are clear, the customer prefers the earliest one.</textarea></label>
-  <div class="small dim">Nemotron 3 Super turns the notes into rules with an exact quote each; code drops any rule whose quote is not in the notes and applies the rest to every window.</div>
+  <div class="small dim">Each rule must quote your notes word for word, or it’s dropped. <span class="model">Nemotron 3 Super</span></div>
   <div id="candList" class="chips mt"></div>
-  <div class="ctl"><button id="teamBtn" class="primary" disabled>Convene the launch team</button></div>
+  <div class="ctl"><button id="teamBtn" class="primary" disabled>Ask the launch team</button></div>
   <div id="board"></div>
 </div>
 
 <!-- ======================= STEP 3 ======================= -->
 <div class="panel scol" id="left3" data-for="3" hidden>
-  <h2>YOUR SATELLITE</h2>
+  <h2>Your satellite</h2>
   <div class="grid2">
     <label>Name<input id="satName" value="JIMIN-1" maxlength="24"></label>
     <label>Owner<input id="satOwner" value="Jimin"></label>
@@ -110,14 +110,14 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
     <label>Home <input id="homeName" value="Seoul"></label>
     <label>lat, lon<input id="homeLL" value="37.5665, 126.978"></label>
   </div>
-  <label class="chk"><input type="checkbox" id="satProp" checked> it has propulsion (can manoeuvre)</label>
+  <label class="chk"><input type="checkbox" id="satProp" checked> It can maneuver (has a thruster)</label>
   <div class="small dim" id="liftoffNote"></div>
-  <div class="ctl mt"><button id="deployBtn" class="primary big">🚀 Launch and hand over to CRIC</button></div>
+  <div class="ctl mt"><button id="deployBtn" class="primary big">🚀 Launch, then let CRIC take over</button></div>
   <div id="deployOut"></div>
 </div>
 <div class="panel scol" id="right3" data-for="3" hidden>
-  <h2>OPERATIONS</h2>
-  <div id="opsOut" class="small dim">After launch, CRIC tracks the satellite with every catalogued object, tells you when it passes over home, and screens it for close approaches.</div>
+  <h2>Operations</h2>
+  <div id="opsOut" class="small dim">After launch, CRIC watches the satellite, tells you when it passes over home, and warns you about close approaches.</div>
   <div id="incOut"></div>
 </div>
 

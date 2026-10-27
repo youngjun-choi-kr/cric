@@ -129,7 +129,7 @@ function setView(v, apply = true) {
 }
 function landed() { document.body.classList.remove('flying'); setView('globe', false); }
 document.querySelectorAll('#viewSw button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.v)));
-function insets() {                 // the hangar centres between the panels that are open
+function insets() {                 // the hangar centers between the panels that are open
   const w = (id) => { const el = $(id); return el && !el.hidden ? el.getBoundingClientRect().right + 8 : 0; };
   const rw = (id) => { const el = $(id); return el && !el.hidden ? innerWidth - el.getBoundingClientRect().left + 8 : 0; };
   CV.setInsets(innerWidth > 900 ? w('left1') : 0, innerWidth > 900 ? rw('right1') : 0);
@@ -249,7 +249,7 @@ drop.addEventListener('drop', (ev) => { ev.preventDefault(); if (ev.dataTransfer
 $('sheetFile').addEventListener('change', (e) => e.target.files[0] && readSheet(e.target.files[0]));
 async function readSheet(file) {
   $('sheetStatus').innerHTML = `Reading <b>${esc(file.name)}</b>…`;
-  const r = await busy(`Reading the spec sheet (${file.type === 'application/pdf' ? 'Nemotron 3 Super' : 'Nemotron 3.5 Super VL'})…`, () => api('sheet', null, file));
+  const r = await busy('Reading the spec sheet…', () => api('sheet', null, file));
   if (REPLAY) r.vehicle.notes = `Replay: this is the recorded reading of the sample sheet (Garage One), whatever file was chosen. ${r.vehicle.notes || ''}`;
   const v = r.vehicle;
   if (v.missing.length) {             // fill what cannot be run without, and say so
@@ -299,7 +299,7 @@ function updateAz() {
 $('siteSel').addEventListener('change', () => { S.site = $('siteSel').value; updateAz(); const s = P.sites[S.site]; lookAt(s.lat, s.lon); });
 $('targetBtn').addEventListener('click', async () => {
   const text = $('targetText').value.trim(); if (!text) return;
-  const r = await busy('Reading your mission (Nemotron Nano)…', () => api('target', { text }));
+  const r = await busy('Reading your mission…', () => api('target', { text }));
   const t = r.target; S.target = t;
   $('alt').value = t.altitude_km; $('orbitKind').value = t.kind === 'equatorial' ? 'inclination' : t.kind;
   if (t.payload_kg) { $('payload').value = t.payload_kg; S.prov.payload_kg = 'read'; }
@@ -344,7 +344,7 @@ const mission = (extra = {}) => ({
 $('flyBtn').addEventListener('click', fly);
 async function fly() {
   S.guidance = null; S.fixes = null;
-  const r = await busy('Optimising the ascent guidance and flying it (differential evolution, parallel)…', () => api('simulate', mission()));
+  const r = await busy('Flying your rocket…', () => api('simulate', mission()));
   S.flight = r.flight; S.guidance = r.guidance; S.az = r.azimuth_deg;
   S.lcola = null; S.cands = [];
   $('fixBox').innerHTML = ''; $('dispBox').innerHTML = ''; clear(layer.disp);
@@ -464,7 +464,7 @@ function stepAnim(dt) {
 }
 
 async function engineOut(t) {
-  const w = await busy(`Flying the same guidance with one first-stage engine lost at T+${t} s…`, () => api('whatif', mission({ engine_out_t: t })));
+  const w = await busy(`Flying it again with one engine out at T+${t} s…`, () => api('whatif', mission({ engine_out_t: t })));
   const f = w.flight;
   dropLabels('eo'); layer.flight.children.filter((c) => c.userData.eo).forEach((c) => { layer.flight.remove(c); c.geometry.dispose(); });
   const ln = line(f.samples.map((x) => llv(x[4], x[5], x[1])), 0xff3b2f, 0.9); ln.userData.eo = true; layer.flight.add(ln);
@@ -472,13 +472,13 @@ async function engineOut(t) {
   setView('globe');
   $('eoOut')?.remove();
   const box = document.createElement('div'); box.id = 'eoOut'; box.className = 'card mt';
-  box.innerHTML = `<b>Engine out at T+${t} s</b> <span class="dim small">(${w.engines === 1 ? 'single engine: all first-stage thrust lost' : `1 of ${w.engines} engines`} · same guidance, not re-planned)</span>
+  box.innerHTML = `<b>One engine out at T+${t} s</b> <span class="dim small">(${w.engines === 1 ? 'its only engine, so no first-stage thrust' : `1 of ${w.engines}`}; same flight plan)</span>
     <div>${f.target_reached ? '✓ still reaches the target orbit' : f.orbit ? `reaches a lower orbit: ${fmt(f.perigee_km)} × ${fmt(f.apogee_km)} km` : `✗ no orbit${f.impact ? `: comes down at ${fmtLL(f.impact.lat, f.impact.lon)}, ${fmt(f.impact.t / 60)} min after liftoff` : ''}`}</div>
     <div class="small" style="color:var(--${w.range.status === 'go' ? 'ok' : 'warn'})">Range: ${w.range.status === 'go' ? 'clear of land' : esc(w.range.reasons.join('; '))}</div>`;
   $('flightBar').after(box);
 }
 async function runAdvise() {
-  const r = await busy('Searching for fixes, each one verified by re-flying the rocket (parallel)…', () => api('advise', mission({ explain: true })));
+  const r = await busy('Looking for fixes and test-flying each one…', () => api('advise', mission({ explain: true })));
   S.fixes = r.fixes;
   const e = r.explanation;
   $('fixBox').innerHTML = `${e ? `<div class="explain"><div class="h">${esc(e.headline)}</div><div class="dim">${esc(e.why)}</div><div class="small dim">Nemotron 3 Super explains; the fixes below come from the simulator, not the model.</div></div>` : ''}
@@ -503,26 +503,26 @@ function applyFix(x) {
 }
 
 async function runDispersion() {
-  const r = await busy('Monte Carlo: 500 flights with thrust, Isp, mass, pitch and azimuth scatter, and the forecast winds aloft…',
+  const r = await busy('Flying 500 slightly different rockets…',
     () => api('dispersion', mission({ runs: 500, wind_utc: S.liftoff || S.hour?.start || null })));
   clear(layer.disp);
   const ell = (e, color) => { if (!e) return; for (const [k, op] of [['p50', 0.9], ['p95', 0.55]]) layer.disp.add(line(e[k].map(([la, lo]) => llv(la, lo, 3)), color, op)); };
   if (r.vehicle_impacts.length) { layer.disp.add(points(r.vehicle_impacts.map(([la, lo]) => llv(la, lo, 2)), 0xff3b2f, 3)); ell(r.vehicle_ellipse, 0xff6b57); }
   Object.entries(r.stages).forEach(([n, s], i) => { layer.disp.add(points(s.impacts.map(([la, lo]) => llv(la, lo, 2)), STAGE_COL[i % 4], 3)); ell(s.ellipse, STAGE_COL[i % 4]); });
   const rows = Object.entries(r.stages).map(([n, s]) => `<tr><td>${esc(n)}</td><td>${s.impacts.length}</td><td>${s.ellipse ? `${s.ellipse.p95_axes_km[0]} × ${s.ellipse.p95_axes_km[1]} km` : 'spread too wide for an ellipse'}</td></tr>`).join('');
-  $('dispBox').innerHTML = `<div class="card"><b>Dispersion · ${r.runs} flights</b>
+  $('dispBox').innerHTML = `<div class="card"><b>${r.runs} slightly different flights</b>
     <div class="row"><span>Reaches orbit</span><b>${(r.p_orbit * 100).toFixed(0)}%</b></div><div class="row"><span>Reaches the target orbit</span><b>${(r.p_target * 100).toFixed(0)}%</b></div>
     <table class="t mt"><tr><th>falls</th><th>runs</th><th>95% area</th></tr>${rows}
     ${r.vehicle_impacts.length ? `<tr><td>whole vehicle</td><td>${r.vehicle_impacts.length}</td><td>${r.vehicle_ellipse ? `${r.vehicle_ellipse.p95_axes_km[0]} × ${r.vehicle_ellipse.p95_axes_km[1]} km` : 'along the ground track (no ellipse)'}</td></tr>` : ''}</table>
-    ${r.range ? `<div class="row small mt"><span>Range safety (land check)</span><b class="${r.range.status === 'go' ? '' : 'bad'}" style="color:var(--${r.range.status === 'go' ? 'ok' : 'warn'})">${r.range.status === 'go' ? 'clear of land' : esc(r.range.reasons.join('; '))}</b></div>
+    ${r.range ? `<div class="row small mt"><span>Lands at sea?</span><b class="${r.range.status === 'go' ? '' : 'bad'}" style="color:var(--${r.range.status === 'go' ? 'ok' : 'warn'})">${r.range.status === 'go' ? 'clear of land' : esc(r.range.reasons.join('; '))}</b></div>
       <div class="small dim">${Object.entries(r.range.dispersed_land_share).map(([k, v]) => `${esc(k)}: ${(v * 100).toFixed(1)}% of impacts on land`).join(' · ')} (limit ${r.range.land_limit * 100}% per spent stage; ${esc(r.range.source)})</div>` : ''}
-    ${r.wind ? `<div class="small mt">Winds aloft (${esc(r.wind.source)}, ${esc(r.wind.hour_utc.slice(5, 16).replace('T', ' '))} UTC): ${Object.entries(r.wind.mean_drift_km).map(([k, v]) => `${esc(k)} carried ${fmt(Math.hypot(v.east, v.north), 1)} km toward ${['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((Math.atan2(v.east, v.north) * 180 / Math.PI + 360) % 360) / 45) % 8]}`).join(' · ')} on the way down (±20% speed, ±15° direction per run)</div>` : ''}
+    ${r.wind ? `<div class="small mt" title="${esc(r.wind.source)}; ±20% speed and ±15° direction per run">Forecast winds (${esc(r.wind.hour_utc.slice(5, 16).replace('T', ' '))} UTC): ${Object.entries(r.wind.mean_drift_km).map(([k, v]) => `${esc(k)} carried ${fmt(Math.hypot(v.east, v.north), 1)} km toward ${['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((Math.atan2(v.east, v.north) * 180 / Math.PI + 360) % 360) / 45) % 8]}`).join(' · ')} on the way down</div>` : ''}
     <div class="small dim">1σ: thrust ${r.sigma.thrust * 100}%, Isp ${r.sigma.isp * 100}%, dry mass ${r.sigma.dry * 100}%, pitch ${r.sigma.kick_add}°, azimuth ${r.sigma.az_add}°. Same code runs as a batch job for thousands of runs (Nebius Serverless Jobs).</div></div>`;
 }
 
 // ---------- step 2: windows ----------
 async function loadHeat() {
-  const r = await busy('Weather (Open-Meteo) and space weather (NOAA SWPC) for every site that can reach your orbit…', () => api('windows', mission()));
+  const r = await busy('Checking the weather at every launch site…', () => api('windows', mission()));
   S.heat = r;
   renderHeat(r);
 }
@@ -540,8 +540,8 @@ function renderHeat(r) {
   }
   const site = r.rows.find((x) => x.site === $('siteSel').value && x.ltan_h);
   const top = site ? site.hours.map((x, k) => ({ x, k })).filter(({ x, k }) => x.status === 'go' && Date.parse(x.t) > NOW() + 3 * 3600e3 && ltdnOk(site.ltan_h[k])).slice(0, 3) : [];
-  $('heat').innerHTML = h + `<div class="small dim mt">Each cell is one hour (UTC). Green go · amber caution · red no-go.${site ? ' Outlined hours put the satellite on the target equator-crossing time (LTDN); the rest are dimmed.' : ''} Click an hour to screen its minutes for collisions.</div>
-    ${site ? `<div class="top3"><b>Best windows</b> <span class="dim small">go weather · LTDN ${hm(ltdnTarget())} ± ${+$('ltdnTol').value} min · ${esc(site.name.replace(/ \(.*/, ''))}</span>
+  $('heat').innerHTML = h + `<div class="small dim mt">One cell per hour (UTC): green go, amber caution, red no-go.${site ? ' Outlined hours give your camera orbit the right time of day.' : ''} Click an hour to check its minutes for collisions.</div>
+    ${site ? `<div class="top3"><b>Best windows</b> <span class="dim small">good weather, crossing at ${hm(ltdnTarget())} ± ${+$('ltdnTol').value} min, from ${esc(site.name.replace(/ \(.*/, ''))}</span>
       ${top.map(({ x, k }) => `<button data-top="${k}">${x.t.slice(5, 10)} ${x.t.slice(11, 16)} UTC · LTDN ${hm(ltdnOf(site.ltan_h[k]))}</button>`).join('') || '<span class="dim small">none in the next 7 days: widen the tolerance or another site</span>'}</div>` : ''}`;
   $('heat').querySelectorAll('[data-top]').forEach((b) => b.addEventListener('click', () => {
     const k = +b.dataset.top; pickHour(site, k, $('heat').querySelector(`.cells[data-site="${site.site}"] i[data-k="${k}"]`));
@@ -563,7 +563,7 @@ async function pickHour(row, k, el) {
   if (REPLAY && (row.site !== $('siteSel').value || row.hours[k].t !== REPLAY.hour)) {   // only that hour was recorded
     row = S.heat.rows.find((x) => x.site === $('siteSel').value); k = row.hours.findIndex((h) => h.t === REPLAY.hour);
     el = $('heat').querySelector(`.cells[data-site="${row.site}"] i[data-k="${k}"]`);
-    $('heatNote').textContent = `Replay: the recorded hour (${REPLAY.hour.slice(0, 16).replace('T', ' ')} UTC) is shown.`;
+    $('heatNote').textContent = `Replay: showing the recorded hour, ${REPLAY.hour.slice(0, 16).replace('T', ' ')} UTC.`;
   }
   $('heat').querySelectorAll('i.sel').forEach((x) => x.classList.remove('sel')); el?.classList.add('sel');
   if (row.site !== $('siteSel').value) {                // another site: fly from there first
@@ -573,7 +573,7 @@ async function pickHour(row, k, el) {
   }
   const start = row.hours[k].t;
   S.hour = { row, k, start };
-  const r = await busy(`LCOLA: screening 60 liftoff minutes from ${hhmm(start)} UTC against every catalogued object near your orbit…`, () => api('lcola', mission({ start_utc: start, minutes: 60 })));
+  const r = await busy(`LCOLA: screening 60 liftoff minutes from ${hhmm(start)} UTC against every cataloged object near your orbit…`, () => api('lcola', mission({ start_utc: start, minutes: 60 })));
   S.lcola = r;
   const best = [...r.rows].filter((x) => x.status === 'go').sort((a, b) => (b.closest_km ?? 1e9) - (a.closest_km ?? 1e9));
   const worst = [...r.rows].sort((a, b) => (a.closest_km ?? 1e9) - (b.closest_km ?? 1e9))[0];
@@ -582,7 +582,7 @@ async function pickHour(row, k, el) {
     <div class="strip">${r.rows.map((x, i) => `<i class="${x.status}${i % 10 === 0 ? ' lab' : ''}" data-i="${i}" data-l="${hhmm(x.liftoff_utc)}"></i>`).join('')}</div>
     <div class="lcmsg">${worst?.closest_km != null ? `Liftoff <b>${hhmm(worst.liftoff_utc)}</b>: your satellite would pass <b style="color:var(--warn)">${fmt(worst.closest_km, 1)} km</b> from ${esc(worst.object)} ${fmt(worst.minutes_after_insertion)} min after insertion. ` : ''}
       ${best[0] ? `Liftoff <b>${hhmm(best[0].liftoff_utc)}</b>: nearest object ${fmt(best[0].closest_km, 1)} km.` : 'No minute in this hour is clear.'}
-      <span class="dim small">No-go if closer than ${r.criteria_km.nogo} km or ${G('Pc')} ≥ ${r.criteria_pc ? r.criteria_pc.nogo.toExponential(0) : '1e-4'}; caution under ${r.criteria_km.caution} km or Pc ≥ ${r.criteria_pc ? r.criteria_pc.caution.toExponential(0) : '1e-5'} (assumed uncertainties: new satellite ${r.criteria_pc ? r.criteria_pc.sigma_new_rtn_km.join('/') : '1/6/1'} km, catalogue ${r.criteria_pc ? r.criteria_pc.sigma_catalog_rtn_km.join('/') : '0.4/2/0.4'} km). ${esc(r.note)}.</span></div>`;
+      <span class="dim small">No-go if closer than ${r.criteria_km.nogo} km or ${G('Pc')} ≥ ${r.criteria_pc ? r.criteria_pc.nogo.toExponential(0) : '1e-4'}; caution under ${r.criteria_km.caution} km or Pc ≥ ${r.criteria_pc ? r.criteria_pc.caution.toExponential(0) : '1e-5'} (assumed uncertainties: new satellite ${r.criteria_pc ? r.criteria_pc.sigma_new_rtn_km.join('/') : '1/6/1'} km, catalog ${r.criteria_pc ? r.criteria_pc.sigma_catalog_rtn_km.join('/') : '0.4/2/0.4'} km). ${esc(r.note)}.</span></div>`;
   const strip = $('lcolaBox').querySelector('.strip');
   strip.addEventListener('mousemove', (ev) => {
     const i = ev.target.dataset.i; if (i == null) return; const x = r.rows[i];
@@ -607,7 +607,7 @@ function renderCands() {
   $('teamBtn').disabled = !S.cands.length;
 }
 $('teamBtn').addEventListener('click', async () => {
-  const r = await busy('Launch team voting (weather, range safety, orbital safety · Nemotron 3 Super) and mission director brief (Nemotron 3 Ultra)…',
+  const r = await busy('The launch team is voting…',
     () => api('gonogo', mission({ candidates: [...S.cands].sort(), notes: $('teamNotes').value })));
   const ROLE = { weather: 'Weather', range: 'Range', orbital: 'Orbital' };
   const b = r.brief;
@@ -660,7 +660,7 @@ function updateCatalog(date) {
 }
 $('deployBtn').addEventListener('click', async () => {
   const [lat, lon] = $('homeLL').value.split(',').map(Number);
-  const r = await busy('Inserting into orbit, writing its TLE, and screening it against the catalog for 72 h…', () => api('deploy', mission({
+  const r = await busy('Putting your satellite in orbit and checking the next 3 days…', () => api('deploy', mission({
     liftoff_utc: S.liftoff, name: $('satName').value, owner: $('satOwner').value, mission: $('satMission').value,
     can_maneuver: $('satProp').checked, home: { name: $('homeName').value, lat, lon } })));
   S.deployed = r;
@@ -679,13 +679,13 @@ $('deployBtn').addEventListener('click', async () => {
   me.lbl = { pos: ring[0].clone() }; label(r.name, me.lbl.pos, 'me');
   const home = $('homeName').value;
   if (isFinite(lat)) { const hp = llv(lat, lon, 3); layer.orbit.add(points([hp], 0x5ab0ff, 8)); label('⌂ ' + home, hp, 'me'); }
-  $('deployOut').innerHTML = `<div class="card mt"><b>${esc(r.name)}</b> is in orbit · NORAD ${r.norad_id} (studio range)
+  $('deployOut').innerHTML = `<div class="card mt"><b>${esc(r.name)}</b> is in orbit (NORAD ${r.norad_id}, a Studio-only number)
     <pre class="tle">${esc(r.name)}\n${esc(r.tle[0])}\n${esc(r.tle[1])}</pre>
-    <div class="small dim">Tracked with ${fmt(r.objects_in_catalog - 1)} catalogued objects. The TLE reproduces the simulated insertion state at epoch.</div></div>`;
+    <div class="small dim">Now tracked with ${fmt(r.objects_in_catalog - 1)} other objects.</div></div>`;
   const kst = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().slice(5, 16).replace('T', ' ');
   const imaging = (p) => p.max_elevation_deg >= 30 && sunElev(new Date(p.max_utc), lat, lon) > 5;   // daylight, high enough
   $('opsOut').innerHTML = `${r.passes?.length ? `<h2 class="mt">PASSES OVER ${esc(home.toUpperCase())}</h2>
-    <div class="small dim">📷 = a photo opportunity: daylight in ${esc(home)} and at least 30° up. Click a pass for its track across the sky.</div>
+    <div class="small dim">📷 = a photo chance: daylight in ${esc(home)} and at least 30° up. Click a pass to see its path across the sky.</div>
     ${r.passes.slice(0, 8).map((p, i) => `<div class="pass${imaging(p) ? ' img' : ''}" data-pass="${i}"><span>${imaging(p) ? '📷 ' : ''}${p.rise_utc.slice(5, 16).replace('T', ' ')} UTC <span class="dim">(${kst(p.rise_utc)} KST)</span></span><b>max ${p.max_elevation_deg}°</b></div>`).join('')}
     <canvas id="skyPlot" width="420" height="420"></canvas>` : ''}
     <h2 class="mt">CLOSE APPROACHES · next ${r.screen_hours} h</h2>
@@ -698,13 +698,15 @@ $('deployBtn').addEventListener('click', async () => {
   controls.target.set(0, 0, 0); camGoal = ring[0].clone().normalize().multiplyScalar(17);   // look at the new satellite
 });
 
+// Decisions in plain words (the action names stay in the data)
+const SAY = { MONITOR: 'keep watching', REQUEST_PRECISE_DATA: 'get better data first', COORDINATE: 'talk to the other operator', ESCALATE: 'a person should decide', MANEUVER: 'move' };
 const STEP_TXT = {
-  space_weather: (e) => `Space weather: Kp ${e.kp}`, geometry: (e) => `Geometry: miss ${fmt(e.miss_km, 2)} km at ${fmt(e.rel_speed_kms, 1)} km/s`,
-  risk: (e) => `Collision probability ${e.pc ? e.pc.toExponential(1) : '≈ 0'} · ${e.level}`, options: (e) => `${e.options.length} burn options computed`,
-  dossier: (e) => `Dossier (${e.role}): ${e.dossier.name} · can manoeuvre: ${e.dossier.capability?.can_maneuver}`,
-  search_done: () => 'Web research (Tavily)', decision_start: (e) => `Decision: ${e.votes} votes (Nemotron 3 Super)`,
-  decision: (e) => `Model proposes ${e.decision.action}`, validation: (e) => `Safety validator: ${e.final_action}`,
-  agreement: (e) => `Coded rules and model ${e.agree ? 'agree' : 'disagree'} → ${e.final?.action}`,
+  space_weather: (e) => `Space weather: Kp ${e.kp}`, geometry: (e) => `Closest pass: ${fmt(e.miss_km, 2)} km at ${fmt(e.rel_speed_kms, 1)} km/s`,
+  risk: (e) => `Collision probability ${e.pc ? e.pc.toExponential(1) : '≈ 0'} · ${e.level}`, options: (e) => `${e.options.length} possible burns, each checked`,
+  dossier: (e) => `${e.role === 'ours' ? 'Our satellite' : 'The other object'}: ${e.dossier.name}, can maneuver: ${e.dossier.capability?.can_maneuver}`,
+  search_done: () => 'Looking it up on the web (Tavily)', decision_start: (e) => `Nemotron 3 Super votes ${e.votes} times`,
+  decision: (e) => `The model says: ${SAY[e.decision.action] || e.decision.action}`, validation: (e) => `Safety check: ${SAY[e.final_action] || e.final_action}`,
+  agreement: (e) => `Rules and model ${e.agree ? 'agree' : 'disagree'}: ${SAY[e.final?.action] || e.final?.action}`,
 };
 function assess(enc, preset = 'quiet', prev = null) {
   // preset 'precise': the screening provider's ephemeris arrives (CDM-grade covariance) and CRIC decides again
@@ -745,16 +747,17 @@ function showDecision(e, enc, preset, prev) {
   const fin = e.validation.final_action, opt = e.options.find((o) => o.id === e.validation.final_option_id);
   const pc = (x) => (x ? x.toExponential(1) : '≈ 0');
   const box = document.createElement('div'); box.className = 'decision';
-  box.innerHTML = `<div class="dim small">DECISION · ${e.seconds.toFixed(0)} s · $${e.usage.cost_usd.toFixed(3)}</div>
-    <div class="big">${esc(fin.replace(/_/g, ' '))}${opt ? ` · ${opt.dv_ms.toFixed(3)} m/s ${esc(opt.direction)} at ${opt.burn_utc.slice(11, 16)} UTC` : ''}</div>
-    ${prev ? `<div class="pcmove">Collision probability <b>${pc(prev.pc)}</b> on public TLE data → <b>${pc(e.risk.pc)}</b> with precise ephemeris${
-      e.risk.pc < 1e-6 && !opt ? ' · <span style="color:var(--ok)">cleared, no propellant spent</span>' : ''}</div>` : ''}
+  box.dataset.action = fin;
+  box.innerHTML = `<div class="dim small">Decision (${e.seconds.toFixed(0)} s, $${e.usage.cost_usd.toFixed(3)})</div>
+    <div class="big">${esc((SAY[fin] || fin).replace(/^./, (c) => c.toUpperCase()))}${opt ? `: ${opt.dv_ms.toFixed(3)} m/s ${esc(opt.direction)} at ${opt.burn_utc.slice(11, 16)} UTC` : ''}</div>
+    ${prev ? `<div class="pcmove">Collision probability <b>${pc(prev.pc)}</b> on public data, <b>${pc(e.risk.pc)}</b> with the precise orbit${
+      e.risk.pc < 1e-6 && !opt ? '. <span style="color:var(--ok)">Risk cleared, no fuel spent.</span>' : ''}</div>` : ''}
     <div>${esc(e.decision.rationale)}</div>
-    <div class="small dim mt">${G('Pc')} ${pc(e.risk.pc)} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${e.options.length} burn options verified (${e.options.map((o) => `${o.id} ${o.dv_ms.toFixed(2)} m/s`).join(', ')}) · ${esc(e.other.name)} can manoeuvre: ${esc(e.other.capability?.can_maneuver)}</div>
+    <div class="small dim mt">${G('Pc')} ${pc(e.risk.pc)} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${e.options.length} possible burns (${e.options.map((o) => `${o.dv_ms.toFixed(2)} m/s`).join(', ')}) · ${esc(e.other.name)} can maneuver: ${esc(e.other.capability?.can_maneuver)}</div>
     <div class="ctl mt"><input class="opName" placeholder="Your name (who decides)" value="${esc($('satOwner').value)}">
       <button class="apOk primary">Approve</button><button class="apNo">Reject</button></div><div class="apOut small"></div>
-    <div class="ctl mt"><button class="encView">See the encounter in 3D</button></div>
-    ${preset === 'quiet' && fin !== 'MANEUVER' ? '<div class="ctl mt"><button class="nextPrecise">Precise ephemeris arrives → decide again</button><span class="small dim">simulated: the screening provider\'s covariance (CDM grade)</span></div>' : ''}`;
+    <div class="ctl mt"><button class="encView">Watch the pass in 3D</button></div>
+    ${preset === 'quiet' && fin !== 'MANEUVER' ? '<div class="ctl mt"><button class="nextPrecise">Get the precise orbit and decide again</button><span class="small dim">simulated provider data</span></div>' : ''}`;
   $('incOut').append(box);
   box.scrollIntoView({ block: 'end', behavior: 'smooth' });
   const q = (c) => box.querySelector(c);
@@ -769,7 +772,7 @@ function showDecision(e, enc, preset, prev) {
   q('.apOk').onclick = () => send('approve'); q('.apNo').onclick = () => send('reject');
   if (q('.nextPrecise')) q('.nextPrecise').onclick = () => { q('.nextPrecise').disabled = true; assess(enc, 'precise', e.risk); };
   q('.encView').onclick = async () => {
-    const g = await busy('The other object\'s path relative to ours, around closest approach (SGP4)…',
+    const g = await busy('Replaying the pass…',
       () => api('encounter', { ours: enc.object_a.norad_id, other: enc.object_b.norad_id, tca_utc: enc.tca_utc }));
     globeOn = false; document.body.classList.add('flying');
     CV.playEncounter(g, { onDone: () => { CV.hide(); globeOn = true; document.body.classList.remove('flying'); } });

@@ -11,7 +11,7 @@ export const GLOSSARY = {
   covariance: 'Covariance: how uncertain each position is. Pc depends on it; with TLE data CRIC has to assume it.',
   diluted: 'Diluted: the uncertainty is so large that Pc looks small only because we know little. Better data could raise it.',
   sensitivity: 'Pc is recomputed with the assumed uncertainty halved and doubled and the object size varied. Robust means the risk level holds across that range.',
-  dv: 'Δv: the change in velocity a burn gives, in metres per second. It costs propellant.',
+  dv: 'Δv: the change in velocity a burn gives, in meters per second. It costs propellant.',
   kp: 'Kp: NOAA\'s 0–9 index of geomagnetic activity. Storms heat the upper atmosphere, increase drag and make orbit predictions worse.',
   rescreen: 'Every burn option is checked against the whole catalog so the new orbit does not create another close approach.',
   validator: 'Hard rules in code that every decision passes through. They can only make a decision safer, never riskier.',

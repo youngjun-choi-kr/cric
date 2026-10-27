@@ -1,4 +1,4 @@
-// The close-up stage of Mission Studio, in metres: the hangar where rockets are compared and edited, the launch
+// The close-up stage of Mission Studio, in meters: the hangar where rockets are compared and edited, the launch
 // (pad, plume, staging, fairing, smoke), and the payload deploy in orbit. Every motion is driven by the
 // simulation's samples; only the look (plume, smoke, sky) is illustration. The globe view takes over above
 // ~150 km and hands back for the deploy.
@@ -168,7 +168,7 @@ class Particles {
   clear() { this.age.fill(1e9); this.alpha.fill(0); }
 }
 
-const NOTE = 'Shape derived from the vehicle data · motion from the 3-DOF simulation · plume, smoke, sky and cloud texture are illustration (light and cloud amount: the chosen launch hour; before one is chosen, local noon and 25%)';
+const NOTE = 'Simulated flight. Shapes come from the rocket’s numbers; flame, smoke, sky and clouds are for illustration. Lit for the chosen launch hour (or local noon before you pick one).';
 
 export function createCloseView(root, { earthTex, onState } = {}) {
   root.innerHTML = `<div class="cv-hud" hidden>
@@ -176,7 +176,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
         <div class="cv-note"></div></div>
       <div class="cv-toast" id="cvToast"></div>
       <div class="cv-cams"><button data-cam="auto" class="on">Auto</button><button data-cam="pad">Pad</button><button data-cam="track">Tracking</button>
-        <button data-cam="chase">Chase</button><button data-cam="onboard">Onboard</button><button id="cvSound" title="Engine rumble (synthesised)">🔇</button><button id="cvSkip" title="Skip to the globe view">Skip ▸</button></div>
+        <button data-cam="chase">Chase</button><button data-cam="onboard">Onboard</button><button id="cvSound" title="Engine rumble (synthesized)">🔇</button><button id="cvSkip" title="Skip to the globe view">Skip ▸</button></div>
       <div class="cv-side"><canvas id="cvMap" width="480" height="280"></canvas><canvas id="cvGraph" width="480" height="150"></canvas>
         <div class="cv-legend2"><i style="background:#5ab0ff"></i>altitude <i style="background:#ffc857"></i>speed</div></div>
       <div class="cv-stack" id="cvStack"></div>
@@ -270,7 +270,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     slots.forEach((s) => s.el.classList.toggle('sel', s === selected));
     if (!selected) return;
     person.position.set(selected.x + selected.r.D * 0.9 + 0.6, 0, selected.r.D * 0.8);
-    const h = selected.r.height, hr = Math.max(h, 17);          // small rockets: keep the neighbours for scale
+    const h = selected.r.height, hr = Math.max(h, 17);          // small rockets: keep the neighbors for scale
     bayGoal = { target: new THREE.Vector3(selected.x + (hr - h) * 0.25, h * 0.5, 0), pos: new THREE.Vector3(selected.x + hr * 0.7, hr * 0.38, hr * 1.75 + 9) };
   }
   /** The selected rocket was edited: rebuild it, letting each stage grow from its old length (a fix is visible). */
@@ -573,7 +573,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
       fov = 40;
     }
     // Smooth the camera's offset from the rocket, not its absolute position: at km/s an absolute lerp falls
-    // kilometres behind. Ground cameras (pad, tracking) stay put and aim straight at the rocket.
+    // kilometers behind. Ground cameras (pad, tracking) stay put and aim straight at the rocket.
     const k = 1 - Math.exp(-dt * 2.5);
     const ground = modeName === 'pad' || modeName === 'track';
     const off = pos.clone().sub(P), lookOff = look.clone().sub(P);
@@ -671,9 +671,9 @@ export function createCloseView(root, { earthTex, onState } = {}) {
       }
     }
     f.smoke.step(dt, 0.25); f.spark.step(dt, 1.2);
-    const ppx = renderer.domElement.height / (2 * Math.tan(cam.fov * D2R / 2));    // metres -> pixels at 1 m
+    const ppx = renderer.domElement.height / (2 * Math.tan(cam.fov * D2R / 2));    // meters -> pixels at 1 m
     f.smoke.points.material.uniforms.scale.value = ppx; f.spark.points.material.uniforms.scale.value = ppx;
-    // spent parts: gravity toward Earth's centre, light drag low down
+    // spent parts: gravity toward Earth's center, light drag low down
     for (const o of f.spent) {
       const v = o.userData.vel, g = o.position.clone().sub(center).normalize().multiplyScalar(-9.8);
       v.addScaledVector(g, dt); if (s[1] < 80) v.multiplyScalar(Math.exp(-0.02 * dt));
@@ -773,8 +773,8 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     cam.up.set(0, 1, 0); cam.fov = 50; cam.near = 1; cam.far = 3e7; cam.updateProjectionMatrix();
     cam.lookAt(at.clone().add(pTca).multiplyScalar(0.5).addScaledVector(new THREE.Vector3(0, 1, 0), -dist * 0.55));   // Earth's limb in view
     const lblMe = label(`<b>${esc(e.ours)}</b>`, 'enc me'), lblOther = label(`<b>${esc(e.other)}</b>`, 'enc'), lblMiss = label('', 'enc miss');
-    $('cvTitle').textContent = `${e.ours} × ${e.other} · closest approach ${e.tca_utc.slice(0, 16).replace('T', ' ')} UTC`;
-    root.querySelector('.cv-note').textContent = 'Positions from SGP4 on public TLE data (about 1 km) · slow motion, 1 s of the encounter = 25 s · markers not to scale';
+    $('cvTitle').textContent = `${e.ours} and ${e.other}: closest pass, ${e.tca_utc.slice(0, 16).replace('T', ' ')} UTC`;
+    root.querySelector('.cv-note').textContent = 'Positions from public orbit data (about 1 km). Slowed down 25×. Dots not to scale.';
     enc = { e, scene, at, toV, me, other, trail, missLine, lbls: [lblMe, lblOther, lblMiss], k0, pTca, t: -1.0, opts, shown: false };
   }
   function disposeEncounter() {
@@ -812,7 +812,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     if (on) onState?.(mode);
   }
   function hide() { disposeEncounter(); setVisible(false); mode = 'idle'; rumble(0); if (audio) audio.gain.gain.value = 0; }
-  let insetL = 0, insetR = 0;        // pixels covered by side panels: the scene centres in what is left
+  let insetL = 0, insetR = 0;        // pixels covered by side panels: the scene centers in what is left
   function setInsets(l, r) { insetL = l; insetR = r; }
   let last = performance.now();
   function loop(now) {

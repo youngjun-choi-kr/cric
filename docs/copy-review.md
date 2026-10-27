@@ -1,7 +1,7 @@
 # 문구 검토: 영상 대본·자막, 서비스 화면, 첫 화면 (2026-10-28)
 
 ## 총평
-- **틀린 문장 1개**: C4 대본 "at 1 kilometres a second" (1.12를 반올림하면서 숫자·복수형이 어긋남).
+- **틀린 문장 1개**: C4 대본 "at 1 kilometers a second" (1.12를 반올림하면서 숫자·복수형이 어긋남).
 - **"AI가 쓴 티"가 나는 공통 패턴**
   1. 가운뎃점(·)과 화살표(→)로 사실 서너 개를 이어 붙인 자막. 스펙 시트처럼 읽히고, 8초 안에 못 읽음.
   2. 나열식 대본: "collision probability, verified burn options, a cited dossier, three votes, a validator".
@@ -11,7 +11,7 @@
   6. 라벨을 그대로 읽는 대사: "On public data: monitor.", "decides again: monitor".
   7. 시각을 숫자로 읽게 함("02:49", "02:46"): 성우나 TTS가 어색하게 읽음.
 - **전문용어**: 자막에 LTDN, LCOLA, SGP4, TLE, 3-DOF, ephemeris가 설명 없이 나옴. 심사위원 대부분은 우주 전문가가 아님.
-- **표기 혼용**: manoeuvre/maneuver, kilometres/km, catalog/catalogued (영국식·미국식 혼용). 해커톤 기준 미국식으로 통일 권장.
+- **표기 혼용**: maneuver/maneuver, kilometers/km, catalog/cataloged (영국식·미국식 혼용). 해커톤 기준 미국식으로 통일 권장.
 
 ## 1. 영상 대본 (현재 → 제안)
 제안 대본은 샷 길이(초당 약 2.3단어)에 맞췄고, 시각은 말로 읽도록 바꿈. `{ }`는 녹화 결과에서 채우는 값.
@@ -30,14 +30,14 @@
 | A8 | and JIMIN-1 is in orbit. | and JIMIN-1 reaches orbit. |
 | A9 | Five hundred scattered flights, with the forecast winds aloft, show where stage one can land: at sea. | Five hundred test flights, with the forecast winds, show where the spent stage lands. At sea. |
 | B1 | When to launch? For an imaging satellite, the launch time sets the local time it passes over the ground. | Next: when to launch. For a camera satellite, the launch time decides what time of day it sees the ground. |
-| B2 | Every minute of that hour is screened against the catalog: at 02:49, it would pass 2.7 kilometres from MUSAT-2. | Every minute is checked against the catalog. Launch at {two forty-nine}, and it passes {2.7} kilometres from another satellite. |
+| B2 | Every minute of that hour is screened against the catalog: at 02:49, it would pass 2.7 kilometers from MUSAT-2. | Every minute is checked against the catalog. Launch at {two forty-nine}, and it passes {2.7} kilometers from another satellite. |
 | B3 | The range notice and the customer's request, in Korean, become checked rules. Three roles vote, and Nemotron 3 Ultra calls go for 02:46. | The team's notes, even in Korean, become rules the code can check. Three officers vote. Nemotron 3 Ultra makes the call: go at {two forty-six}. |
 | C1 | Launch. JIMIN-1 joins the catalog, and CRIC marks when it can photograph Seoul. | Launch. JIMIN-1 joins the catalog, and CRIC shows when it can photograph Seoul. |
 | C2 | A close approach. The same CRIC pipeline takes over: collision probability, verified burn options, a cited dossier, three votes, a validator. On public data: monitor. | Days later, another satellite comes close. CRIC works out the risk, finds out who can move, and decides: {keep watching}. |
 | C3 | The precise ephemeris arrives and CRIC decides again: monitor, with no propellant spent. | Better orbit data arrives. The risk drops to almost zero. No fuel spent. |
-| C4 | Here is that pass: 2.5 kilometres, at 1 kilometres a second. ← **오류** | Here's that pass: {two and a half} kilometres apart. |
+| C4 | Here is that pass: 2.5 kilometers, at 1 kilometers a second. ← **오류** | Here's that pass: {two and a half} kilometers apart. |
 | C5 | And Jimin approves. | Jimin signs off. |
-| J14 | From a garage rocket to a satellite that is looked after. Code for what can be checked, Nemotron for what must be read, people for what must be decided. | CRIC does the maths and the reading. The decisions stay with people. |
+| J14 | From a garage rocket to a satellite that is looked after. Code for what can be checked, Nemotron for what must be read, people for what must be decided. | CRIC does the math and the reading. The decisions stay with people. |
 
 판단 결과는 라벨을 그대로 읽지 말고 말로 바꿔 읽음: MONITOR → "keep watching", REQUEST_PRECISE_DATA → "get better data first", COORDINATE → "talk to the other operator", ESCALATE → "a person should decide", MANEUVER → "move".
 
@@ -69,7 +69,7 @@
 | 위치 | 현재 | 제안 |
 |---|---|---|
 | 상단 부제 | Your rocket → your launch window → your satellite in orbit · 3-DOF ascent · Open-Meteo · NOAA SWPC · CelesTrak · NVIDIA Nemotron on Nebius | Your rocket, your launch, your satellite in orbit. (데이터 출처는 하단/정보 버튼으로) |
-| 비행 중 표시 | Optimising the ascent guidance and flying it (differential evolution, parallel)… | Flying your rocket… |
+| 비행 중 표시 | Optimizing the ascent guidance and flying it (differential evolution, parallel)… | Flying your rocket… |
 | 수정안 탐색 | Searching for fixes, each one verified by re-flying the rocket (parallel)… | Looking for fixes and test-flying each one… |
 | 분산 | Monte Carlo: 500 flights with thrust, Isp, mass, pitch and azimuth scatter, and the forecast winds aloft… | Flying 500 slightly different rockets… |
 | 날씨 | Weather (Open-Meteo) and space weather (NOAA SWPC) for every site that can reach your orbit… | Checking the weather at every launch site… |
@@ -78,11 +78,11 @@
 | 수정안 설명 아래 | Nemotron 3 Super explains; the fixes below come from the simulator, not the model. | (ⓘ 툴팁으로) Fixes are test-flown by the simulator. |
 | 메모 안내 | Nemotron 3 Super turns the notes into rules with an exact quote each; code drops any rule whose quote is not in the notes and applies the rest to every window. | Each rule must quote your notes word for word, or it's dropped. |
 | Go/No-Go 안내 | Pick an hour on the map, then minutes on the collision strip (up to 4). Three launch-team roles vote … cannot be chosen. | Pick an hour, then up to 4 minutes. The team votes; a vetoed minute can't win. |
-| 투입 카드 | Tracked with 18,806 catalogued objects. The TLE reproduces the simulated insertion state at epoch. | Now tracked with 18,806 other objects. |
+| 투입 카드 | Tracked with 18,806 cataloged objects. The TLE reproduces the simulated insertion state at epoch. | Now tracked with 18,806 other objects. |
 | 버튼 | Convene the launch team | Ask the launch team |
 | 단계 제목 | YOUR ROCKET / WHEN AND WHERE · next 7 days, hourly | Your rocket / When and where (next 7 days) |
 | 판단 카드 | DECISION · 20 s · $0.009 / MONITOR | Decision: keep watching (20 s · $0.009) |
-| 체크박스 | it has propulsion (can manoeuvre) | It can maneuver (has a thruster) |
+| 체크박스 | it has propulsion (can maneuver) | It can maneuver (has a thruster) |
 | 투어 4단계 | Then choose when to launch (weather, orbit timing, collision screening, the launch team’s votes) and run the satellite with CRIC: passes over home, close approaches, your approval. | Next, pick when to launch. Then CRIC looks after the satellite, and you make the final calls. |
 
 ## 4. 첫 화면 (index.html)·README 첫 단락

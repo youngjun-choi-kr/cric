@@ -41,7 +41,7 @@ export function initCinema(api) {
       },
     },
     'find-pair': {
-      key: '2', seconds: 9, caption: 'Public data says these two pass 17 metres apart. It is accurate to about a kilometre.',
+      key: '2', seconds: 9, caption: 'Public data says these two pass 17 meters apart. It is accurate to about a kilometer.',
       sim: (t) => tca() - 120e3 + easeOut(t) * 108e3,   // slows down toward TCA - 12 s
       pose(t, date) {
         const f = frameAt(date), k = easeInOut(t);

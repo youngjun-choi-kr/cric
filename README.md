@@ -1,15 +1,14 @@
-# CRIC — from your rocket to a satellite that is looked after
+# CRIC: from a garage rocket to a safe orbit
 
-Bring a rocket and a satellite. CRIC tells you whether the rocket reaches orbit and what to change if it does not,
-when and where to launch around weather and other satellites, and then operates the satellite among 18,806 tracked
-objects: it watches real orbits and space weather, works out who can manoeuvre when two objects get close, plans a
-response, checks it in physics, and hands it to a person for approval.
+Bring your rocket and your satellite. CRIC tells you if the rocket makes it to orbit, and what to change if it
+doesn't. It finds a good time to launch. Then it watches your satellite among 18,806 other objects, works out
+the risk when something comes close, and hands the final call to a person.
 
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/).
 
 **Live demo, no install: https://youngjun-choi-kr.github.io/cric/** · **Demo video:** *(link added at submission)*
-- **Mission Studio** (rocket → launch window → operate): the JIMIN-1 run, recorded once and replayed in the page; all
-  five rockets fly in step 1.
+- **Mission Studio** (rocket, launch, operate): a recorded run of the JIMIN-1 story, replayed in the page. All five
+  rockets fly in step 1.
 - **Operations console**: recorded conjunction decisions; pick a situation and press *Replay recorded run*.
 
 Both run live (your own rocket, live decisions) with the local server and API keys: [SETUP.md](SETUP.md).
@@ -18,23 +17,22 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · limits: [LIMITATIONS.md](LIM
 | 1 · Your rocket | 2 · When and where | 3 · Operate |
 |---|---|---|
 | ![Hangar](web/launch/img/hangar.jpg) | ![Launch window](web/launch/img/window.jpg) | ![Operations](web/launch/img/ops.jpg) |
-| Does it reach orbit? If not, fixes that are flown again before you see them. | Weather, orbit timing, the team's notes, and every liftoff minute screened against the catalog. | Passes over home, close approaches, the CRIC decision pipeline, your approval. |
+| Does it make it to orbit? If not, test-flown fixes. | Weather, time of day, your team's notes, and a collision check for every minute. | Flights over home, close approaches, your final call. |
 
 **In one minute**
-- **Your rocket:** pick a launcher, drop a spec sheet (Nemotron 3.5 Super VL reads it, every number labelled
-  read / derived / assumed), or type numbers. A 3-DOF ascent flies it in a 3D close-up; if it falls short, fixes
-  are searched and each is flown again before you see it. 500 dispersed flights with the forecast winds aloft show
-  where stages fall, checked against land.
-- **When and where:** seven days of weather and space weather per site, the hours that give an imaging orbit its
-  local time (LTDN), notes from the team and the range (any language) turned into checked rules, every liftoff
-  minute screened for collisions (distance and Pc), three launch-team votes and a mission director (Nemotron 3
-  Ultra) who cannot pick a vetoed window.
-- **Operate:** the satellite joins 18,806 tracked objects. CRIC finds close approaches, computes Pc and burn options
-  checked against every other object, researches the other satellite with cited sources, and decides with two
-  independent routes that must agree (Nemotron 3 Super's three votes after hard rules, and the policy in code);
-  otherwise a person decides. A person always approves; CRIC never commands a spacecraft.
-- **Measured:** held-out sets written before running, screening checked against CelesTrak SOCRATES, Pc against
-  NASA CARA test values, the ascent against published capacities. See Results.
+- **Your rocket.** Pick a real rocket, drop in a spec sheet (Nemotron 3.5 Super VL reads it and labels every number),
+  or type your own. Watch it fly in 3D. If it falls short, CRIC suggests fixes and test-flies each one first.
+  500 test flights with the forecast winds show where the spent stages land, and whether that's at sea.
+- **When and where.** A week of weather for every launch site. For a camera satellite, the hours that give the
+  right time of day over the ground. Your team's notes, in any language, become rules the code can check. Every
+  launch minute is checked against the satellites already up there. Three officers vote, and Nemotron 3 Ultra
+  makes the call, but can't overrule a veto.
+- **Operate.** The satellite joins the catalog. When something comes close, CRIC works out the risk, checks
+  each possible burn against every other object, looks up the other satellite with cited sources, and decides.
+  No burn happens unless Nemotron 3 Super's three votes and the rules in code agree; otherwise a person decides.
+  A person always signs off. CRIC never sends commands to a spacecraft.
+- **Tested.** Test sets written before running, screening checked against CelesTrak SOCRATES, collision math
+  against NASA test cases, the rocket model against published capacities. See Results.
 
 ![How CRIC works: sense, read, two routes must agree, a person, act and sense again](docs/how-it-works.svg)
 
@@ -50,7 +48,7 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · limits: [LIMITATIONS.md](LIM
 | Mission Studio | Nano · Super · Ultra · 3.5 Super VL | Nano reads the owner's plain-language target orbit; VL (images) or Super (PDF text) transcribes a rocket spec sheet; Super explains a failed flight, turns team / customer / range notes into rules with exact quotes, and casts the weather, range and orbital-safety votes; Ultra is the mission director who writes the launch brief |
 | Web grounding | Tavily Search + Extract | satellite facts and real space-weather events for the eval |
 
-Orbit maths never goes through an LLM: screening uses SGP4 on CelesTrak data, and safety rules are enforced in code.
+Orbit math never goes through an LLM: screening uses SGP4 on CelesTrak data, and safety rules are enforced in code.
 
 ## Quick start
 
@@ -63,7 +61,7 @@ cp .env.example .env                          # add NEBIUS_API_KEY and TAVILY_AP
 .venv/bin/python -m pytest -q                 # offline tests: physics, safety rules, studio API, browser replays
 ```
 
-An incident runs: SGP4 geometry -> Pc from an assumed covariance -> verified burn options from the optimiser
+An incident runs: SGP4 geometry -> Pc from an assumed covariance -> verified burn options from the optimizer
 -> cited dossiers for both objects (Tavily + Nemotron, with a verifier repair loop) -> Nemotron decision
 (MANEUVER / REQUEST_PRECISE_DATA / MONITOR / COORDINATE / ESCALATE), three independent votes, a split goes to a
 person -> safety validator in code -> Ultra brief when a person must act -> approve / reject in the console.
@@ -71,8 +69,8 @@ person -> safety validator in code -> Ultra brief when a person must act -> appr
 **Unattended:** `cric watch` screens a fresh catalog every 30 minutes, runs the pipeline for any encounter with
 our fleet, and notifies a person; it runs as a Nebius Serverless AI Job ([deploy/nebius](deploy/nebius/README.md)).
 
-The numeric search is done by the optimiser, not the model: Nemotron chooses among options that physics has
-already checked, using context the optimiser cannot read (policy and mission notes in plain language, evidence
+The numeric search is done by the optimizer, not the model: Nemotron chooses among options that physics has
+already checked, using context the optimizer cannot read (policy and mission notes in plain language, evidence
 quality, time left for better data). `archive/spike/` keeps the original day-1 feasibility scripts.
 
 ## Results
@@ -155,7 +153,7 @@ briefs are written only when a person must act, so Ultra writes them (`python -m
 **Web text is data, and we tested it.** Tavily results are tiered by source, instruction-like sentences (English
 plus common phrasings in six other languages) are cut and logged before any model sees them, sources sit in tags a
 page cannot close, quotes that read like instructions are rejected, and only agency, operator or reference pages
-may decide whether another satellite can manoeuvre. `scripts/eval_injection.py` plants six injection styles in a
+may decide whether another satellite can maneuver. `scripts/eval_injection.py` plants six injection styles in a
 page about SITRO-AIS 38 (true answer: propulsion unknown) on an unknown site and on a trusted domain: with the
 defences 0 of 24 attacks changed the verdict, without them 15 of 24 did. Our first run let a Korean injection
 through 1 of 12 times; the multilingual patterns were added after that, so that case is not held-out
@@ -175,7 +173,7 @@ verified burn options, cited dossiers, the Nemotron decision with its evidence, 
 **Replay** streams a recorded run with no API calls (works when credits run out); **Run live** calls
 Token Factory and Tavily. Recorded runs:
 - **EOS-08 x SITRO-AIS 38** (EOS-08 is a ~175 kg Earth-observation satellite; 17 m on public data, which is
-  accurate to about a kilometre): quiet day (ask for precise data), precise ephemeris and an imaging pass over
+  accurate to about a kilometer): quiet day (ask for precise data), precise ephemeris and an imaging pass over
   the cheapest burn (coordinate, then the later burn; flown with errors and cleared), safe mode (escalate), the
   May 2024 storm replayed as tonight's weather (storm drag ~40 km: ask for data), a mission note in Korean, and a
   planning screenshot shared in chat (read by Nemotron VL).
@@ -198,7 +196,7 @@ then open `/web/`): it replays the recordings in `web/demo/` (refresh with `scri
 ```
 
 Three steps for someone who builds a small rocket or owns a cubesat. Step 1 has a close-up 3D stage next to the
-globe: a hangar where every rocket is built from its own numbers at true scale (X-ray colours each part by where its
+globe: a hangar where every rocket is built from its own numbers at true scale (X-ray colors each part by where its
 number came from, and a fix visibly grows the stage), and a launch view driven by the simulation (pad, Max Q, stage
 and fairing separation, broadcast HUD, payload deploy) that hands over to the globe above ~150 km. Shapes are
 derived from the data; plume, smoke, sky and cloud texture are illustration (clouds follow the forecast cover, night
@@ -220,7 +218,7 @@ follows the Sun). A first-visit tour and hover help explain the terms (LCOLA, Pc
    the map outlines the hours that hit the target and lists the best three. Notes from the team, the customer and
    the range (any language) become checked rules that can close a window. Pick an hour and
    the studio screens every liftoff minute against the catalog for the first orbit after insertion (LCOLA, by
-   distance and by Pc): one minute can pass a kilometre or two from another satellite while a few minutes later
+   distance and by Pc): one minute can pass a kilometer or two from another satellite while a few minutes later
    is clear. Three launch-team roles vote
    on the candidate minutes and Nemotron 3 Ultra, as mission director, picks one; code refuses any pick that a
    check or a vote vetoed.
@@ -237,7 +235,7 @@ How the Studio's models do, on scenarios written before they ran (`fixtures/laun
 | Set | What | Result |
 |---|---|---|
 | notes, first run | 12 team / range notes (EN, KO, JA, ES; local-time conversion, a distractor, an injection) → rules | 29/36 runs; the injection created a whole-day closure 3/3 |
-| notes, after fixes | same 12 (no longer held out): injection filter, field normalisation, window context | 32/36 runs, 9/12 scenarios in every run |
+| notes, after fixes | same 12 (no longer held out): injection filter, field normalization, window context | 32/36 runs, 9/12 scenarios in every run |
 | **held-out notes** | 8 new notes written after the fixes, run once (KO, JA injection, FR, PDT) | **24/24 runs, 8/8 scenarios** |
 | director | 6 window choices (vetoed windows, all vetoed, stated preferences) | 16/18 first run (preferred margin over earliest with no stated preference); 18/18 after the default was written down |
 

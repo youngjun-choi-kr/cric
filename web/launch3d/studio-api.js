@@ -9,8 +9,8 @@ const REPLAY = HAS_API ? null : await fetch('launch/replay/jimin1.json').then((r
 const NOW = () => (REPLAY ? Date.parse(REPLAY.recorded_utc) : Date.now());
 if (!HAS_API) {
   $('serverNote').hidden = false;
-  if (REPLAY) $('serverNote').innerHTML = `<b>Hosted replay</b> of a run recorded on ${REPLAY.recorded_utc.slice(0, 10)} (Garage One from Naro → JIMIN-1):
-    every number comes from that run, nothing is computed in this page. To fly your own rocket, run it locally (SETUP.md).`;
+  if (REPLAY) $('serverNote').innerHTML = `<b>Hosted replay</b> of a run recorded on ${REPLAY.recorded_utc.slice(0, 10)}. Every number comes from that run.
+    To fly your own rocket, run it locally (SETUP.md).`;
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function vehDiff(a, b) {
@@ -27,8 +27,7 @@ async function replayApi(path, body) {
     e = list.reduce((a, x) => (vehDiff(x.req.vehicle, body.vehicle) < vehDiff(a.req.vehicle, body.vehicle) ? x : a));
     const same = vehDiff(e.req.vehicle, body.vehicle) < 0.02 && e.req.site === body.site
       && Math.abs(e.req.payload_kg - body.payload_kg) < 0.01 && Math.abs(e.req.target_alt_km - body.target_alt_km) < 0.01;
-    if (!same) throw new Error('This hosted page replays one recorded run: Garage One with a 5 kg cubesat from Naro to 500 km SSO, '
-      + 'before and after its verified fix. To fly another rocket or orbit, run Mission Studio locally (SETUP.md).');
+    if (!same) throw new Error('This page replays a recorded run, so only the recorded flights are here. To try your own, run Mission Studio locally (SETUP.md).');
   }
   for (const k of ['engine_out_t', 'ours', 'other']) {           // what-if time and encounter pair must match too
     if (body && k in body && e.req && String(e.req[k]) !== String(body[k])) {
@@ -66,7 +65,7 @@ const GLOSS = {
   'Max Q': 'Maximum dynamic pressure: the moment the air pushes hardest on the rocket (fast and still low). Structures are sized for it.',
   Perigee: 'The lowest point of the orbit. Below about 150 km the thin air slows the satellite and it falls back within hours or days.',
   LTDN: 'Local time of the descending node: the local clock time when the satellite crosses the equator going south. A sun-synchronous orbit keeps it fixed, so every image of a place has the same lighting.',
-  TLE: 'Two-line element set: the public orbit format the whole catalog uses. Good to about a kilometre.',
+  TLE: 'Two-line element set: the public orbit format the whole catalog uses. Good to about a kilometer.',
   CDM: 'Conjunction data message: the precise orbit and uncertainty a screening provider sends when an encounter matters.',
   SSO: 'Sun-synchronous orbit: a near-polar orbit whose plane turns with the Sun, so it passes over each place at the same local time.',
 };

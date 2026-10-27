@@ -88,6 +88,6 @@ def test_studio_hosted_replay_end_to_end(site):
         page.click("[data-enc='0']"); page.wait_for_selector(".decision", timeout=60000)
         page.click(".nextPrecise")
         page.wait_for_function("document.querySelectorAll('.decision').length > 1", timeout=60000)
-        assert "precise ephemeris" in page.evaluate("[...document.querySelectorAll('.decision')].pop().innerText")
+        assert "precise orbit" in page.evaluate("[...document.querySelectorAll('.decision')].pop().innerText")
         browser.close()
     assert not errors, errors

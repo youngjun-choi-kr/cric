@@ -422,8 +422,8 @@ function handle(e) {
   if (k === 'time_mode') { step('time', 'ok', `<span class="who">Decision time</span> ${esc(e.mode)} · ${fmtUTC(e.now_utc)}`); return; }
   if (k === 'geometry') step('geo', 'ok', `<span class="who">Geometry</span> SGP4 on CelesTrak data · miss ${fmtDist(e.miss_km)} · ${e.rel_speed_kms.toFixed(1)} km/s`);
   else if (k === 'risk') { step('risk', e.level === 'red' ? 'warn' : 'ok', `<span class="who">Collision probability</span> Pc ${pcTxt(e.pc)} · ${e.level}${e.data_quality === 'tle' ? ' on screening data (candidate)' : ''}${e.diluted ? ' · diluted' : ''}`); }
-  else if (k === 'optimiser') step('opt', 'run', `<span class="who">Optimiser</span> <span class="sub2">${esc(e.text)}</span>`);
-  else if (k === 'options') { step('opt', 'ok', `<span class="who">Optimiser</span> ${e.options.length} verified burn options from ${e.feasible_points ?? '?'} feasible points, each re-screened against the catalog`); renderOptions(e.options); spotlight($('optSec')); }
+  else if (k === 'optimiser') step('opt', 'run', `<span class="who">Optimizer</span> <span class="sub2">${esc(e.text)}</span>`);
+  else if (k === 'options') { step('opt', 'ok', `<span class="who">Optimizer</span> ${e.options.length} verified burn options from ${e.feasible_points ?? '?'} feasible points, each re-screened against the catalog`); renderOptions(e.options); spotlight($('optSec')); }
   else if (k === 'satcat' || k === 'dossier_cached') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(e.name)}</span> ${k === 'satcat' ? `SATCAT: ${esc(e.type)}, ${esc(e.status)}` : 'from cache'}`);
   else if (k === 'search_start') step('d' + e.norad, 'run', `<span class="who">Dossier · ${esc(nameOf(e.norad))}</span> Tavily search ${e.index + 1}/${e.total} <span class="sub2">${esc(e.query)}</span>`);
   else if (k === 'search_done') { inc.tavily.search++; inc.tavily.credits += e.credits || 0; incStats();
@@ -440,7 +440,7 @@ function handle(e) {
     }
     const d = e.dossier, cap = d.capability.can_maneuver, f = d.facts?.can_maneuver_now?.status === 'sourced' ? d.facts.can_maneuver_now : d.facts?.has_propulsion;
     step('d' + d.norad_id, cap === 'yes' ? 'ok' : cap === 'no' ? 'ok' : 'warn',
-      `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span>${e.role === 'ours' && /demo assumption/.test(d.capability.basis) ? '<span class="tag mid" title="In this demo we play the operator of this satellite; its propulsion state stands in for the operator\'s own telemetry. Not a claim about the real spacecraft or its operator.">demo: we play its operator</span>' : ''} can manoeuvre: <b>${cap}</b>
+      `<span class="who">Dossier · ${esc(d.name)}</span> <span class="tag">${e.role === 'ours' ? 'ours' : 'other'}</span>${e.role === 'ours' && /demo assumption/.test(d.capability.basis) ? '<span class="tag mid" title="In this demo we play the operator of this satellite; its propulsion state stands in for the operator\'s own telemetry. Not a claim about the real spacecraft or its operator.">demo: we play its operator</span>' : ''} can maneuver: <b>${cap}</b>
        <div class="sub2">${esc(d.capability.basis)}${d.web_capability ? ` · web research said: ${esc(d.web_capability.can_maneuver)}` : ''}</div>${f?.quote && f.status === 'sourced' ? `<div class="think">“${esc(f.quote)}” — ${esc(hostOf(f.source_url))}</div>` : ''}
        ${(inc.dossierStep[d.norad_id] || []).length ? `<div class="chips">${inc.dossierStep[d.norad_id].map((h) => `<span class="chip">${esc(h)}</span>`).join('')}</div>` : ''}`);
     spotlight(inc.rows['d' + d.norad_id]?.querySelector('.think') || inc.rows['d' + d.norad_id]);

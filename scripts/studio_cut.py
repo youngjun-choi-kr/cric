@@ -26,70 +26,76 @@ from rough_cut import BOLD, FPS, H, OUT, W, _caption_filter, _duration, _ts, _tx
 M = json.loads((OUT / "studio_markers.json").read_text())
 
 
+SAY = {"MONITOR": "keep watching", "REQUEST_PRECISE_DATA": "get better data first", "COORDINATE": "talk to the other operator",
+       "ESCALATE": "let a person decide", "MANEUVER": "move"}
+ONES = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
+TENS = {2: "twenty", 3: "thirty", 4: "forty", 5: "fifty"}
+
+
+def spoken_time(hhmm: str) -> str:
+    """'02:49' -> 'two forty-nine' (UTC), the way a narrator reads it."""
+    h, m = int(hhmm[:2]), int(hhmm[3:5])
+    mm = "o'clock" if m == 0 else (f"oh {ONES[m]}" if m < 10 else ONES[m] if m < 20 else TENS[m // 10] + ("" if m % 10 == 0 else "-" + ONES[m % 10]))
+    return f"{ONES[h] if h < 20 else 'twenty-' + ONES[h - 20]} {mm}"
+
+
 def facts() -> dict:
     h, a3 = M["hour"], M.get("act3_facts", {})
     worst = h["worst"]
     v1 = M["act1_facts"]["verdict"]
-    orbit = re.search(r"Orbit: ([\d,]+ × [\d,]+ km, [\d.]+°)", v1)
-    dec = (a3.get("decision") or "").split("\n")
-    action = next((x for x in dec if re.fullmatch(r"[A-Z_ ]{4,}", x.strip())), "").strip()
-    dec2 = (a3.get("decision2") or "").split("\n")
-    action2 = next((x for x in dec2 if re.fullmatch(r"[A-Z_ ]{4,}", x.strip())), "").strip()
-    return {"worst_km": f"{worst['closest_km']:.1f}", "worst_obj": worst["object"], "worst_t": worst["liftoff_utc"][11:16],
-            "clear_km": f"{h['clear']:.0f}", "liftoff": (M["act2_facts"]["liftoff"] or "")[11:16],
-            "orbit": orbit.group(1) if orbit else "orbit", "fix": M["act1_facts"].get("fix") or "Verified fix: bigger first stage",
-            "other": (a3.get("deployed", {}).get("enc") or {}).get("object_b", {}).get("name", "another satellite"),
-            "miss_m": f"{(a3.get('deployed', {}).get('enc') or {}).get('miss_distance_km', 0) * 1000:,.0f}",
-            "action": action.replace("_", " ").title() or "decision",
-            "action2": action2.replace("_", " ").title() or "decision",
-            "miss_km": f"{(a3.get('deployed', {}).get('enc') or {}).get('miss_distance_km', 0):.1f}",
-            "vrel": f"{(a3.get('deployed', {}).get('enc') or {}).get('relative_speed_kms', 0):.0f}"}
+    orbit = re.search(r"Orbit: ([\d,]+ × [\d,]+ km)", v1)
+    enc = a3.get("deployed", {}).get("enc") or {}
+    a1, a2 = a3.get("action") or "", a3.get("action2") or ""
+    liftoff = (M["act2_facts"]["liftoff"] or "")[11:16]
+    return {"worst_km": f"{worst['closest_km']:.1f}", "worst_t": worst["liftoff_utc"][11:16], "worst_say": spoken_time(worst["liftoff_utc"][11:16]),
+            "liftoff": liftoff, "liftoff_say": spoken_time(liftoff) if liftoff else "",
+            "orbit": orbit.group(1) if orbit else "orbit",
+            "say1": SAY.get(a1, a1.replace("_", " ").lower() or "decide"), "say2": SAY.get(a2, a2.replace("_", " ").lower() or "decide"),
+            "miss_km": f"{enc.get('miss_distance_km', 0):.1f}",
+            "cleared": "Risk cleared" in (a3.get("decision2") or "")}
 
 
 F = facts()
 # (id, seconds, kind, source (act, from marker, to marker) or cine/card text, caption, voice-over)
 SHOTS = [
-    ("J1", 6, "cine", "overview-push", "18,806 tracked objects · real orbits",
-     "Eighteen thousand objects are already in orbit. Jimin wants to add one."),
-    ("J2", 4, "title", None, "CRIC Mission Studio\nYour rocket · your launch window · your satellite in orbit",
-     "This is CRIC Mission Studio."),
-    ("A1", 8, "app", ("act1", "start", "target"), "Rockets built from their numbers, at true scale · X-ray: where each number came from",
-     "Jimin's student rocket, Garage One, stands next to real launchers, built from its own numbers."),
-    ("A2", 8, "app", ("act1", "target", "liftoff"), "Nemotron Nano reads the mission · orbit computed in code",
-     "Nemotron Nano reads the mission from one sentence; code works out the orbit. Liftoff."),
-    ("A3", 9, "app", ("act1", "liftoff", "handoff"), "Every motion from the 3-DOF simulation · plume and sky are illustration",
-     "Every motion comes from the flight simulation: max Q, staging, the fairing. But it is too slow."),
-    ("A4", 6, "app", ("act1", "handoff", "advise"), "Perigee below the ~150 km needed: it falls back",
-     "Its lowest point is too low, and it falls back."),
-    ("A5", 9, "app", ("act1", "advise", "apply"), "Every fix is flown again before it is shown · Nemotron 3 Super explains",
-     "Nemotron 3 Super explains where the speed went. The fix comes from the simulator, flown again before it is shown."),
-    ("A6", 6, "app", ("act1", "apply", "fly2"), f"{F['fix']}", "A bigger first stage."),
-    ("A7", 9, "app", ("act1", "liftoff2", "handoff2"), f"Second flight → {F['orbit']}", "This time it climbs all the way,"),
-    ("A8", 8, "app", ("act1", "deploy2", "landed2"), "Orbit · payload deployed", "and JIMIN-1 is in orbit."),
-    ("A9", 7, "app", ("act1", "disp", "end"), "500 scattered flights · forecast winds aloft · land check",
-     "Five hundred scattered flights, with the forecast winds aloft, show where stage one can land: at sea."),
-    ("B1", 9, "app", ("act2", "start", "hour"), "Outlined hours: the orbit crosses the equator at 10:30 local (LTDN) · Open-Meteo · NOAA Kp",
-     "When to launch? For an imaging satellite, the launch time sets the local time it passes over the ground."),
-    ("B2", 10, "app", ("act2", "hour", "team"), "Launch hour chosen for the film after screening the real forecast and catalog · LCOLA",
-     f"Every minute of that hour is screened against the catalog: at {F['worst_t']}, it would pass {F['worst_km']} kilometres from {F['worst_obj']}."),
-    ("B3", 13, "app", ("act2", "team", "end"), "Notes → rules with exact quotes (Nemotron 3 Super) · votes · director: Nemotron 3 Ultra",
-     f"The range notice and the customer's request, in Korean, become checked rules. Three roles vote, and Nemotron 3 Ultra calls go for {F['liftoff']}."),
-    ("C1", 10, "app", ("act3", "start", "assess"), "TLE from the insertion state · photo passes over Seoul marked",
-     "Launch. JIMIN-1 joins the catalog, and CRIC marks when it can photograph Seoul."),
-    ("C2", 14, "app", ("act3", "assess", "decision"), f"Close approach: {F['other']} · the CRIC pipeline, live (time-lapse)",
-     "A close approach. The same CRIC pipeline takes over: collision probability, verified burn options, a cited "
-     f"dossier, three votes, a validator. On public data: {F['action'].lower()}."),
-    ("C3", 8, "app", ("act3", "precise", "encounter"), f"Precise ephemeris: decided again · {F['action2']} · no propellant spent",
-     f"The precise ephemeris arrives and CRIC decides again: {F['action2'].lower()}, with no propellant spent."),
-    ("C4", 8, "app", ("act3", "encounter", "encounter_end"), "The pass in slow motion · positions from SGP4",
-     f"Here is that pass: {F['miss_km']} kilometres, at {F['vrel']} kilometres a second."),
-    ("C5", 5, "app", ("act3", "encounter_end", "end"), "Jimin approves · logged, hash-chained · nothing is sent to a spacecraft",
-     "And Jimin approves."),
-    ("J14", 9, "card", None, "Code for what can be checked.\nNemotron for what must be read.\nPeople for what must be decided.",
-     "From a garage rocket to a satellite that is looked after. Code for what can be checked, Nemotron for what "
-     "must be read, people for what must be decided."),
-    ("J15", 4, "title", None, "CRIC Mission Studio\nNVIDIA Nemotron on Nebius Token Factory · Open-Meteo · NOAA · CelesTrak\n"
-                             "youngjun-choi-kr.github.io/cric", ""),
+    ("J1", 6, "cine", "overview-push", "18,806 objects in orbit today",
+     "Eighteen thousand objects already circle the Earth. Jimin wants to add one more."),
+    ("J2", 4, "title", None, "CRIC Mission Studio\nYour rocket, your launch, your satellite in orbit", "This is CRIC Mission Studio."),
+    ("A1", 8, "app", ("act1", "start", "target"), "Built from its numbers, to scale",
+     "Jimin built a small rocket, Garage One. Here it is, to scale, next to real launchers."),
+    ("A2", 8, "app", ("act1", "target", "liftoff"), "One sentence in, an orbit out",
+     "Jimin describes the mission in one sentence. Nemotron Nano turns it into an orbit. Liftoff."),
+    ("A3", 9, "app", ("act1", "liftoff", "handoff"), "Simulated flight",
+     "Everything you see is the flight simulation. Max Q. Stage separation. Then the problem: it's too slow."),
+    ("A4", 6, "app", ("act1", "handoff", "advise"), "Too low to stay in orbit",
+     "It never gets high enough to stay up, and falls back."),
+    ("A5", 9, "app", ("act1", "advise", "apply"), "Every fix is test-flown first",
+     "Nemotron 3 Super explains what went wrong. The simulator test-flies every fix before suggesting it."),
+    ("A6", 6, "app", ("act1", "apply", "fly2"), "First stage: 30% bigger", "The answer: a bigger first stage."),
+    ("A7", 9, "app", ("act1", "liftoff2", "handoff2"), "Second try", "Second try. This time it keeps climbing,"),
+    ("A8", 8, "app", ("act1", "deploy2", "landed2"), f"In orbit: {F['orbit']}", "and JIMIN-1 reaches orbit."),
+    ("A9", 7, "app", ("act1", "disp", "end"), "Where the spent stage lands",
+     "Five hundred test flights, with the forecast winds, show where the spent stage lands. At sea."),
+    ("B1", 9, "app", ("act2", "start", "hour"), "The hours that suit a camera satellite",
+     "Next: when to launch. For a camera satellite, the launch time decides what time of day it sees the ground."),
+    ("B2", 10, "app", ("act2", "hour", "team"), f"{F['worst_t']} UTC liftoff: {F['worst_km']} km from another satellite",
+     f"Every minute is checked against the catalog. Launch at {F['worst_say']}, and it passes {F['worst_km']} kilometers from another satellite."),
+    ("B3", 13, "app", ("act2", "team", "end"), "Notes become rules. The team votes.",
+     f"The team's notes, even in Korean, become rules the code can check. Three officers vote. Nemotron 3 Ultra makes the call: go at {F['liftoff_say']}."),
+    ("C1", 10, "app", ("act3", "start", "assess"), "Photo passes over Seoul",
+     "Launch. JIMIN-1 joins the catalog, and CRIC shows when it can photograph Seoul."),
+    ("C2", 14, "app", ("act3", "assess", "decision"), "Close approach (sped up)",
+     f"Days later, another satellite comes close. CRIC works out the risk, finds out who can move, and decides: {F['say1']}."),
+    ("C3", 8, "app", ("act3", "precise", "encounter"), "Better data: risk cleared" if F["cleared"] else "Better data: decided again",
+     "Better orbit data arrives. The risk drops to almost zero. No fuel spent." if F["cleared"]
+     else f"Better orbit data arrives, and CRIC decides again: {F['say2']}."),
+    ("C4", 8, "app", ("act3", "encounter", "encounter_end"), "The pass, slowed down",
+     f"Here's that pass: {F['miss_km']} kilometers apart."),
+    ("C5", 5, "app", ("act3", "encounter_end", "end"), "The owner decides. Nothing is sent to the satellite.", "Jimin signs off."),
+    ("J14", 9, "card", None, "CRIC does the math and the reading.\nThe decisions stay with people.",
+     "CRIC does the math and the reading. The decisions stay with people."),
+    ("J15", 5, "title", None, "CRIC Mission Studio\nSimulated flights; visuals illustrative. Launch hour picked after checking the live forecast.\n"
+                             "NVIDIA Nemotron on Nebius Token Factory · youngjun-choi-kr.github.io/cric", ""),
 ]
 
 

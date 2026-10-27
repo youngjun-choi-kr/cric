@@ -1,9 +1,9 @@
 // First-visit tour of Mission Studio: four callouts, skippable, never shown again once closed (?notour=1 skips it).
 const STEPS = [
-  { el: '#methodTabs', title: '1 · Your rocket', text: 'Pick a published launcher, drop a spec sheet photo or PDF, or type your own numbers. The hangar shows it at true scale next to the others; X-ray colours each part by where its number came from.' },
-  { el: '#targetText', title: 'Your orbit, in a sentence', text: 'Describe the satellite and orbit in any words. Nemotron Nano reads it; code works out the inclination.' },
-  { el: '#flyBtn', title: 'Fly it', text: 'A 3-DOF simulation flies the ascent and shows it up close. If it falls short, ask for fixes: each one is flown again before you see it.' },
-  { el: '#steps', title: '2 · Launch window · 3 · Operate', text: 'Then choose when to launch (weather, orbit timing, collision screening, the launch team’s votes) and run the satellite with CRIC: passes over home, close approaches, your approval.' },
+  { el: '#methodTabs', title: '1 · Your rocket', text: 'Pick a real rocket, drop in a spec sheet, or type your own numbers. The hangar shows it to scale. X-ray shows where each number came from.' },
+  { el: '#targetText', title: 'Your orbit, in a sentence', text: 'Describe your satellite and orbit in plain words. Nemotron Nano turns it into an orbit.' },
+  { el: '#flyBtn', title: 'Fly it', text: 'Watch your rocket fly. If it falls short, ask for fixes. Each one is test-flown first.' },
+  { el: '#steps', title: '2 · Launch window · 3 · Operate', text: 'Next, pick when to launch. Then CRIC looks after the satellite, and you make the final calls.' },
 ];
 
 export function startTour() {
