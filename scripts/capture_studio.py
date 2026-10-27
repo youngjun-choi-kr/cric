@@ -17,7 +17,6 @@ from __future__ import annotations
 import base64
 import json
 import subprocess
-import tempfile
 import time
 from pathlib import Path
 
@@ -124,10 +123,10 @@ def main() -> None:
 
         def flight(tag):           # one launch: close-up, globe, (deploy), back
             until(f"liftoff{tag}", f"{t_sim} >= 0")
-            until(f"maxq{tag}", f"studio.CV.flight && studio.CV.flight.maxq")
-            until(f"sep{tag}", f"studio.CV.flight && studio.CV.flight.hadSep.size > 0")
-            until(f"fairing{tag}", f"studio.CV.flight && studio.CV.flight.fairDone")
-            until(f"handoff{tag}", f"studio.CV.mode !== 'launch'")
+            until(f"maxq{tag}", "studio.CV.flight && studio.CV.flight.maxq")
+            until(f"sep{tag}", "studio.CV.flight && studio.CV.flight.hadSep.size > 0")
+            until(f"fairing{tag}", "studio.CV.flight && studio.CV.flight.fairDone")
+            until(f"handoff{tag}", "studio.CV.mode !== 'launch'")
             until(f"deploy{tag}", f"!{flying} || (studio.CV.mode === 'launch' && studio.CV.flight.deploy)")
             until(f"landed{tag}", f"!{flying}")
 
