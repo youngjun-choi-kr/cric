@@ -658,23 +658,26 @@ function updateCatalog(date) {
   catK = catK + step >= n ? 0 : catK + step;
   catPts.geometry.attributes.position.needsUpdate = true;
 }
+$('propKg').addEventListener('input', () => { $('propKg').dataset.edited = '1'; });
 $('deployBtn').addEventListener('click', async () => {
   const [lat, lon] = $('homeLL').value.split(',').map(Number);
+  if (!$('propKg').dataset.edited) $('propKg').value = Math.max(0.05, +(0.04 * +$('payload').value).toFixed(2));   // 4% of the satellite's mass
   const r = await busy('Putting your satellite in orbit and checking the next 3 days…', () => api('deploy', mission({
     liftoff_utc: S.liftoff, name: $('satName').value, owner: $('satOwner').value, mission: $('satMission').value,
-    can_maneuver: $('satProp').checked, home: { name: $('homeName').value, lat, lon } })));
+    can_maneuver: $('satProp').checked, prop_kg: +$('propKg').value, isp_s: +$('ispS').value,
+    home: { name: $('homeName').value, lat, lon } })));
   S.deployed = r;
   await loadCatalog();
   const rec = satellite.twoline2satrec(r.tle[0], r.tle[1]);
   catSats.push(rec);
   const grown = new Float32Array(catSats.length * 3); grown.set(catPos); catPos = grown;
   catPts.geometry.setAttribute('position', new THREE.BufferAttribute(catPos, 3));
-  me = { rec, name: r.name };
+  me = { rec, name: r.name, catIdx: catSats.length - 1 };
   simMs = Date.parse(r.epoch_utc); setSun(new Date(simMs));
   clear(layer.orbit); dropLabels('me');
-  const period = 2 * Math.PI / rec.no * 60e3;              // ms
-  const ring = []; for (let k = 0; k <= 180; k++) { const d = new Date(simMs + period * k / 180); const p = satellite.propagate(rec, d).position; if (p) ring.push(eci2scene(p, new Date(simMs))); }
+  const ring = orbitRing(rec, simMs);
   const orbitLine = line(ring, 0x4fe3a1, 0.9); orbitLine.userData.inertial = true; layer.orbit.add(orbitLine);
+  me.line = orbitLine;
   me.dot = points([ring[0]], 0x4fe3a1, 12); layer.orbit.add(me.dot);
   me.lbl = { pos: ring[0].clone() }; label(r.name, me.lbl.pos, 'me');
   const home = $('homeName').value;
@@ -682,6 +685,17 @@ $('deployBtn').addEventListener('click', async () => {
   $('deployOut').innerHTML = `<div class="card mt"><b>${esc(r.name)}</b> is in orbit (NORAD ${r.norad_id}, a Studio-only number)
     <pre class="tle">${esc(r.name)}\n${esc(r.tle[0])}\n${esc(r.tle[1])}</pre>
     <div class="small dim">Now tracked with ${fmt(r.objects_in_catalog - 1)} other objects.</div></div>`;
+  showOps(r, home, lat, lon);
+  $('ctlBox').hidden = !$('satProp').checked; showFuel(r.propulsion); burnPreview(); loadLog();
+  controls.target.set(0, 0, 0); camGoal = ring[0].clone().normalize().multiplyScalar(17);   // look at the new satellite
+});
+// One orbit as a ring in the scene frame at time t0 (the ring is inertial; the loop turns it with the Earth)
+function orbitRing(rec, t0) {
+  const period = 2 * Math.PI / rec.no * 60e3, ring = [];
+  for (let k = 0; k <= 180; k++) { const d = new Date(t0 + period * k / 180); const p = satellite.propagate(rec, d).position; if (p) ring.push(eci2scene(p, new Date(t0))); }
+  return ring;
+}
+function showOps(r, home, lat, lon) {
   const kst = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().slice(5, 16).replace('T', ' ');
   const imaging = (p) => p.max_elevation_deg >= 30 && sunElev(new Date(p.max_utc), lat, lon) > 5;   // daylight, high enough
   $('opsOut').innerHTML = `${r.passes?.length ? `<h2 class="mt">PASSES OVER ${esc(home.toUpperCase())}</h2>
@@ -695,8 +709,124 @@ $('deployBtn').addEventListener('click', async () => {
   const pick = (i) => { $('opsOut').querySelectorAll('.pass').forEach((el) => el.classList.toggle('on', +el.dataset.pass === i)); skyPlot(r.passes[i], home); };
   $('opsOut').querySelectorAll('[data-pass]').forEach((el) => el.addEventListener('click', () => pick(+el.dataset.pass)));
   if (r.passes?.length) pick(Math.max(0, r.passes.findIndex(imaging)));
-  controls.target.set(0, 0, 0); camGoal = ring[0].clone().normalize().multiplyScalar(17);   // look at the new satellite
+}
+
+// ---------- mission control: you command, CRIC checks, you approve ----------
+const DIR_SAY = { prograde: 'speed up', retrograde: 'slow down', radial_out: 'push away from Earth', radial_in: 'push toward Earth', normal: 'push sideways', antinormal: 'push sideways' };
+const LEVEL_SAY = { go: 'Safe to do', caution: 'Careful: CRIC sees a risk', 'no-go': "Don't do this" };
+function showFuel(p) {
+  if (!p) return;
+  S.prop = p;
+  const g = (kg) => `${fmt(kg * 1000)} g`;
+  $('fuel').innerHTML = `Propellant <b>${g(p.prop_left_kg)}</b> of ${g(p.prop_kg)} left · enough for <b>${fmt(p.dv_left_ms, 1)} m/s</b> of burns
+    <div class="bar"><i style="width:${p.prop_kg ? (100 * p.prop_left_kg / p.prop_kg).toFixed(1) : 0}%"></i></div>`;
+}
+function burnPreview() {
+  const dv = +$('burnDv').value, dir = $('burnDir').value;
+  $('dvVal').textContent = `${dv.toFixed(1)} m/s`;
+  if (!me) return;
+  const a = Math.cbrt(398600.4418 / (me.rec.no / 60) ** 2), v = Math.sqrt(398600.4418 / a);   // km, km/s
+  const d = 4 * a * dv / 1000 / v, half = d / 2, at = new Date(simMs + +$('burnIn').value * 3600e3);
+  const txt = { prograde: `the far side of the orbit rises about ${fmt(d, 1)} km`, retrograde: `the far side drops about ${fmt(d, 1)} km`,
+    radial_out: `one side rises and the other drops, about ${fmt(half, 1)} km each`, radial_in: `one side drops and the other rises, about ${fmt(half, 1)} km each`,
+    normal: `the orbit tilts about ${(dv / 1000 / v * 180 / Math.PI).toFixed(3)}°`, antinormal: `the orbit tilts about ${(dv / 1000 / v * 180 / Math.PI).toFixed(3)}°` }[dir];
+  const fuelTxt = S.prop ? ` · uses about ${fmt(S.prop.mass_kg * (1 - Math.exp(-dv / (S.prop.isp_s * 9.80665))) * 1000, 1)} g` : '';
+  $('burnPreview').textContent = `At ${at.toISOString().slice(5, 16).replace('T', ' ')} UTC: ${txt}${fuelTxt}.`;
+}
+['burnDv', 'burnDir', 'burnIn'].forEach((id) => $(id).addEventListener('input', burnPreview));
+document.querySelectorAll('[data-goal]').forEach((b) => b.addEventListener('click', () => {
+  const lower = b.dataset.goal === 'lower';
+  $('burnDir').value = lower ? 'retrograde' : 'prograde'; $('burnDv').value = lower ? 10 : 6; burnPreview();
+}));
+let preview = null;
+function showAfter(tle, level) {
+  if (preview) { layer.orbit.remove(preview); preview = null; }
+  if (!tle) return;
+  const rec = satellite.twoline2satrec(tle[0], tle[1]);
+  const t0 = Date.parse(S.deployed.epoch_utc);
+  preview = line(orbitRing(rec, t0), level === 'go' ? 0x9cf0c8 : level === 'caution' ? 0xffc857 : 0xff6b57, 0.85);
+  preview.userData.inertial = true; layer.orbit.add(preview);
+}
+async function checkBurn(burnUtc, dir, dv) {
+  const p = await busy('CRIC is checking this burn against every tracked object for the next 3 days…', () => api('burn', {
+    norad_id: S.deployed.norad_id, burn_utc: burnUtc, direction: dir, dv_ms: dv }));
+  showBurn(p);
+  return p;
+}
+$('burnBtn').addEventListener('click', () => {
+  const t = new Date(Math.max(simMs, Date.parse(S.deployed.epoch_utc)) + +$('burnIn').value * 3600e3);
+  t.setUTCSeconds(0, 0);
+  checkBurn(t.toISOString().replace('.000', ''), $('burnDir').value, +(+$('burnDv').value).toFixed(1));
 });
+function showBurn(p) {
+  const box = document.createElement('div'); box.className = 'burn'; box.dataset.v = p.verdict;
+  const km = (x) => `${fmt(x, 1)} km`;
+  const near = p.encounters.filter((e) => e.level !== 'ok').concat(p.encounters.filter((e) => e.level === 'ok')).slice(0, 4);
+  box.innerHTML = `<div class="dim small">CRIC's check · ${p.dv_ms} m/s, ${esc(DIR_SAY[p.direction])}, ${p.burn_utc.slice(5, 16).replace('T', ' ')} UTC</div>
+    <div class="big">${LEVEL_SAY[p.verdict]}</div>
+    ${p.why.length ? `<ul>${p.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : '<div>No object comes within 2 km in the next 3 days, and the orbit stays healthy.</div>'}
+    <table><tr><td></td><td>now</td><td>after</td></tr>
+      <tr><td>lowest point</td><td>${km(p.before.perigee_km)}</td><td>${km(p.after.perigee_km)}</td></tr>
+      <tr><td>highest point</td><td>${km(p.before.apogee_km)}</td><td>${km(p.after.apogee_km)}</td></tr>
+      <tr><td>one orbit</td><td>${fmt(p.before.period_min, 2)} min</td><td>${fmt(p.after.period_min, 2)} min</td></tr>
+      <tr><td>propellant</td><td colspan="2">${fmt(p.prop_needed_kg * 1000, 1)} g of ${fmt(p.propulsion.prop_left_kg * 1000)} g left</td></tr></table>
+    ${near.length ? `<div class="small mt"><b>Closest passes after the burn</b>${near.map((e) => `<div class="enc"><span>${esc(e.object_b.name)}<br><span class="dim">${e.tca_utc.slice(5, 16).replace('T', ' ')} UTC</span></span><span>${fmt(e.miss_distance_km * 1000)} m · ${G('Pc', 'Pc')} ${e.pc ? e.pc.toExponential(0) : '≈ 0'}</span></div>`).join('')}</div>` : ''}
+    ${p.cleared?.length ? `<div class="small mt" style="color:var(--ok)">Also clears: ${p.cleared.map((e) => esc(e.object_b.name)).join(', ')}</div>` : ''}
+    ${p.alternative ? `<div class="alt"><b>CRIC suggests</b> ${esc(p.alternative.says)}: closest pass ${p.alternative.closest_km != null ? fmt(p.alternative.closest_km, 1) + ' km' : 'over 5 km'}, lowest point ${km(p.alternative.after.perigee_km)}.
+      <div class="ctl"><button class="useAlt primary">Check that instead</button></div></div>` : ''}
+    <div class="ctl mt"><input class="opName" placeholder="Your name (who decides)" value="${esc($('satOwner').value)}">
+      <button class="bOk ${p.verdict === 'go' ? 'primary' : ''}">Approve</button><button class="bNo">Reject</button></div><div class="bOut small"></div>
+    <div class="small dim">${esc(p.uncertainty)}</div>`;
+  $('burnOut').replaceChildren(box);
+  showAfter(p.tle_after, p.verdict);
+  const q = (c) => box.querySelector(c);
+  if (q('.useAlt')) q('.useAlt').onclick = () => checkBurn(p.alternative.burn_utc, p.alternative.direction, p.alternative.dv_ms);
+  const send = async (verdict) => {
+    let reason = '';
+    if (verdict === 'reject') { reason = prompt('Why reject?') || ''; if (!reason) return; }
+    if (verdict === 'approve' && p.verdict === 'no-go') { reason = prompt('CRIC called this burn no-go. Why approve it anyway?') || ''; if (!reason) return; }
+    const r = HAS_API ? await fetch('/api/launch/command', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: p.plan_id, verdict, operator: q('.opName').value, reason }) }).then(async (x) => (x.ok ? x.json() : { error: (await x.json()).error }))
+      : replayCommand(p, verdict, q('.opName').value, reason);
+    if (r.error) { q('.bOut').textContent = '⚠ ' + r.error; return; }
+    q('.bOk').disabled = q('.bNo').disabled = true;
+    q('.bOut').innerHTML = `✓ ${esc(verdict)}d by ${esc(r.operator)} · logged (hash ${esc(r.hash.slice(0, 10))}…) · ${esc(r.note)}`;
+    if (verdict === 'approve') applyBurn(p, r);
+    else showAfter(null);
+    loadLog(r);
+  };
+  q('.bOk').onclick = () => send('approve'); q('.bNo').onclick = () => send('reject');
+}
+const LOCAL_LOG = [];
+function replayCommand(p, verdict, operator, reason) {      // hosted replay: the decision stays on this page
+  const prop = { ...p.propulsion };
+  if (verdict === 'approve') { prop.prop_used_kg += p.prop_needed_kg; prop.prop_left_kg -= p.prop_needed_kg; prop.dv_left_ms -= p.dv_ms; }
+  const e = { logged_utc: new Date().toISOString().slice(0, 19), burn_utc: p.burn_utc, direction: p.direction, dv_ms: p.dv_ms, cric_verdict: p.verdict,
+    verdict, operator, reason, hash: Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join(''),
+    propulsion: prop, note: 'replay: kept on this page only; with the server it goes to the hash-chained log' };
+  LOCAL_LOG.push(e);
+  return e;
+}
+function applyBurn(p, r) {
+  const rec = satellite.twoline2satrec(p.tle_after[0], p.tle_after[1]);
+  me.rec = rec; catSats[me.catIdx] = rec;
+  if (me.line) layer.orbit.remove(me.line);
+  showAfter(null);
+  me.line = line(orbitRing(rec, Date.parse(S.deployed.epoch_utc)), 0x4fe3a1, 0.9); me.line.userData.inertial = true; layer.orbit.add(me.line);
+  showFuel(r.propulsion);
+  simMs = Math.max(simMs, Date.parse(p.burn_utc));
+  const [lat, lon] = $('homeLL').value.split(',').map(Number);
+  showOps({ ...S.deployed, passes: p.passes || S.deployed.passes, encounters: p.encounters.slice(0, 10), screen_hours: p.screen_hours }, $('homeName').value, lat, lon);
+  burnPreview();
+}
+async function loadLog() {
+  const d = HAS_API ? await fetch('/api/launch/commands').then((x) => x.json()).catch(() => null)
+    : { entries: LOCAL_LOG, chain_intact: null };
+  if (!d?.entries?.length) return;
+  $('cmdLog').innerHTML = `${d.entries.slice(-6).reverse().map((e) => `<div class="cmd"><b class="${e.verdict}">${esc(e.verdict)}</b> ${e.dv_ms} m/s ${esc(DIR_SAY[e.direction])} at ${e.burn_utc.slice(5, 16).replace('T', ' ')} UTC
+    <span class="dim">· CRIC: ${esc(e.cric_verdict)} · ${esc(e.operator)}${e.reason ? ` · “${esc(e.reason)}”` : ''} · #${esc(e.hash.slice(0, 8))}</span></div>`).join('')}
+    <div class="mt">${d.chain_intact === true ? '🔗 Chain intact: no entry was edited or removed.' : d.chain_intact === false ? '⚠ Chain broken: an entry was edited or removed.' : 'Replay: the log lives on this page only.'}</div>`;
+}
 
 // Decisions in plain words (the action names stay in the data)
 const SAY = { MONITOR: 'keep watching', REQUEST_PRECISE_DATA: 'get better data first', COORDINATE: 'talk to the other operator', ESCALATE: 'a person should decide', MANEUVER: 'move' };

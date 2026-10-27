@@ -111,9 +111,32 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
     <label>lat, lon<input id="homeLL" value="37.5665, 126.978"></label>
   </div>
   <label class="chk"><input type="checkbox" id="satProp" checked> It can maneuver (has a thruster)</label>
+  <div class="grid2" id="propBox">
+    <label title="Propellant on board at launch (left alone, 4% of the satellite's mass)">Propellant <span class="dim">kg</span><input id="propKg" type="number" value="0.2" min="0.01" max="5" step="0.01"></label>
+    <label title="Specific impulse: how much push each kilogram of propellant gives. Cold gas ~70 s, green monopropellant ~220 s.">Thruster <abbr class="g" title="Specific impulse: how much push each kilogram of propellant gives. Cold gas ~70 s, green monopropellant ~220 s.">Isp</abbr> <span class="dim">s</span><input id="ispS" type="number" value="220" min="30" max="400"></label>
+  </div>
   <div class="small dim" id="liftoffNote"></div>
   <div class="ctl mt"><button id="deployBtn" class="primary big">🚀 Launch, then let CRIC take over</button></div>
   <div id="deployOut"></div>
+  <div id="ctlBox" hidden>
+    <h2 class="mt">Mission control</h2>
+    <div class="small dim">You give the command. CRIC checks it against every tracked object. You approve. Nothing is sent to a spacecraft.</div>
+    <div id="fuel" class="fuel"></div>
+    <div class="goals"><button data-goal="lower">Lower it for sharper photos</button><button data-goal="raise">Raise it to last longer</button></div>
+    <div class="grid2">
+      <label>Burn in <span class="dim">hours</span><input id="burnIn" type="number" value="3" min="0" max="160" step="0.25"></label>
+      <label>Direction<select id="burnDir">
+        <option value="prograde">Speed up (prograde)</option><option value="retrograde">Slow down (retrograde)</option>
+        <option value="radial_out">Away from Earth (radial)</option><option value="radial_in">Toward Earth (radial)</option>
+        <option value="normal">Sideways (normal)</option><option value="antinormal">Sideways, other way</option></select></label>
+      <label class="full">Size <span class="dim" id="dvVal">2.0 m/s</span><input id="burnDv" type="range" min="0.1" max="20" step="0.1" value="2"></label>
+    </div>
+    <div class="small dim" id="burnPreview"></div>
+    <div class="ctl mt"><button id="burnBtn" class="primary">Check this burn with CRIC</button></div>
+    <div id="burnOut"></div>
+    <h2 class="mt">Command log</h2>
+    <div id="cmdLog" class="small dim">No commands yet.</div>
+  </div>
 </div>
 <div class="panel scol" id="right3" data-for="3" hidden>
   <h2>Operations</h2>

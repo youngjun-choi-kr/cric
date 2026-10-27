@@ -157,3 +157,74 @@ def test_wind_carries_falling_stages_downwind():
     e, n = wind_drift_km(east, 500, 2.0)
     heavy, _ = wind_drift_km(east, 5000, 2.0)
     assert e > 0.5 and abs(n) < 1e-6 and heavy < e      # downwind, and a heavier body falls faster, drifts less
+
+
+@pytest.fixture
+def studio(flight, tmp_path, monkeypatch):
+    from cric.launch import control
+
+    monkeypatch.setattr(deploy, "STUDIO", tmp_path)
+    monkeypatch.setattr(deploy, "REGISTRY", tmp_path / "fleet.json")
+    monkeypatch.setattr(deploy, "ENCOUNTERS", tmp_path / "conjunctions.json")
+    monkeypatch.setattr(control, "LOG", tmp_path / "commands.jsonl")
+    monkeypatch.setattr(control, "PLANS", tmp_path / "plans")
+    name, l1, l2 = tle_for(flight, T0, "JIMIN-1")
+    n = deploy.register(name, l1, l2, owner="Jimin", can_maneuver="yes", mission="imaging", home=None, launch={},
+                        propulsion={"mass_kg": 5.0, "prop_kg": 0.2, "isp_s": 220.0, "prop_used_kg": 0.0})
+    return control, n, Satrec.twoline2rv(l1, l2)
+
+
+def test_a_burn_into_another_object_is_caught_and_a_safer_time_offered(studio):
+    from datetime import timedelta
+
+    control, n, sat = studio
+    t = control.dep_epoch(sat) + timedelta(minutes=10)
+    moved = control._apply(sat, t, "prograde", 2.0, n)              # where the burn would take us
+    meet = t + timedelta(minutes=30)
+    jd, fr = jdfr(meet, np.array([0.0]))
+    _, r, v = moved.sgp4(jd[0], fr[0])
+    trap = satrec_from_state(np.array(r) + np.array([0, 0, 0.3]), -np.array(v), meet, satnum=7)   # head-on, 300 m off
+    cat = _catalog_with({7: trap})
+    p = control.plan(cat, n, t.isoformat(), "prograde", 2.0, hours=2)
+    assert p["verdict"] == "no-go" and "OBJ-7" in p["why"][0] and p["after"]["apogee_km"] > p["before"]["apogee_km"]
+    alt = p["alternative"]
+    assert alt and alt["burn_utc"] != p["burn_utc"] and (alt["closest_km"] is None or alt["closest_km"] >= 2)
+    quiet = control.plan(cat, n, t.isoformat(), "retrograde", 0.5, hours=2)   # elsewhere: nothing near
+    assert quiet["verdict"] == "go" and "alternative" not in quiet
+    with pytest.raises(ValueError):
+        control.plan(cat, n, t.isoformat(), "prograde", 200.0)              # beyond what a burn may be
+    with pytest.raises(ValueError):
+        control.plan(cat, n, (t - timedelta(hours=1)).isoformat(), "prograde", 1.0)   # before the orbit epoch
+
+
+def test_decisions_are_guarded_and_hash_chained(studio):
+    from datetime import timedelta
+
+    control, n, sat = studio
+    cat = _catalog_with({})
+    t = control.dep_epoch(sat) + timedelta(minutes=10)
+    p = control.plan(cat, n, t.isoformat(), "retrograde", 1.0, hours=1)
+    with pytest.raises(ValueError):
+        control.decide(cat, p["plan_id"], "reject", "Jimin")                # a rejection needs a reason
+    with pytest.raises(ValueError):
+        control.decide(cat, p["plan_id"], "approve", "")                    # someone must decide
+    out = control.decide(cat, p["plan_id"], "approve", "Jimin")
+    reg = deploy.registry()[str(n)]
+    assert reg["tle"] == p["tle_after"] and len(reg["burns"]) == 1 and out["sent"] is False
+    assert out["propulsion"]["prop_used_kg"] == pytest.approx(p["prop_needed_kg"]) and out["propulsion"]["dv_left_ms"] < p["propulsion"]["dv_left_ms"]
+    with pytest.raises(ValueError):
+        control.decide(cat, p["plan_id"], "approve", "Jimin")               # stale: the orbit has changed since
+    p2 = control.plan(cat, n, (t + timedelta(minutes=20)).isoformat(), "prograde", 1.0, hours=1)
+    control.decide(cat, p2["plan_id"], "reject", "Jimin", "not needed")
+    entries = control.log_entries()
+    assert [e["verdict"] for e in entries] == ["approve", "reject"] and control.chain_ok(entries)
+    lines = control.LOG.read_text().splitlines()
+    control.LOG.write_text(lines[0].replace('"dv_ms": 1.0', '"dv_ms": 0.1') + "\n" + lines[1] + "\n")
+    assert not control.chain_ok(control.log_entries())                      # an edited line breaks the chain
+
+
+def test_propellant_is_counted_with_the_rocket_equation(studio):
+    control, n, _ = studio
+    p = control.propulsion(deploy.registry()[str(n)])
+    assert p["dv_total_ms"] == pytest.approx(220 * 9.80665 * np.log(5 / 4.8), rel=1e-3)
+    assert control._prop_for(p["dv_total_ms"], 5.0, 220) == pytest.approx(0.2, rel=1e-3)

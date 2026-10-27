@@ -54,3 +54,12 @@ def test_fly_whatif_and_screen_minutes(server):
     assert code == 200 and w["engines"] == 9 and w["range"]["source"].startswith("Natural Earth")
     code, lc = post(server, "lcola", m | {"start_utc": "2026-10-25T00:00:00Z", "minutes": 5})
     assert code == 200 and len(lc["rows"]) == 5 and all("pc" in r for r in lc["rows"]) and lc["criteria_pc"]["nogo"] == 1e-4
+
+
+def test_burn_commands_reject_bad_input():
+    from cric.launch import api
+
+    code, out = api.handle_post("/api/launch/command", json.dumps({"plan_id": "../../etc", "verdict": "approve", "operator": "x"}).encode(), "application/json")
+    assert code == 400 and "unknown plan" in out["error"]
+    code, out = api.handle_post("/api/launch/burn", json.dumps({"norad_id": 1, "burn_utc": "2026-11-01T00:00:00Z", "direction": "up", "dv_ms": 1}).encode(), "application/json")
+    assert code == 400

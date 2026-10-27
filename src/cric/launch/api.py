@@ -13,6 +13,9 @@ the first flight, the guidance the optimiser found, which later calls send back 
     POST /api/launch/lcola        {start_utc, minutes} -> liftoff-minute collision screen
     POST /api/launch/gonogo       {candidates: [liftoff_utc]} -> role votes + mission director brief (Super, Ultra)
     POST /api/launch/deploy       {liftoff_utc, name, owner, ...} -> TLE, registry, passes, 72 h screening
+    POST /api/launch/burn         {norad_id, burn_utc, direction, dv_ms} -> new orbit, screening, verdict
+    POST /api/launch/command      {plan_id, verdict, operator, reason} -> hash-chained command log entry
+    GET  /api/launch/commands     the command log and whether its chain is intact
 """
 
 from __future__ import annotations
@@ -279,7 +282,9 @@ def deploy(b: dict) -> dict:
                          mission=str(b.get("mission") or "")[:120], home=home,
                          launch={"vehicle": m["veh"].name, "site": m["site"].name, "liftoff_utc": iso(liftoff),
                                  "perigee_km": r["perigee_km"], "apogee_km": r["apogee_km"],
-                                 "inclination_deg": r["inclination_deg"]})
+                                 "inclination_deg": r["inclination_deg"]},
+                         propulsion={"mass_kg": m["payload"], "prop_kg": min(float(b.get("prop_kg", 0.04 * m["payload"])), 0.5 * m["payload"]),
+                                     "isp_s": float(b.get("isp_s", 220)), "prop_used_kg": 0.0})
     reg = dep.registry()[str(norad)]
     base = _catalog()          # a copy: launch screening (LCOLA) must not see satellites the studio launched
     cat = type(base)(dict(base.sats), dict(base.names), base.source, base.fetched_at)
@@ -289,7 +294,8 @@ def deploy(b: dict) -> dict:
     hours = float(b.get("hours", 72))
     events = dep.screen_one(cat, norad, epoch, hours)
     dep.save_encounters(norad, events, epoch, hours, len(cat))
-    out = {"norad_id": norad, "name": name, "tle": reg["tle"], "epoch_utc": iso(epoch),
+    from .control import propulsion
+    out = {"norad_id": norad, "name": name, "tle": reg["tle"], "epoch_utc": iso(epoch), "propulsion": propulsion(reg),
            "objects_in_catalog": len(cat), "screen_hours": hours, "encounters": events[:10]}
     if home and home.get("lat") is not None:
         out["passes"] = passes(sat, float(home["lat"]), float(home["lon"]), epoch, hours=48)[:12]
@@ -330,10 +336,33 @@ def encounter(b: dict) -> dict:
             "track_rtn_km": track, "frame": "ours: R radial, T along-track, N orbit normal"}
 
 
-GET = {"/api/launch/presets": presets}
+def burn(b: dict) -> dict:
+    """Check a commanded burn: new orbit, 72 h screening, CRIC's verdict, a safer time if there is one."""
+    from . import control
+
+    return control.plan(_catalog(), int(b["norad_id"]), str(b["burn_utc"]), str(b["direction"]), float(b["dv_ms"]))
+
+
+def command(b: dict) -> dict:
+    """A person's decision on a checked burn, appended to the hash-chained command log."""
+    from . import control
+
+    return control.decide(_catalog(), str(b["plan_id"]), str(b.get("verdict")), str(b.get("operator", "")),
+                          str(b.get("reason", "")))
+
+
+def commands(_q: dict) -> dict:
+    from . import control
+
+    e = control.log_entries()
+    return {"entries": e[-50:], "count": len(e), "chain_intact": control.chain_ok(e)}
+
+
+GET = {"/api/launch/presets": presets, "/api/launch/commands": commands}
 POST = {"/api/launch/simulate": simulate, "/api/launch/whatif": whatif, "/api/launch/encounter": encounter, "/api/launch/advise": advise, "/api/launch/dispersion": dispersion,
         "/api/launch/target": target, "/api/launch/windows": windows_, "/api/launch/lcola": lcola,
-        "/api/launch/gonogo": gonogo, "/api/launch/deploy": deploy}
+        "/api/launch/gonogo": gonogo, "/api/launch/deploy": deploy, "/api/launch/burn": burn,
+        "/api/launch/command": command}
 PAID = {"/api/launch/sheet", "/api/launch/target", "/api/launch/gonogo"}   # spend API credits
 
 
