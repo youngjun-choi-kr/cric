@@ -13,7 +13,7 @@ falls back to the best such window and says so. Advice text never introduces a f
 from __future__ import annotations
 
 import json
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -201,8 +201,10 @@ def read_launch_notes(notes: str, site_id: str, site_name: str, day_utc: str, *,
             why = "the quote reads like an instruction to the model"
         try:
             for k in ("start_utc", "end_utc"):
-                if d[k]:                      # accept "2026-10-31 23:30 UTC" as well as ISO
-                    d[k] = parse_utc(d[k].replace(" UTC", "Z").replace("UTC", "Z").strip().replace(" ", "T")).isoformat().replace("+00:00", "Z")
+                if d[k]:                      # accept "2026-10-31 23:30 UTC" as well as ISO; always UTC-aware
+                    t = parse_utc(d[k].replace(" UTC", "Z").replace("UTC", "Z").strip().replace(" ", "T"))
+                    t = t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t.astimezone(timezone.utc)
+                    d[k] = t.isoformat().replace("+00:00", "Z")
         except ValueError:
             why = why or "unreadable time"
         if rule.kind == "closure" and d["start_utc"] and d["end_utc"] and d["end_utc"] <= d["start_utc"] and not why:

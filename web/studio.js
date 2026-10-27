@@ -735,7 +735,7 @@ function showDecision(e, enc, preset, prev) {
     <div class="small dim mt">Pc ${pc(e.risk.pc)} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${e.options.length} burn options verified (${e.options.map((o) => `${o.id} ${o.dv_ms.toFixed(2)} m/s`).join(', ')}) · ${esc(e.other.name)} can manoeuvre: ${esc(e.other.capability?.can_maneuver)}</div>
     <div class="ctl mt"><input class="opName" placeholder="Your name (who decides)" value="${esc($('satOwner').value)}">
       <button class="apOk primary">Approve</button><button class="apNo">Reject</button></div><div class="apOut small"></div>
-    ${fin === 'REQUEST_PRECISE_DATA' && preset === 'quiet' ? '<div class="ctl mt"><button class="nextPrecise">Precise ephemeris arrives → decide again</button><span class="small dim">simulated: the screening provider\'s covariance (CDM grade)</span></div>' : ''}`;
+    ${preset === 'quiet' && fin !== 'MANEUVER' ? '<div class="ctl mt"><button class="nextPrecise">Precise ephemeris arrives → decide again</button><span class="small dim">simulated: the screening provider\'s covariance (CDM grade)</span></div>' : ''}`;
   $('incOut').append(box);
   box.scrollIntoView({ block: 'end', behavior: 'smooth' });
   const q = (c) => box.querySelector(c);

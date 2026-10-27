@@ -71,22 +71,41 @@ export function buildRocket(v, { payloadKg = 5, name } = {}) {
   const lay = layoutOf(v);
   const group = new THREE.Group();
   group.name = v.name;
-  const white = new THREE.MeshStandardMaterial({ color: 0xf2f4f7, roughness: 0.45, metalness: 0.15 });
-  const grey = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.6, metalness: 0.2 });
-  const black = new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.5, metalness: 0.3 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.35, metalness: 0.85, side: THREE.DoubleSide });
+  const white = new THREE.MeshStandardMaterial({ color: 0xf2f4f7, roughness: 0.38, metalness: 0.1, envMapIntensity: 0.7 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.55, metalness: 0.2, envMapIntensity: 0.6 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.45, metalness: 0.3, envMapIntensity: 0.5 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0x4a4f57, roughness: 0.28, metalness: 0.95, side: THREE.DoubleSide, envMapIntensity: 1.1 });
+  const copper = new THREE.MeshStandardMaterial({ color: 0x8a5a35, roughness: 0.35, metalness: 0.9, envMapIntensity: 0.9 });
+  const trim = new THREE.MeshStandardMaterial({ color: 0x6d747d, roughness: 0.4, metalness: 0.7, envMapIntensity: 0.8 });
   const stages = lay.dims.map((dm, i) => {
     const st = v.stages[i];
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(dm.d / 2, dm.d / 2, 1, 48), dm.solid ? grey : white);
     body.position.y = 0.5; body.castShadow = body.receiveShadow = true;
     const bodyPivot = new THREE.Group(); bodyPivot.add(body); g.add(bodyPivot);
+    if (!dm.kick) {                                                   // cable raceway down the side
+      const race = new THREE.Mesh(new THREE.BoxGeometry(dm.d * 0.06, 0.96, dm.d * 0.035), trim);
+      race.position.set(0, 0.5, -dm.d / 2 - dm.d * 0.012); bodyPivot.add(race);
+    }
+    const rings = [0, 1].map((k) => {                                 // stage end rings (positioned in layout)
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(dm.d / 2 * 1.012, dm.d / 2 * 1.012, Math.max(0.04, dm.d * 0.035), 48, 1, true), trim);
+      g.add(r); return r;
+    });
     const eng = new THREE.Group();
     const geo = bellGeometry(dm.re, dm.bell);
     const ring = dm.engines === 9 ? [[0, 0], ...[...Array(8)].map((_, k) => [Math.cos(k * Math.PI / 4) * dm.d * 0.32, Math.sin(k * Math.PI / 4) * dm.d * 0.32])]
       : dm.engines === 4 ? [...Array(4)].map((_, k) => [Math.cos(k * Math.PI / 2 + Math.PI / 4) * dm.d * 0.24, Math.sin(k * Math.PI / 2 + Math.PI / 4) * dm.d * 0.24])
       : [[0, 0]];
-    const nozzles = ring.map(([x, z]) => { const b = new THREE.Mesh(geo, metal); b.position.set(x, 0, z); b.castShadow = true; eng.add(b); return b.position; });
+    const nozzles = ring.map(([x, z]) => {
+      const b = new THREE.Mesh(geo, metal); b.position.set(x, 0, z); b.castShadow = true; eng.add(b);
+      const throat = new THREE.Mesh(new THREE.TorusGeometry(dm.re * 0.36, dm.re * 0.07, 8, 20), copper);
+      throat.rotation.x = Math.PI / 2; throat.position.set(x, -dm.bell * 0.06, z); eng.add(throat);
+      if (dm.engines <= 4 && !dm.solid) {                             // a turbopump beside each chamber
+        const tp = new THREE.Mesh(new THREE.CylinderGeometry(dm.re * 0.22, dm.re * 0.22, dm.re * 0.7, 14), trim);
+        tp.position.set(x + dm.re * 0.55, dm.re * 0.2, z); eng.add(tp);
+      }
+      return b.position;
+    });
     g.add(eng);
     let band = null;
     if (i < lay.dims.length - 1 && !lay.dims[i + 1].kick) {           // interstage above this stage
@@ -107,7 +126,7 @@ export function buildRocket(v, { payloadKg = 5, name } = {}) {
       }
     }
     group.add(g);
-    return { g, body, bodyPivot, eng, nozzles, band, dm, L: dm.L, target: dm.L, prov: provOf(st, 'prop_kg'), provT: provOf(st, 'thrust_vac_n') };
+    return { g, body, bodyPivot, eng, nozzles, band, rings, dm, L: dm.L, target: dm.L, prov: provOf(st, 'prop_kg'), provT: provOf(st, 'thrust_vac_n') };
   });
   // payload (a box sized by mass) and the fairing halves
   const side = Math.max(0.1, Math.cbrt(payloadKg / 450)) * (payloadKg < 30 ? 1 : 1);
@@ -129,7 +148,10 @@ export function buildRocket(v, { payloadKg = 5, name } = {}) {
     const h = new THREE.Mesh(nose.clone(), white);
     const geo = new THREE.LatheGeometry(nose.parameters.points, 24, rot, Math.PI);
     h.geometry.dispose(); h.geometry = geo; h.castShadow = true;
-    const pivot = new THREE.Group(); pivot.add(h); fairing.add(pivot); return pivot;
+    const pivot = new THREE.Group(); pivot.add(h); fairing.add(pivot);
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.012 * lay.D, lay.fairingL * 0.28, 0.02 * lay.D), black);
+    seam.position.set(Math.sin(rot) * lay.D / 2 * 0.99, lay.fairingL * 0.14, Math.cos(rot) * lay.D / 2 * 0.99); h.add(seam);
+    return pivot;
   });
   group.add(fairing);
   const xrayEdges = [];
@@ -140,11 +162,16 @@ export function buildRocket(v, { payloadKg = 5, name } = {}) {
       if (s.dm.kick) return;
       s.g.position.y = y;
       s.bodyPivot.scale.y = s.L;
+      s.rings[0].position.y = 0.02; s.rings[1].position.y = s.L - 0.02;
       if (s.band) { s.band.position.y = s.L + lay.inter / 2; }
       y += s.L + (s.band ? lay.inter : 0);
     });
     kickY = y;
-    stages.forEach((s) => { if (s.dm.kick) { s.g.position.y = kickY + s.dm.bell; s.bodyPivot.scale.y = s.L; kickY += s.dm.bell + s.L; } });
+    stages.forEach((s) => {
+      if (!s.dm.kick) return;
+      s.g.position.y = kickY + s.dm.bell; s.bodyPivot.scale.y = s.L; kickY += s.dm.bell + s.L;
+      s.rings[0].position.y = 0.02; s.rings[1].position.y = s.L - 0.02;
+    });
     // upper-stage engines sit inside the interstage; first-stage engines hang below y = 0
     stages.forEach((s, i) => { s.eng.position.y = 0; s.eng.visible = i === 0 || s.dm.kick || s.revealed; });
     payload.position.y = kickY + 0.05;

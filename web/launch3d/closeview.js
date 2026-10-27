@@ -4,6 +4,11 @@
 // ~150 km and hands back for the deploy.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildRocket, disposeTree, layoutOf } from './rocketgen.js';
 
 const R = 6378137, D2R = Math.PI / 180;
@@ -132,6 +137,9 @@ export function createCloseView(root, { earthTex, onState } = {}) {
       <div class="cv-toast" id="cvToast"></div>
       <div class="cv-cams"><button data-cam="auto" class="on">Auto</button><button data-cam="pad">Pad</button><button data-cam="track">Tracking</button>
         <button data-cam="chase">Chase</button><button data-cam="onboard">Onboard</button><button id="cvSkip" title="Skip to the globe view">Skip ▸</button></div>
+      <div class="cv-side"><canvas id="cvMap" width="480" height="280"></canvas><canvas id="cvGraph" width="480" height="150"></canvas>
+        <div class="cv-legend2"><i style="background:#5ab0ff"></i>altitude <i style="background:#ffc857"></i>speed</div></div>
+      <div class="cv-stack" id="cvStack"></div>
       <div class="cv-bottom">
         <div class="cv-l"><div><span>SPEED</span><b id="cvSpd">0</b><i>km/h</i></div><div><span>ALTITUDE</span><b id="cvAlt">0</b><i>km</i></div></div>
         <div class="cv-c"><div class="cv-clock" id="cvClock">T−00:00:10</div><div class="cv-tl" id="cvTl"><div class="cv-prog" id="cvProg"></div></div><div id="cvStage" class="cv-stage"></div></div>
@@ -149,7 +157,17 @@ export function createCloseView(root, { earthTex, onState } = {}) {
   const cam = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 5e7);
   const controls = new OrbitControls(cam, renderer.domElement);
   controls.enableDamping = true;
-  addEventListener('resize', () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+  // reflections from a neutral studio environment (built in code, no asset) and bloom on bright things only
+  const envTex = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+  const composer = new EffectComposer(renderer);
+  const renderPass = new RenderPass(new THREE.Scene(), cam);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.35, 0.35, 0.95);
+  composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
+  function draw(scene, strength) { renderPass.scene = scene; bloom.strength = strength; composer.render(); }
+  addEventListener('resize', () => {
+    cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+    composer.setSize(innerWidth, innerHeight);
+  });
   const DOT = softDot();
   let mode = 'idle', visible = false;
   const labels = [];
@@ -157,6 +175,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
   // ===================================================== BAY
   const bay = new THREE.Scene();
   bay.background = new THREE.Color(0x070b16);
+  bay.environment = envTex; bay.environmentIntensity = 0.55;
   bay.fog = new THREE.Fog(0x070b16, 60, 260);
   bay.add(new THREE.HemisphereLight(0x9fbfff, 0x10141c, 0.55));
   const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-30, 60, 40); key.castShadow = true;
@@ -304,6 +323,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     disposeLaunch();
     const scene = new THREE.Scene();
     L.scene = scene;
+    scene.environment = envTex; scene.environmentIntensity = 0.35;
     const S = flight.samples.map((s) => s.slice());
     S.unshift([0, 0, 0, 0, site.lat, site.lon, 0, 'burn', 90, 0, S[0][10], S[0][11], S[0][12]]);
     const F = frameAt(site.lat, site.lon);
@@ -357,11 +377,65 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     const marks = [{ t: flight.max_q_t, event: 'MAX Q' },        // the moments people watch for, not every ignition
       ...sepT.map((x) => ({ t: x.t, event: `${vehicle.stages[x.from]?.name || 'stage'} sep` })),
       ...(fairT ? [{ t: fairT, event: 'Fairing' }] : [])].filter((m) => m.t > 0 && m.t <= tHand + 1);
-    for (const m of marks) {
-      const el = document.createElement('div'); el.className = 'cv-mk'; el.style.left = `${(m.t / tHand) * 100}%`;
+    let prevT = -1e9, alt = false;
+    for (const m of marks.sort((x, y) => x.t - y.t)) {
+      alt = m.t - prevT < tHand * 0.09 ? !alt : false; prevT = m.t;   // close labels alternate above / below
+      const el = document.createElement('div'); el.className = 'cv-mk' + (alt ? ' alt' : ''); el.style.left = `${(m.t / tHand) * 100}%`;
       el.title = m.event; el.innerHTML = `<i></i><span>${esc(m.event.replace(/:.*/, '').replace(/ ignition/, ' ign.'))}</span>`; tl.append(el);
     }
     $('cvTitle').textContent = `${vehicle.name} · ${flight.payload_kg} kg · ${site.name}`;
+    // stage stack diagram
+    const tot = rk.stages.reduce((a, x) => a + x.dm.L, 0) + rk.lay.fairingL;
+    $('cvStack').innerHTML = `<div class="fair" style="flex:${rk.lay.fairingL / tot}"></div>` + [...rk.stages].reverse()
+      .map((x, i) => `<div class="st" data-i="${rk.stages.length - 1 - i}" style="flex:${x.dm.L / tot}"><span>${esc(x.dm.name)}</span></div>`).join('');
+    fl.mapT = -1;
+  }
+  // ground track on the real Earth texture, and altitude / speed over time
+  function drawSide(f, t) {
+    const S = f.Sall || f.S, img = earthTex.image, cv = $('cvMap'), g = cv.getContext('2d');
+    if (!f.mapBox) {
+      const end = f.deploy ? S.length : S.findIndex((x) => x[0] > f.tHand) + 1 || S.length;
+      const lon0 = f.site.lon, un = (lo) => lon0 + ((lo - lon0 + 540) % 360) - 180;
+      const pts = S.slice(0, end).map((x) => [x[4], un(x[5])]);
+      let [a, b, c, d] = [Math.min(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[1]))];
+      const pad = Math.max(3, (b - a) * 0.25, (d - c) * 0.25);
+      a -= pad; b += pad; c -= pad; d += pad;
+      const want = cv.width / cv.height;                              // keep the map's aspect (degrees, roughly)
+      if ((d - c) / (b - a) < want) { const m = (c + d) / 2, w = (b - a) * want / 2; c = m - w; d = m + w; }
+      else { const m = (a + b) / 2, h = (d - c) / want / 2; a = m - h; b = m + h; }
+      f.mapBox = { a: Math.max(-89, a), b: Math.min(89, b), c, d, un, pts };
+    }
+    const B = f.mapBox, W = img.width, H = img.height;
+    const X = (lo) => (lo - B.c) / (B.d - B.c) * cv.width, Y = (la) => (B.b - la) / (B.b - B.a) * cv.height;
+    g.fillStyle = '#04070f'; g.fillRect(0, 0, cv.width, cv.height);
+    for (const shift of [-360, 0, 360]) {                           // the texture repeats across the dateline
+      const c0 = B.c - shift, d0 = B.d - shift;
+      const sx0 = Math.max(0, (c0 + 180) / 360 * W), sx1 = Math.min(W, (d0 + 180) / 360 * W);
+      if (sx1 <= sx0) continue;
+      const sy0 = (90 - B.b) / 180 * H, sy1 = (90 - B.a) / 180 * H;
+      const dx0 = X(sx0 / W * 360 - 180 + shift), dx1 = X(sx1 / W * 360 - 180 + shift);
+      g.drawImage(img, sx0, sy0, sx1 - sx0, sy1 - sy0, dx0, 0, dx1 - dx0, cv.height);
+    }
+    g.fillStyle = 'rgba(4,8,18,.25)'; g.fillRect(0, 0, cv.width, cv.height);
+    const now = S.findIndex((x) => x[0] > t); const k = now < 0 ? B.pts.length : Math.min(now, B.pts.length);
+    g.lineWidth = 2.5; g.strokeStyle = 'rgba(255,255,255,.35)'; g.setLineDash([6, 6]); g.beginPath();
+    B.pts.forEach(([la, lo], i) => (i ? g.lineTo(X(lo), Y(la)) : g.moveTo(X(lo), Y(la)))); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = '#ffb347'; g.lineWidth = 3.5; g.beginPath();
+    B.pts.slice(0, k).forEach(([la, lo], i) => (i ? g.lineTo(X(lo), Y(la)) : g.moveTo(X(lo), Y(la)))); g.stroke();
+    const p = B.pts[Math.max(0, k - 1)]; g.fillStyle = '#fff'; g.beginPath(); g.arc(X(p[1]), Y(p[0]), 6, 0, 7); g.fill();
+    g.fillStyle = '#5ab0ff'; g.beginPath(); g.arc(X(B.un(f.site.lon)), Y(f.site.lat), 5, 0, 7); g.fill();
+    // graphs
+    const gc = $('cvGraph'), q = gc.getContext('2d'), T = f.deploy ? S[S.length - 1][0] : f.tHand;
+    const rows = S.filter((x) => x[0] <= T), amax = Math.max(...rows.map((x) => x[1]), 1), vmax = Math.max(...rows.map((x) => x[3]), 1);
+    q.clearRect(0, 0, gc.width, gc.height); q.fillStyle = 'rgba(4,8,18,.55)'; q.fillRect(0, 0, gc.width, gc.height);
+    const line = (idx, max, col) => {
+      q.strokeStyle = col; q.lineWidth = 3; q.beginPath();
+      rows.filter((x) => x[0] <= t).forEach((x, i) => { const px = x[0] / T * gc.width, py = gc.height - 8 - x[idx] / max * (gc.height - 18); i ? q.lineTo(px, py) : q.moveTo(px, py); });
+      q.stroke();
+    };
+    line(1, amax, '#5ab0ff'); line(3, vmax, '#ffc857');
+    q.fillStyle = 'rgba(219,230,255,.7)'; q.font = '20px sans-serif';
+    q.fillText(`${fmt(amax)} km`, 8, 22); q.fillText(`${fmt(vmax / 1000, 1)} km/s`, gc.width - 110, 22);
   }
   function disposeLaunch() {
     if (!fl) return;
@@ -501,11 +575,11 @@ export function createCloseView(root, { earthTex, onState } = {}) {
       if (!on) return;
       const dm = f.rk.stages[i].dm, thr = f.t < 0 ? Math.min(1, (f.t + 2.5) / 2) : 1;
       for (const m of [x.core, x.glow]) {
-        const u = m.userData, wide = 1 + 4.5 * (1 - pr) * (u.pw < 1 ? 1.6 : 1);
+        const u = m.userData, wide = 1 + 2.6 * (1 - pr) * (u.pw < 1 ? 1.4 : 1);
         m.scale.set(dm.re * u.w * wide, dm.bell * u.len * thr * (1 + 1.2 * (1 - pr)), dm.re * u.w * wide);
         m.position.y = -dm.bell - m.scale.y / 2;
         m.material.uniforms.time.value = performance.now() / 1000;
-        m.material.uniforms.power.value = u.pw * thr * (dm.solid ? 1.3 : 1) * (0.55 + 0.45 * pr + 0.25);
+        m.material.uniforms.power.value = u.pw * thr * (dm.solid ? 1.3 : 1) * (0.35 + 0.65 * pr) * (u.pw < 1 ? 0.6 + 0.4 * pr : 1);
       }
     }));
     f.diamonds.forEach((d, k) => {
@@ -570,6 +644,12 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     $('cvG').textContent = fmt(f.t < 0 ? 0 : s[10], 2);
     $('cvStage').textContent = f.deploy ? 'PAYLOAD DEPLOY' : `${f.vehicle.stages[stIdx]?.name || ''} · ${burning ? 'BURNING' : 'COAST'}`;
     $('cvProg').style.width = `${Math.min(100, Math.max(0, f.t / f.tHand * 100))}%`;
+    root.querySelectorAll('#cvStack .st').forEach((el) => {
+      const i = +el.dataset.i;
+      el.classList.toggle('on', burning && i === stIdx); el.classList.toggle('gone', f.hadSep.has(i));
+    });
+    root.querySelector('#cvStack .fair')?.classList.toggle('gone', !!f.fairDone);
+    if (performance.now() - (f.mapT || 0) > 250 && earthTex.image) { f.mapT = performance.now(); drawSide(f, Math.max(0, f.t)); }
     if (!f.deploy && f.t >= f.tHand && !f.handed) { f.handed = true; f.opts.onHandoff?.(f.tHand); }
   }
 
@@ -586,6 +666,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     f.rk.group.position.y = -f.rk.stages[f.rk.stages.length - 1].g.position.y;
     f.rk.fairing.visible = false; f.fairDone = true;
     f.sepT = []; f.fairT = null; f.hadSep = new Set(f.rk.stages.map((_, i) => i));
+    f.Sall = S.map((x) => x.slice()); f.mapBox = null;
     f.S = [S[S.length - 2] || last, last].map((x) => x.slice());
     f.t = last[0]; f.base = 0; f.deploy = { t0: last[0] + 2, y0: f.rk.payload.position.y }; f.lifted = true; f.maxq = true;
     toast(`ORBIT · ${fmt(flight.perigee_km)} × ${fmt(flight.apogee_km)} km · ${flight.inclination_deg}°`);
@@ -626,16 +707,17 @@ export function createCloseView(root, { earthTex, onState } = {}) {
           if (moved) { s.r.layout(); slotLabel(s); }
         }
         controls.update();
-        renderer.render(bay, cam);
+        draw(bay, 0.25);
         for (const s of slots) {
           tmp.set(s.x, s.r.height + 1.2, 0).project(cam);
-          s.el.style.display = tmp.z < 1 ? '' : 'none';
+          const hudh = parseFloat(getComputedStyle(document.body).getPropertyValue('--hudh')) || 64;
+          s.el.style.display = tmp.z < 1 && (1 - tmp.y) / 2 * innerHeight > hudh + 40 ? '' : 'none';
           s.el.style.left = `${(tmp.x + 1) / 2 * innerWidth}px`;     // the projection already carries the view offset
           s.el.style.top = `${(1 - tmp.y) / 2 * innerHeight}px`; s.el.style.top = `${(1 - tmp.y) / 2 * innerHeight}px`;
         }
       } else if (mode === 'launch' && fl) {
         stepLaunch(dt);
-        renderer.render(fl.scene, cam);
+        draw(fl.scene, fl.deploy ? 0.2 : 0.35);
       }
     }
     requestAnimationFrame(loop);

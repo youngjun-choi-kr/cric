@@ -115,15 +115,17 @@ def test_notes_guards_and_rules(monkeypatch):
         agents.LaunchRule(kind="closure", start_utc="2026-10-31T23:50:00Z", end_utc="2026-10-31T00:10:00Z",
                           quote="Range closed 23:50-00:10 UTC (31 Oct to 1 Nov)."),          # end rolls to the next day
         agents.LaunchRule(kind="daylight_only", quote="Launch only in daylight."),
+        agents.LaunchRule(kind="not_before", start_utc="2026-10-31T23:40:00", quote="Launch only in daylight."),  # no Z
         agents.LaunchRule(kind="closure", start_utc="2026-10-31T00:00:00Z", end_utc="2026-11-01T00:00:00Z",
                           quote="closed all day"),                                             # not in the notes
     ])
     monkeypatch.setattr(agents, "structured_call", lambda *a, **k: (fake, ""))
     r = agents.read_launch_notes(notes, "naro", "Naro", "2026-10-31")
-    assert [x["kind"] for x in r["rules"]] == ["closure", "daylight_only"] and r["rules"][0]["end_utc"] == "2026-11-01T00:10:00Z"
+    assert [x["kind"] for x in r["rules"]] == ["closure", "daylight_only", "not_before"] and r["rules"][0]["end_utc"] == "2026-11-01T00:10:00Z"
+    assert r["rules"][2]["start_utc"] == "2026-10-31T23:40:00Z"
     assert r["dropped"][0]["dropped"] == "quote not found in the notes" and r["needs_person"]   # a restriction was lost
     eff = lambda t: {x["kind"]: x["effect"] for x in agents.apply_rules(r["rules"], t, 34.43, 127.53, [])}
-    assert eff("2026-10-31T23:55:00Z") == {"closure": "nogo", "daylight_only": "ok"}       # 08:55 KST, sun up
+    assert eff("2026-10-31T23:55:00Z") == {"closure": "nogo", "daylight_only": "ok", "not_before": "ok"}   # 08:55 KST
     assert eff("2026-10-31T13:00:00Z")["daylight_only"] == "nogo"                          # 22:00 KST
     b = agents.director([{"liftoff_utc": "2026-10-31T23:55:00Z", "status": "go"}], {}, needs_person="test")
     assert b["decision"] == "hold"
