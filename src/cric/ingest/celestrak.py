@@ -48,11 +48,33 @@ def _tle_path(group: str) -> Path:
     return DATA / f"celestrak_{group}.tle"
 
 
+class Unreachable(RuntimeError):
+    """CelesTrak did not answer after a few tries (it happens: connection timeouts, 503s)."""
+
+
+def _get(url: str, tries: int = 4) -> requests.Response | None:
+    """GET with backoff on timeouts and 5xx; None if CelesTrak never answers properly."""
+    for attempt in range(tries):
+        try:
+            resp = requests.get(url, timeout=(20, 120))
+            if resp.status_code < 500:
+                return resp
+        except (requests.ConnectionError, requests.Timeout):
+            pass
+        if attempt + 1 < tries:
+            time.sleep(15 * (attempt + 1))
+    return None
+
+
 def fetch_group(group: str, *, refresh: bool = True) -> Path:
     path = _tle_path(group)
     stale = not path.exists() or time.time() - path.stat().st_mtime > GP_MAX_AGE_S
     if stale and refresh:
-        resp = requests.get(GP_URL.format(group=group), timeout=90)
+        resp = _get(GP_URL.format(group=group))
+        if resp is None:
+            if path.exists():                     # unreachable: the cached copy is better than nothing
+                return path
+            raise Unreachable(f"CelesTrak unreachable for group {group}")
         if resp.status_code == 403 and path.exists():
             # CelesTrak answers 403 when this address already holds the current data (it updates every 2 h)
             path.touch()

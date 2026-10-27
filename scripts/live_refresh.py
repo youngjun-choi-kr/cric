@@ -41,6 +41,15 @@ def pick(events: list[dict], now: datetime, cat_types: dict[int, str]) -> dict |
 
 
 def main() -> None:
+    from cric.ingest.celestrak import Unreachable
+    try:
+        refresh()
+    except Unreachable as e:                      # not our bug: keep yesterday's data, let the workflow skip
+        print(f"skipped: {e}", file=sys.stderr)
+        sys.exit(75)
+
+
+def refresh() -> None:
     from cric.ingest.celestrak import DEBRIS_GROUPS, fetch_group, load_catalog
     from cric.physics.screen import screen
     from cric.physics.timeutil import iso
