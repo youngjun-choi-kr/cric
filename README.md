@@ -227,6 +227,12 @@ A rule whose quote is not in the notes, or that reads like an instruction, is dr
 the decision to a person instead of being ignored. Spent-stage impacts are checked against Natural Earth land
 (1:50m): a nominal impact on land, or more than 1% of dispersed impacts, is a range no-go.
 
+Other checks behind the Studio (tests in `tests/test_launch*.py`): the TLE written for the launched satellite
+reproduces the simulated insertion state at epoch and stays within 0.4 km of a J2 propagation after one orbit
+(osculating elements used directly were 103 km off); LCOLA compares positions on the catalog's own time grid (a
+test plants an object 1 km above the insertion and must flag it no-go); LTAN moves one hour per hour of launch
+delay; the land check knows Seoul and Jeju from the East China Sea.
+
 How close the ascent model is to reality, measured by the payload it can place in each real launcher's published
 orbit: Nuri −12%, Electron −8%, SSLV −2%, Alpha −20% (conservative throughout; `scripts/validate_vehicles.py`).
 The dispersion also runs as a batch job: `cric launch-dispersion --vehicle electron --site mahia --runs 5000`
