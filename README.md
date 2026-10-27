@@ -170,7 +170,11 @@ then open `/web/`): it replays the recordings in `web/demo/` (refresh with `scri
 .venv/bin/python web/serve.py 8765        # http://localhost:8765/studio.html
 ```
 
-Three steps for someone who builds a small rocket or owns a cubesat:
+Three steps for someone who builds a small rocket or owns a cubesat. Step 1 has a close-up 3D stage next to the
+globe: a hangar where every rocket is built from its own numbers at true scale (X-ray colours each part by where its
+number came from, and a fix visibly grows the stage), and a launch view driven by the simulation (pad, Max Q, stage
+and fairing separation, broadcast HUD, payload deploy) that hands over to the globe above ~150 km. Shapes are
+derived from the data; plume, smoke and sky are illustration.
 
 1. **Your rocket.** Pick a published launcher (Nuri, Electron, SSLV, Firefly Alpha, or the fictional Garage One),
    drop a spec sheet photo or PDF (Nemotron reads it; every field is tagged *read*, *derived*, *assumed* or
