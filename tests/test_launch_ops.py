@@ -228,3 +228,17 @@ def test_propellant_is_counted_with_the_rocket_equation(studio):
     p = control.propulsion(deploy.registry()[str(n)])
     assert p["dv_total_ms"] == pytest.approx(220 * 9.80665 * np.log(5 / 4.8), rel=1e-3)
     assert control._prop_for(p["dv_total_ms"], 5.0, 220) == pytest.approx(0.2, rel=1e-3)
+
+
+def test_lifetime_rule_and_deorbit_burn():
+    from cric.launch import control
+
+    prop = {"mass_kg": 5.0, "dv_left_ms": 80.0}
+    low, high = control.lifetime({"perigee_km": 450, "apogee_km": 460}, prop), control.lifetime({"perigee_km": 600, "apogee_km": 620}, prop)
+    assert low["years"] < high["years"] and low["complies"] and low["deorbit"] is None
+    assert not high["complies"] and high["deorbit"]["dv_ms"] > 0 and high["deorbit"]["affordable"]
+    d = high["deorbit"]                                   # the burn really meets the rule
+    assert control.decay_years(d["perigee_km"], 620, control._b(5.0)) <= control.RULE_YEARS
+    poor = control.lifetime({"perigee_km": 600, "apogee_km": 620}, {"mass_kg": 5.0, "dv_left_ms": 1.0})
+    assert not poor["deorbit"]["affordable"]
+    assert low["hold_ms_per_year"] > high["hold_ms_per_year"] > 0

@@ -239,3 +239,4 @@ body.flying #clockBar { display:none !important; }
 #busy .pbar i { display:block; height:100%; width:0; background:var(--accent); transition:width .5s linear; }
 #steps button.stale { outline:1px dashed var(--mid); }
 #steps button.stale::after { content:' ⟳'; color:var(--mid); }
+#life { margin:2px 0 6px; } .lifeRow.ok { color:var(--ok); } .lifeRow.mid { color:var(--mid); }

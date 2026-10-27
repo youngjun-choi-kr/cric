@@ -123,6 +123,7 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
     <h2 class="mt">Mission control</h2>
     <div class="small dim">You give the command. CRIC checks it against every tracked object. You approve. Nothing is sent to a spacecraft.</div>
     <div id="fuel" class="fuel"></div>
+    <div id="life" class="small"></div>
     <div class="goals"><button data-goal="lower">Lower it for sharper photos</button><button data-goal="raise">Raise it to last longer</button></div>
     <div class="grid2">
       <label>Burn in <span class="dim">hours</span><input id="burnIn" type="number" value="3" min="0" max="160" step="0.25"></label>
@@ -135,6 +136,10 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
     <div class="small dim" id="burnPreview"></div>
     <div class="ctl mt"><button id="burnBtn" class="primary">Check this burn with CRIC</button></div>
     <div id="burnOut"></div>
+    <h2 class="mt">Photo plan</h2>
+    <div class="small dim">Pick a place: CRIC lists the passes in the next 3 days when it is daylight there and the satellite is high enough (30° up or more) to take a photo.</div>
+    <div class="goals" id="photoPlaces"><button id="pickPlace">📍 Pick on the globe</button><button data-place="Busan,35.1796,129.0756">Busan</button><button data-place="Jeju,33.4996,126.5312">Jeju</button><button data-place="Tokyo,35.6762,139.6503">Tokyo</button><button data-place="Bangkok,13.7563,100.5018">Bangkok</button></div>
+    <div id="photoOut" class="small"></div>
     <h2 class="mt">Command log</h2>
     <div id="cmdLog" class="small dim">No commands yet.</div>
   </div>

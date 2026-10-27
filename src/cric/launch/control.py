@@ -130,6 +130,59 @@ def _verdict(orbit: dict, events: list[dict], prop: dict, dv_ms: float) -> tuple
     return worst, why
 
 
+# ---- lifetime: how long air drag leaves the satellite up, and what it takes to bring it down ----
+RULE_YEARS = 5.0                      # deorbit within 5 years of mission end (FCC 2022 rule; ESA's Zero Debris approach)
+LIFE_ASSUMPTIONS = ("MSIS 2.1 density at solar-cycle average activity (F10.7 150, Ap 15), drag cross-section "
+                    "0.012 m^2 x mass^(2/3) with Cd 2.2, decay of an orbit 1/4 of the way from its lowest to its highest point")
+
+
+def _b(mass_kg: float) -> float:
+    return 2.2 * 0.012 * mass_kg ** (2 / 3) / mass_kg
+
+
+def decay_years(perigee_km: float, apogee_km: float, b: float, *, limit_years: float = 100.0) -> float:
+    """Years until the orbit decays to 150 km: da/dt = -sqrt(mu a) rho B on a near-circular orbit."""
+    from ..physics.drag import MU, density
+
+    h = perigee_km + (apogee_km - perigee_km) / 4
+    t, end = 0.0, limit_years * 365.25 * 86400
+    while h > 150 and t < end:
+        a = (RE_KM + h) * 1000
+        dadt = -math.sqrt(MU * a) * density(round(h / 5) * 5, 15.0, 150.0) * b
+        dt = min(30 * 86400, max(3600, 0.002 * a / abs(dadt)))
+        h += dadt * dt / 1000
+        t += dt
+    return t / (365.25 * 86400)
+
+
+def _v_at(r_km: float, a_km: float) -> float:
+    return math.sqrt(398600.4418 * (2 / r_km - 1 / a_km)) * 1000
+
+
+def lifetime(orbit: dict, prop: dict) -> dict:
+    """Natural lifetime, the 5-year rule, the cost of holding altitude, and the deorbit burn (at the highest point,
+    lowering the lowest point until the rule is met)."""
+    from ..physics.drag import density
+
+    b = _b(prop["mass_kg"])
+    pe, ap = orbit["perigee_km"], orbit["apogee_km"]
+    years = decay_years(pe, ap, b)
+    h = pe + (ap - pe) / 4
+    v = math.sqrt(398600.4418 / (RE_KM + h)) * 1000
+    hold = 0.5 * density(round(h / 5) * 5, 15.0, 150.0) * v * v * b * 365.25 * 86400
+    out = {"years": round(years, 1), "rule_years": RULE_YEARS, "complies": years <= RULE_YEARS,
+           "hold_ms_per_year": round(hold, 2), "deorbit": None, "assumptions": LIFE_ASSUMPTIONS}
+    if years > RULE_YEARS:
+        ra, a = RE_KM + ap, RE_KM + (pe + ap) / 2
+        for new_pe in np.arange(pe - 10, 149, -10):
+            if decay_years(float(new_pe), ap, b, limit_years=RULE_YEARS + 1) <= RULE_YEARS:
+                dv = _v_at(ra, a) - _v_at(ra, (ra + RE_KM + new_pe) / 2)
+                out["deorbit"] = {"dv_ms": round(dv, 1), "perigee_km": float(new_pe), "at": "highest point",
+                                  "affordable": dv <= prop["dv_left_ms"]}
+                break
+    return out
+
+
 def _plan_id(norad: int, tle: list[str], burn_utc: str, direction: str, dv_ms: float) -> str:
     return hashlib.sha256(json.dumps([norad, tle, burn_utc, direction, round(dv_ms, 3)]).encode()).hexdigest()[:16]
 
@@ -162,13 +215,19 @@ def plan(base, norad: int, burn_utc: str, direction: str, dv_ms: float, *, hours
     events = _screen(base, norad, new, t, hours)
     base_events = [e for e in dep_encounters(norad) if parse_utc(e["tca_utc"]) >= t]
     verdict, why = _verdict(after, events, prop, dv_ms)
+    left_after = {**prop, "dv_left_ms": max(prop["dv_left_ms"] - dv_ms, 0.0)}
+    life = lifetime(after, left_after)
+    if not life["complies"] and not (life["deorbit"] or {}).get("affordable"):
+        why.append(f"it would stay up about {life['years']:g} years, past the {RULE_YEARS:g}-year rule, and the propellant "
+                   "left could not bring it down")
+        verdict = "caution" if verdict == "go" else verdict
     cleared = [e for e in base_events if e["object_b"]["norad_id"] not in {x["object_b"]["norad_id"] for x in events}]
     l1, l2 = export_tle(new)
     out = {"plan_id": _plan_id(norad, sat_reg["tle"], iso(t), direction, dv_ms), "norad_id": norad,
            "name": sat_reg["name"], "burn_utc": iso(t), "direction": direction, "direction_says": SAY[direction],
            "dv_ms": dv_ms, "before": before, "after": after, "tle_before": sat_reg["tle"], "tle_after": [l1, l2],
            "screen_hours": hours, "encounters": events[:10], "cleared": cleared[:5], "verdict": verdict, "why": why,
-           "propulsion": prop, "prop_needed_kg": round(_prop_for(dv_ms, prop["mass_kg"] - prop["prop_used_kg"], prop["isp_s"]), 5),
+           "propulsion": prop, "lifetime": life, "lifetime_before": lifetime(before, prop), "prop_needed_kg": round(_prop_for(dv_ms, prop["mass_kg"] - prop["prop_used_kg"], prop["isp_s"]), 5),
            "uncertainty": "assumed position uncertainty as in launch screening: ours 1/6/1 km, catalog 0.4/2/0.4 km (R/T/N)"}
     home = sat_reg.get("home") or {}
     if home.get("lat") is not None:

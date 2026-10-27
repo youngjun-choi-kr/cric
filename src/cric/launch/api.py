@@ -294,8 +294,9 @@ def deploy(b: dict) -> dict:
     hours = float(b.get("hours", 72))
     events = dep.screen_one(cat, norad, epoch, hours)
     dep.save_encounters(norad, events, epoch, hours, len(cat))
-    from .control import propulsion
+    from .control import _orbit, lifetime, propulsion
     out = {"norad_id": norad, "name": name, "tle": reg["tle"], "epoch_utc": iso(epoch), "propulsion": propulsion(reg),
+           "lifetime": lifetime(_orbit(sat, epoch), propulsion(reg)),
            "objects_in_catalog": len(cat), "screen_hours": hours, "encounters": events[:10]}
     if home and home.get("lat") is not None:
         out["passes"] = passes(sat, float(home["lat"]), float(home["lon"]), epoch, hours=48)[:12]

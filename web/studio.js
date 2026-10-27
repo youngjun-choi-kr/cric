@@ -700,7 +700,7 @@ $('deployBtn').addEventListener('click', async () => {
     <pre class="tle">${esc(r.name)}\n${esc(r.tle[0])}\n${esc(r.tle[1])}</pre>
     <div class="small dim">Now tracked with ${fmt(r.objects_in_catalog - 1)} other objects.</div></div>`;
   showOps(r, home, lat, lon);
-  $('ctlBox').hidden = !$('satProp').checked; showFuel(r.propulsion); burnPreview(); loadLog();
+  $('ctlBox').hidden = !$('satProp').checked; showFuel(r.propulsion); showLife(r.lifetime); burnPreview(); loadLog();
   controls.target.set(0, 0, 0); camGoal = ring[0].clone().normalize().multiplyScalar(17);   // look at the new satellite
 });
 // One orbit as a ring in the scene frame at time t0 (the ring is inertial; the loop turns it with the Earth)
@@ -736,6 +736,25 @@ function showFuel(p) {
   const g = (kg) => `${fmt(kg * 1000)} g`;
   $('fuel').innerHTML = `Propellant <b>${g(p.prop_left_kg)}</b> of ${g(p.prop_kg)} left · enough for <b>${fmt(p.dv_left_ms, 1)} m/s</b> of burns
     <div class="bar"><i style="width:${p.prop_kg ? (100 * p.prop_left_kg / p.prop_kg).toFixed(1) : 0}%"></i></div>`;
+}
+const yrs = (y) => (y >= 100 ? 'over 100 years' : y >= 2 ? `about ${fmt(y, 0)} years` : y >= 1 ? 'about a year' : `about ${Math.max(1, Math.round(y * 12))} months`);
+function showLife(l) {
+  if (!l) return;
+  S.life = l;
+  const d = l.deorbit;
+  $('life').innerHTML = `<div class="lifeRow ${l.complies ? 'ok' : 'mid'}">${l.complies ? '✓' : '!'} Air drag brings it down in <b>${yrs(l.years)}</b>${l.complies ? `: within the ${l.rule_years}-year rule for ending a mission.` : `: past the ${l.rule_years}-year rule, so it needs a deorbit burn at the end.`}</div>
+    <div class="dim">Holding this altitude costs about ${fmt(l.hold_ms_per_year, 1)} m/s a year.
+    ${d ? ` Deorbit: ${fmt(d.dv_ms, 1)} m/s at the highest point lowers the lowest point to ${fmt(d.perigee_km)} km${d.affordable ? '' : ' <b style="color:var(--warn)">(more than the propellant left)</b>'}.
+      <a href="#" id="deorbitBtn">Plan it</a>` : ''}</div>`;
+  if ($('deorbitBtn')) $('deorbitBtn').onclick = (e) => {
+    e.preventDefault();
+    // the next highest point of the orbit, at least 30 minutes ahead
+    const t0 = simMs + 30 * 60e3, period = 2 * Math.PI / me.rec.no * 60e3; let best = t0, rMax = 0;
+    for (let k = 0; k <= 120; k++) { const t = t0 + period * k / 120, p = satellite.propagate(me.rec, new Date(t)).position; const r = p && Math.hypot(p.x, p.y, p.z); if (r > rMax) { rMax = r; best = t; } }
+    $('burnDir').value = 'retrograde'; $('burnDv').value = Math.min(20, d.dv_ms).toFixed(1);
+    $('burnIn').value = ((best - simMs) / 3600e3).toFixed(2); burnPreview();
+    $('burnBtn').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  };
 }
 function burnPreview() {
   const dv = +$('burnDv').value, dir = $('burnDir').value;
@@ -785,6 +804,7 @@ function showBurn(p) {
       <tr><td>lowest point</td><td>${km(p.before.perigee_km)}</td><td>${km(p.after.perigee_km)}</td></tr>
       <tr><td>highest point</td><td>${km(p.before.apogee_km)}</td><td>${km(p.after.apogee_km)}</td></tr>
       <tr><td>one orbit</td><td>${fmt(p.before.period_min, 2)} min</td><td>${fmt(p.after.period_min, 2)} min</td></tr>
+      ${p.lifetime ? `<tr><td>stays up</td><td>${yrs(p.lifetime_before.years)}</td><td>${yrs(p.lifetime.years)}${p.lifetime.complies ? '' : ' ⚠'}</td></tr>` : ''}
       <tr><td>propellant</td><td colspan="2">${fmt(p.prop_needed_kg * 1000, 1)} g of ${fmt(p.propulsion.prop_left_kg * 1000)} g left</td></tr></table>
     ${near.length ? `<div class="small mt"><b>Closest passes after the burn</b>${near.map((e) => `<div class="enc"><span>${esc(e.object_b.name)}<br><span class="dim">${e.tca_utc.slice(5, 16).replace('T', ' ')} UTC</span></span><span>${fmt(e.miss_distance_km * 1000)} m · ${G('Pc', 'Pc')} ${e.pc ? e.pc.toExponential(0) : '≈ 0'}</span></div>`).join('')}</div>` : ''}
     ${p.cleared?.length ? `<div class="small mt" style="color:var(--ok)">Also clears: ${p.cleared.map((e) => esc(e.object_b.name)).join(', ')}</div>` : ''}
@@ -829,7 +849,8 @@ function applyBurn(p, r) {
   if (me.line) layer.orbit.remove(me.line);
   showAfter(null);
   me.line = line(orbitRing(rec, Date.parse(S.deployed.epoch_utc)), 0x4fe3a1, 0.9); me.line.userData.inertial = true; layer.orbit.add(me.line);
-  showFuel(r.propulsion);
+  showFuel(r.propulsion); showLife(p.lifetime);
+  if (S.bookings.length) { S.bookings = []; $('photoOut').innerHTML = ''; toast('The orbit changed, so the photo bookings were cleared: pick the places again.'); }
   simMs = Math.max(simMs, Date.parse(p.burn_utc)); clock.trackAt = -1;
   const [lat, lon] = $('homeLL').value.split(',').map(Number);
   showOps({ ...S.deployed, passes: p.passes || S.deployed.passes, encounters: p.encounters.slice(0, 10), screen_hours: p.screen_hours }, $('homeName').value, lat, lon);
@@ -937,6 +958,7 @@ function upcoming() {
   const ev = [];
   (S.ops?.passes || []).forEach((p) => ev.push({ t: Date.parse(p.max_utc), txt: `${p.max_elevation_deg >= 30 && sunElev(new Date(p.max_utc), lat, lon) > 5 ? '📷 photo pass' : '📡 pass'} over ${home}` }));
   (S.ops?.encounters || []).forEach((e) => ev.push({ t: Date.parse(e.tca_utc), txt: `⚠ ${e.object_b.name} at ${fmt(e.miss_distance_km * 1000)} m` }));
+  (S.bookings || []).forEach((b) => ev.push({ t: b.t, txt: `📸 booked: ${b.name}` }));
   return ev.filter((e) => e.t > simMs - 60e3).sort((a, b) => a.t - b.t).slice(0, 3);
 }
 function groundTrack(d) {                                  // the next orbit traced on the ground (Earth-fixed)
@@ -961,8 +983,53 @@ function tickClock(d) {
   const next = upcoming();
   $('clockNext').innerHTML = next.map((e) => `<span class="${e.t - simMs < 15 * 60e3 ? 'soon' : ''}">${esc(e.txt)} · ${e.t <= simMs ? 'now' : 'in ' + until(e.t - simMs)}</span>`).join('') || '<span class="dim">Nothing scheduled in the screened 3 days.</span>';
   if (next[0] && simRate > 60 && next[0].t > simMs && (next[0].t - simMs) / simRate < 2000) setRate(simRate / (simRate > 600 ? 6 : 10));   // ease off as an event comes up
+  (S.bookings || []).forEach((b) => { if (!b.done && simMs >= b.t) { b.done = true; toast(`📸 Photo of ${esc(b.name)} taken (${fmt(b.el)}° up). Simulated: no image.`); } });
   setSun(d);
 }
+
+// ---------- photo plan: daylight passes over any place, booked onto the mission clock ----------
+S.bookings = [];
+function photoChances(lat, lon) {
+  const gd = { latitude: lat * D2R, longitude: lon * D2R, height: 0 }, out = [];
+  const t0 = Math.max(simMs, Date.parse(S.deployed.epoch_utc)), t1 = Date.parse(S.deployed.epoch_utc) + 259200e3;
+  let cur = null;
+  for (let t = t0; t <= t1; t += 20e3) {
+    const d = new Date(t), p = satellite.propagate(me.rec, d).position;
+    if (!p) continue;
+    const el = satellite.ecfToLookAngles(gd, satellite.eciToEcf(p, satellite.gstime(d))).elevation / D2R;
+    if (el > 10) { if (!cur || el > cur.el) cur = { ...(cur || {}), t, el }; }
+    else if (cur) { out.push(cur); cur = null; }
+  }
+  if (cur) out.push(cur);
+  return out.map((c) => ({ ...c, sun: sunElev(new Date(c.t), lat, lon) })).map((c) => ({ ...c, photo: c.el >= 30 && c.sun > 5 }));
+}
+function showPhotos(name, lat, lon) {
+  const all = photoChances(lat, lon), ok = all.filter((c) => c.photo);
+  const when = (t) => new Date(t).toISOString().slice(5, 16).replace('T', ' ');
+  $('photoOut').innerHTML = `<b>${esc(name)}</b> <span class="dim">${fmt(lat, 2)}, ${fmt(lon, 2)} · ${all.length} passes, ${ok.length} photo chances</span>
+    ${ok.length ? ok.map((c, i) => `<div class="pass img"><span>📷 ${when(c.t)} UTC <span class="dim">· ${fmt(c.el)}° up · sun ${fmt(c.sun)}°</span></span><button data-book="${i}">Book</button></div>`).join('')
+      : `<div class="dim">No daylight pass high enough in the screened 3 days${all.length ? ` (best: ${fmt(Math.max(...all.map((c) => c.el)))}° up)` : ''}. A burn that shifts the orbit can change that.</div>`}`;
+  $('photoOut').querySelectorAll('[data-book]').forEach((b) => b.addEventListener('click', () => {
+    const c = ok[+b.dataset.book];
+    S.bookings.push({ name, t: c.t, el: c.el }); b.disabled = true; b.textContent = 'Booked';
+    toast(`📷 Booked: ${esc(name)} at ${when(c.t)} UTC. It shows on the mission clock.`);
+  }));
+}
+document.querySelectorAll('[data-place]').forEach((b) => b.addEventListener('click', () => { const [n, la, lo] = b.dataset.place.split(','); showPhotos(n, +la, +lo); }));
+let picking = false, downAt = null;
+$('pickPlace').addEventListener('click', () => { picking = true; document.body.style.cursor = 'crosshair'; toast('Click a place on the globe.', 4000); });
+renderer.domElement.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!picking || !downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;   // a drag turns the globe
+  const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
+  const o = ray.ray.origin, d = ray.ray.direction, b = o.dot(d), c = o.lengthSq() - RE * RE, disc = b * b - c;
+  if (disc < 0) return;                                                           // missed the Earth
+  const hit = o.clone().add(d.clone().multiplyScalar(-b - Math.sqrt(disc))).normalize();
+  const lat = Math.asin(hit.y) / D2R, lon = Math.atan2(-hit.z, hit.x) / D2R;
+  picking = false; document.body.style.cursor = '';
+  showPhotos(`${fmt(Math.abs(lat), 1)}°${lat >= 0 ? 'N' : 'S'} ${fmt(Math.abs(lon), 1)}°${lon >= 0 ? 'E' : 'W'}`, lat, lon);
+});
 
 // ---------- save and share: the inputs, kept in this browser and in a link ----------
 const KEEP = ['payload', 'alt', 'orbitKind', 'incl', 'qLim', 'siteSel', 'targetText', 'ltdnT', 'ltdnTol', 'teamNotes',
