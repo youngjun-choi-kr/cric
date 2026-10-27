@@ -148,6 +148,15 @@ CRIC is a research prototype for decision support. It is not an operational coll
   covariances. The inserted orbit is the nominal flight, not the dispersed one.
 - The launched satellite is synthetic: it exists in `data/studio/fleet.json` and in screening, not in the public
   catalog. Its capability is what the owner states.
+- Mission control burns are impulsive (instant change of velocity) and perfect; a real thruster has pointing and
+  magnitude errors and burns over minutes. The new TLE is fitted to the post-burn state, so the orbit after a burn
+  is as good as SGP4 from that state. The 72 h screen samples every 60 s with straight-line refinement between
+  samples (checked to give the same encounters as 20 s sampling on the JIMIN-1 orbit) and drops slow co-orbital
+  approaches (under 1 km/s). The safer-time search tries shifts of 5 to 30 minutes, not other sizes or directions.
+- Lifetime uses MSIS density at a fixed solar-cycle-average activity (F10.7 150, Ap 15) and a cross-section guessed
+  from the mass; the real Sun can halve or double it. The 5-year rule is applied as "comes down within 5 years",
+  with no allowance for the mission's own length. Propellant defaults (4% of mass, Isp 220 s) are assumptions.
+- Photo bookings and the command log's effects live in the Studio only; nothing is sent to a spacecraft.
 
 ## History
 - An earlier spike let Nemotron search burn parameters with tools. It found a valid burn but used 45% more

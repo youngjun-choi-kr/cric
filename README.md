@@ -8,7 +8,7 @@ Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackat
 
 **Live demo, no install: https://youngjun-choi-kr.github.io/cric/** · **Demo video:** *(link added at submission)*
 - **Mission Studio** (rocket, launch, operate): a recorded run of the JIMIN-1 story, replayed in the page. All five
-  rockets fly in step 1.
+  rockets fly in step 1; in step 3 the two goal burns ("lower it", "raise it") and CRIC's safer times are recorded.
 - **Operations console**: recorded conjunction decisions; pick a situation and press *Replay recorded run*.
 
 Both run live (your own rocket, live decisions) with the local server and API keys: [SETUP.md](SETUP.md).
@@ -17,7 +17,7 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · limits: [LIMITATIONS.md](LIM
 | 1 · Your rocket | 2 · When and where | 3 · Operate |
 |---|---|---|
 | ![Hangar](web/launch/img/hangar.jpg) | ![Launch window](web/launch/img/window.jpg) | ![Operations](web/launch/img/ops.jpg) |
-| Does it make it to orbit? If not, test-flown fixes. | Weather, time of day, your team's notes, and a collision check for every minute. | Flights over home, close approaches, your final call. |
+| Does it make it to orbit? If not, test-flown fixes. | Weather, time of day, your team's notes, and a collision check for every minute. | Passes over home, close approaches, your own burns (CRIC checks each), your final call. |
 
 **In one minute**
 - **Your rocket.** Pick a real rocket, drop in a spec sheet (Nemotron 3.5 Super VL reads it and labels every number),
@@ -31,6 +31,11 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · limits: [LIMITATIONS.md](LIM
   each possible burn against every other object, looks up the other satellite with cited sources, and decides.
   No burn happens unless Nemotron 3 Super's three votes and the rules in code agree; otherwise a person decides.
   A person always signs off. CRIC never sends commands to a spacecraft.
+- **Mission control.** You can also fly the satellite yourself: pick a burn (when, which way, how big). CRIC
+  works out the new orbit, checks it against every tracked object for 3 days, counts the propellant, and says
+  how long the satellite will stay up (and whether it meets the 5-year deorbit rule). If the burn is risky, it
+  offers the same burn a few minutes earlier or later. You approve; every command goes into a hash-chained log.
+  A mission clock (up to ×3600), a ground track, and a photo planner for any place on the globe.
 - **Tested.** Test sets written before running, screening checked against CelesTrak SOCRATES, collision math
   against NASA test cases, the rocket model against published capacities. See Results.
 
@@ -228,6 +233,18 @@ follows the Sun). A first-visit tour and hover help explain the terms (LCOLA, Pc
    Any close approach opens the same incident pipeline as the console (dossier from the owner's registration, not
    the web); the provider's precise ephemeris can arrive and CRIC decides again, and the pass itself can be watched
    in slow motion in 3D. It ends with the owner's approve / reject.
+4. **Mission control** (part of step 3). The owner commands a burn: time, direction (speed up, slow down,
+   radial, sideways) and size, with a plain-words preview ("the far side drops about 36 km"). CRIC applies it to
+   the satellite's SGP4 state, fits a new TLE, screens the new orbit against the catalog for 72 h (distance and
+   Pc), counts propellant with the rocket equation (default 4% of the satellite's mass at Isp 220 s), and
+   estimates the lifetime (MSIS density at solar-cycle average): how long drag leaves it up, whether that meets
+   the 5-year deorbit rule, the cost of holding altitude, and the deorbit burn that would. A risky burn gets a
+   caution or no-go with the reason, and CRIC screens the same burn a few minutes earlier and later until one is
+   clean. The owner approves or rejects; a no-go needs a written reason to approve, a plan goes stale once the
+   orbit changes, and every decision goes into `data/studio/commands.jsonl`, hash-chained like the console's
+   approvals. The mission clock (pause to ×3600, a scrubber over the screened 3 days) shows the ground track
+   and counts down to the next photo pass or close approach; the photo planner lists daylight passes 30° up or
+   more over any place you click. Inputs are saved in the browser and can be shared as a link.
 
 How the Studio's models do, on scenarios written before they ran (`fixtures/launch/eval_launch_agents.json`,
 `scripts/eval_launch_agents.py`, 3 runs each, results in `results/launch_agents_eval_*.json`):
