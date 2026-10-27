@@ -346,6 +346,12 @@ async function fly() {
   S.guidance = null; S.fixes = null;
   const r = await busy('Flying your rocket…', () => api('simulate', mission()));
   S.flight = r.flight; S.guidance = r.guidance; S.az = r.azimuth_deg;
+  if (S.liftoff || S.deployed) {                        // a new flight: the old window and satellite no longer apply
+    S.liftoff = null; $('board').innerHTML = '';
+    const b3 = document.querySelector('#steps button[data-step="3"]'); b3.disabled = true;
+    b3.title = 'The rocket changed: choose the launch window again';
+  }
+  markStale(false);
   S.lcola = null; S.cands = [];
   $('fixBox').innerHTML = ''; $('dispBox').innerHTML = ''; clear(layer.disp);
   document.body.classList.add('flying');
@@ -354,6 +360,14 @@ async function fly() {
   if (S.flight.target_reached) { unlock(2); }
   launch3d(r);
 }
+// Inputs changed after a flight: say so on the Fly button and the later steps until it flies again
+function markStale(on) {
+  $('flyBtn').textContent = on ? '▶ Fly it again (inputs changed)' : '▶ Fly it';
+  document.querySelectorAll('#steps button[data-step="2"], #steps button[data-step="3"]').forEach((b) => {
+    b.classList.toggle('stale', on); if (on) b.title = 'Your rocket or orbit changed since the last flight: fly it again first';
+  });
+}
+document.querySelectorAll('#left1 input, #left1 select').forEach((el) => el.addEventListener('change', () => { if (S.flight) markStale(true); }));
 // Before a window is chosen, the launch is lit at the next local noon at the site (the note on screen says so)
 function nextNoon(lon) {
   const now = new Date(NOW()), d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12) - lon / 15 * 3600e3);
@@ -704,6 +718,7 @@ function showOps(r, home, lat, lon) {
     ${r.passes.slice(0, 8).map((p, i) => `<div class="pass${imaging(p) ? ' img' : ''}" data-pass="${i}"><span>${imaging(p) ? '📷 ' : ''}${p.rise_utc.slice(5, 16).replace('T', ' ')} UTC <span class="dim">(${kst(p.rise_utc)} KST)</span></span><b>max ${p.max_elevation_deg}°</b></div>`).join('')}
     <canvas id="skyPlot" width="420" height="420"></canvas>` : ''}
     <h2 class="mt">CLOSE APPROACHES · next ${r.screen_hours} h</h2>
+    <div class="small dim">The other objects are real, from the public catalog. ${esc(r.name || 'Your satellite')} is simulated, so these are the approaches it would have on this orbit.</div>
     ${r.encounters.length ? r.encounters.map((e, i) => `<div class="enc"><span><b>${esc(e.object_b.name)}</b><br><span class="dim">${e.tca_utc.slice(5, 16).replace('T', ' ')} UTC · ${fmt(e.miss_distance_km * 1000)} m · ${e.relative_speed_kms} km/s</span></span>
       <button data-enc="${i}" class="primary">Assess with CRIC</button></div>`).join('') : '<div class="dim">No approach within 5 km. CRIC keeps screening daily.</div>'}`;
   $('opsOut').querySelectorAll('[data-enc]').forEach((b) => b.addEventListener('click', () => assess(r.encounters[+b.dataset.enc])));
@@ -949,6 +964,53 @@ function tickClock(d) {
   setSun(d);
 }
 
+// ---------- save and share: the inputs, kept in this browser and in a link ----------
+const KEEP = ['payload', 'alt', 'orbitKind', 'incl', 'qLim', 'siteSel', 'targetText', 'ltdnT', 'ltdnTol', 'teamNotes',
+  'satName', 'satOwner', 'satMission', 'homeName', 'homeLL', 'propKg', 'ispS'];
+function snapshot() {
+  const snap = { v: 1, preset: $('presetSel').value, method: S.method, f: {} };
+  KEEP.forEach((id) => { if ($(id)) snap.f[id] = $(id).value; });
+  snap.f.satProp = $('satProp').checked;
+  if (S.method !== 'preset' && S.vehicle) snap.vehicle = S.vehicle;           // edited or read from a sheet
+  return snap;
+}
+function restore(snap) {
+  if (!snap || snap.v !== 1 || !P.vehicles[snap.preset]) return false;
+  $('presetSel').value = snap.preset; loadPreset(snap.preset);
+  if (snap.vehicle?.stages?.length) { S.vehicle = snap.vehicle; setMethod('form'); }
+  Object.entries(snap.f || {}).forEach(([id, v]) => { if (!$(id)) return; if (id === 'satProp') $(id).checked = !!v; else $(id).value = v; });
+  if (snap.f?.propKg) $('propKg').dataset.edited = '1';
+  S.site = $('siteSel').value; updateIncl(); updateAz();
+  return true;
+}
+const b64 = { enc: (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+  dec: (t) => JSON.parse(decodeURIComponent(escape(atob(t.replace(/-/g, '+').replace(/_/g, '/'))))) };
+function toast(html, ms = 5000) { $('toast').innerHTML = html; $('toast').hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { $('toast').hidden = true; }, ms); }
+let saveT = null;
+const autosave = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem('studioMission', JSON.stringify(snapshot())); } catch { /* private mode */ } }, 400); };
+document.querySelectorAll('.scol input, .scol select, .scol textarea, #bottom2 input').forEach((el) => el.addEventListener('change', autosave));
+$('presetSel').addEventListener('change', autosave);
+$('shareBtn').addEventListener('click', async () => {
+  const url = `${location.origin}${location.pathname}#m=${b64.enc(snapshot())}`;
+  try { await navigator.clipboard.writeText(url); toast('Link copied. It opens Mission Studio with these inputs; press Fly it to run them.'); }
+  catch { toast(`Copy this link: <input value="${esc(url)}" style="width:100%" onclick="this.select()">`, 15000); }
+});
+function restoreOnLoad() {
+  const m = location.hash.match(/#m=([\w-]+)/);
+  if (m) {
+    try { if (restore(b64.dec(m[1]))) { toast('Mission loaded from the link. Press Fly it to run it.'); return; } } catch { /* bad link */ }
+    toast('This link could not be read; starting fresh.');
+    return;
+  }
+  if (/[?&](cinema|record)=/.test(location.search)) return;          // the film always starts fresh
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('studioMission') || 'null'); } catch { /* ignore */ }
+  if (saved && restore(saved)) {
+    toast('Your last mission is back. <a href="#" id="freshBtn">Start fresh</a>', 8000);
+    $('freshBtn').onclick = (e) => { e.preventDefault(); try { localStorage.removeItem('studioMission'); } catch { /* ignore */ } location.replace(location.pathname + location.search); };
+  }
+}
+
 // ---------- loop ----------
 let last = performance.now();
 function frame(now) {
@@ -975,7 +1037,8 @@ window.studio = { S, camera, llv, CV };                   // for debugging from 
 loadPreset('garage');
 $('targetText').value = 'My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit.';
 updateIncl();
-const s0 = P.sites.naro; lookAt(s0.lat, s0.lon, 15);
+restoreOnLoad();
+const s0 = P.sites[$('siteSel').value] || P.sites.naro; lookAt(s0.lat, s0.lon, 15);
 $('loading').classList.add('done'); setTimeout(() => $('loading').remove(), 800);
 setTimeout(startTour, 1200);
 requestAnimationFrame(frame);

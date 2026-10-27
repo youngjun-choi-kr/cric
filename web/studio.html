@@ -24,6 +24,7 @@
     <button data-step="1" class="on"><b>1</b> Rocket</button>
     <button data-step="2" disabled><b>2</b> Launch window</button>
     <button data-step="3" disabled><b>3</b> Operate</button>
+    <button id="shareBtn" title="Copy a link that opens Mission Studio with these inputs">🔗 Share</button>
     <a href="./" class="dim" title="The CRIC operations console">Console ↗</a>
   </nav>
   <div id="serverNote" hidden>Mission Studio runs its simulations on the local server: <code>.venv/bin/python web/serve.py</code>, then open <code>http://localhost:8765/studio.html</code>.</div>
@@ -150,8 +151,9 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
   <input id="clockR" type="range" min="0" max="259200" step="60" value="0" title="Mission clock: the 3 days CRIC has screened">
   <div id="clockNext" class="small"></div>
 </div>
+<div id="toast" hidden></div>
 <div id="tip" hidden></div>
-<div id="busy" hidden><div class="spin"></div><span id="busyTxt"></span></div>
+<div id="busy" hidden><div class="spin"></div><span id="busyTxt"></span><div class="pbar"><i id="busyBar"></i></div></div>
 <script type="module" src="studio.js"></script>
 </body>
 </html>

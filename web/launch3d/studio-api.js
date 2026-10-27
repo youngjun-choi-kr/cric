@@ -23,11 +23,16 @@ async function replayApi(path, body) {
   const list = REPLAY.entries.filter((e) => e.path === path);
   if (!list.length) throw new Error('Not in this recording. Run Mission Studio locally to try it (SETUP.md).');
   let e = list[0];
+  if (path === 'burn') {                                         // recorded burns: matched by direction and size
+    const same = list.filter((x) => x.req.direction === body.direction && Math.abs(x.req.dv_ms - body.dv_ms) < 0.05);
+    if (!same.length) throw new Error(`This hosted page replays recorded burns only: ${[...new Set(list.map((x) => `${x.req.dv_ms} m/s ${x.req.direction}`))].join(', ')} (the two goal buttons). Run Mission Studio locally to try any burn (SETUP.md).`);
+    e = same.find((x) => x.req.burn_utc === body.burn_utc) || same[0];
+  }
   if (body?.vehicle) {
     e = list.reduce((a, x) => (vehDiff(x.req.vehicle, body.vehicle) < vehDiff(a.req.vehicle, body.vehicle) ? x : a));
     const same = vehDiff(e.req.vehicle, body.vehicle) < 0.02 && e.req.site === body.site
       && Math.abs(e.req.payload_kg - body.payload_kg) < 0.01 && Math.abs(e.req.target_alt_km - body.target_alt_km) < 0.01;
-    if (!same) throw new Error('This page replays a recorded run, so only the recorded flights are here. To try your own, run Mission Studio locally (SETUP.md).');
+    if (!same) throw new Error('This hosted page replays recorded flights: Garage One from Naro (as loaded, then with its fix) and each published rocket as it loads, from its own site. Changed numbers need the simulator: run Mission Studio locally (SETUP.md).');
   }
   for (const k of ['engine_out_t', 'ours', 'other']) {           // what-if time and encounter pair must match too
     if (body && k in body && e.req && String(e.req[k]) !== String(body[k])) {
@@ -37,7 +42,22 @@ async function replayApi(path, body) {
   await sleep(Math.min(2600, 500 + e.seconds * 120));             // a hint of the real wait, shortened
   return structuredClone(e.res);
 }
+// How long each call usually takes (learned in this browser), for the progress bar
+const TYPICAL = { simulate: 25, advise: 45, dispersion: 25, windows: 15, lcola: 12, gonogo: 35, target: 8, sheet: 20, deploy: 35, burn: 25, whatif: 20, encounter: 5 };
+try { Object.assign(TYPICAL, JSON.parse(localStorage.getItem('studioTypical') || '{}')); } catch { /* ignore */ }
+let pending = null;
 async function api(path, body, raw) {
+  pending = path;
+  const t0 = performance.now();
+  try { return await apiCall(path, body, raw); }
+  finally {
+    if (HAS_API) {
+      TYPICAL[path] = Math.round(0.5 * (TYPICAL[path] || 20) + 0.5 * (performance.now() - t0) / 1000);
+      try { localStorage.setItem('studioTypical', JSON.stringify(TYPICAL)); } catch { /* ignore */ }
+    }
+  }
+}
+async function apiCall(path, body, raw) {
   if (!HAS_API) {
     if (REPLAY && path !== 'presets') return replayApi(path, body);
     throw new Error('Mission Studio simulates on the local server: run web/serve.py and open http://localhost:8765/studio.html');
@@ -51,7 +71,13 @@ async function api(path, body, raw) {
 let busyN = 0;
 async function busy(text, fn) {
   busyN++; $('busy').hidden = false;
-  const t0 = performance.now(), tick = () => { $('busyTxt').textContent = `${text} ${Math.round((performance.now() - t0) / 1000)} s`; };
+  pending = null;
+  const t0 = performance.now(), tick = () => {
+    const el = (performance.now() - t0) / 1000, exp = pending && HAS_API ? TYPICAL[pending] : null;
+    const left = exp ? Math.round(exp - el) : null;
+    $('busyTxt').textContent = `${text} ${Math.round(el)} s${left == null ? '' : left > 1 ? ` · about ${left} s left` : ' · a little longer than usual'}`;
+    $('busyBar').style.width = exp ? `${Math.min(96, 100 * el / exp).toFixed(1)}%` : '0%';
+  };
   tick(); const iv = setInterval(tick, 500);
   try { return await fn(); }
   catch (e) { alert(e.message); throw e; }

@@ -232,3 +232,10 @@ abbr.g { text-decoration:underline dotted rgba(90,176,255,.7); text-underline-of
 #clockNext span { margin-right:12px; } #clockNext .soon { color:var(--mid); font-weight:600; }
 body.flying #clockBar { display:none !important; }
 #clockBar .row { flex-wrap:wrap; } #clockT { white-space:nowrap; }
+#shareBtn { font-size:11.5px; padding:4px 10px; border-radius:99px; }
+#toast { position:fixed; top:84px; right:16px; z-index:6; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:12px; max-width:360px; }
+#toast a { margin-left:8px; }
+#busy .pbar { position:absolute; left:18px; right:18px; bottom:3px; height:2px; overflow:hidden; border-radius:2px; }
+#busy .pbar i { display:block; height:100%; width:0; background:var(--accent); transition:width .5s linear; }
+#steps button.stale { outline:1px dashed var(--mid); }
+#steps button.stale::after { content:' ⟳'; color:var(--mid); }

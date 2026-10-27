@@ -16,7 +16,7 @@ import math
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -43,6 +43,31 @@ def call(path: str, body=None, *, raw: bytes | None = None, mime: str = "applica
                         "seconds": round(time.time() - t, 1)})
     print(f"  {path:11} {time.time() - t:5.1f} s", flush=True)
     return res
+
+
+GOALS = (("retrograde", 10.0), ("prograde", 6.0))       # the studio's two goal buttons
+
+
+def burns(dep: dict) -> None:
+    """Mission control for the replay: the two goal burns. For the "lower" goal the burn hour is the first one
+    (from 3 h after insertion) where CRIC flags a risk and finds a safer time, so the replay shows that check;
+    the film says the hour was chosen. Every check made while choosing is a real screening of the catalog."""
+    epoch = datetime.fromisoformat(dep["epoch_utc"].replace("Z", "+00:00"))
+    for direction, dv in GOALS:
+        chosen = None
+        for h in ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12] if direction == "retrograde" else [3]):
+            t = (epoch + timedelta(hours=h)).replace(second=0, microsecond=0)
+            body = {"norad_id": dep["norad_id"], "burn_utc": t.isoformat().replace("+00:00", "Z"), "direction": direction, "dv_ms": dv}
+            p = call("burn", body, keep=False)
+            print(f"    burn {direction} {dv} at +{h} h: {p['verdict']} alt={bool(p.get('alternative'))}", flush=True)
+            chosen = (body, p)
+            if direction == "prograde" or (p["verdict"] != "go" and p.get("alternative")):
+                break
+        body, p = chosen
+        entries.append({"path": "burn", "req": body, "res": p, "seconds": 20})
+        if p.get("alternative"):
+            a = p["alternative"]
+            call("burn", body | {"burn_utc": a["burn_utc"]})
 
 
 def main() -> None:
@@ -103,6 +128,7 @@ def main() -> None:
     for enc in dep["encounters"][:1]:                 # the 3D encounter view and the engine-out what-if
         call("encounter", {"ours": enc["object_a"]["norad_id"], "other": enc["object_b"]["norad_id"], "tca_utc": enc["tca_utc"]})
     call("whatif", m_ok | {"engine_out_t": 60})
+    burns(dep)
     # step 1 for every published preset as the page sets it up (its own site and published orbit),
     # so a visitor can fly any of them in the hosted replay; steps 2-3 stay the JIMIN-1 story
     from cric.launch.geo import sso_inclination
