@@ -168,12 +168,12 @@ class Particles {
   clear() { this.age.fill(1e9); this.alpha.fill(0); }
 }
 
-const NOTE = 'Shape derived from the vehicle data · motion from the 3-DOF simulation · plume, smoke, sky and cloud texture are illustration (cloud amount: forecast at the chosen hour, else 25%)';
+const NOTE = 'Shape derived from the vehicle data · motion from the 3-DOF simulation · plume, smoke, sky and cloud texture are illustration (light and cloud amount: the chosen launch hour; before one is chosen, local noon and 25%)';
 
 export function createCloseView(root, { earthTex, onState } = {}) {
   root.innerHTML = `<div class="cv-hud" hidden>
       <div class="cv-top"><div class="cv-live"><b>SIMULATED FLIGHT</b> <span id="cvTitle"></span></div>
-        <div class="cv-note">Shape derived from the vehicle data · motion from the 3-DOF simulation · plume, smoke, sky and cloud texture are illustration (cloud amount: forecast at the chosen hour, else 25%)</div></div>
+        <div class="cv-note"></div></div>
       <div class="cv-toast" id="cvToast"></div>
       <div class="cv-cams"><button data-cam="auto" class="on">Auto</button><button data-cam="pad">Pad</button><button data-cam="track">Tracking</button>
         <button data-cam="chase">Chase</button><button data-cam="onboard">Onboard</button><button id="cvSound" title="Engine rumble (synthesised)">🔇</button><button id="cvSkip" title="Skip to the globe view">Skip ▸</button></div>

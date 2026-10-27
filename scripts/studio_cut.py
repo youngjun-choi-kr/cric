@@ -32,13 +32,16 @@ def facts() -> dict:
     v1 = M["act1_facts"]["verdict"]
     orbit = re.search(r"Orbit: ([\d,]+ × [\d,]+ km, [\d.]+°)", v1)
     dec = (a3.get("decision") or "").split("\n")
-    action = next((x for x in dec if re.fullmatch(r"[A-Z_]{4,}", x.strip())), "").strip()
+    action = next((x for x in dec if re.fullmatch(r"[A-Z_ ]{4,}", x.strip())), "").strip()
+    dec2 = (a3.get("decision2") or "").split("\n")
+    action2 = next((x for x in dec2 if re.fullmatch(r"[A-Z_ ]{4,}", x.strip())), "").strip()
     return {"worst_km": f"{worst['closest_km']:.1f}", "worst_obj": worst["object"], "worst_t": worst["liftoff_utc"][11:16],
             "clear_km": f"{h['clear']:.0f}", "liftoff": (M["act2_facts"]["liftoff"] or "")[11:16],
             "orbit": orbit.group(1) if orbit else "orbit", "fix": M["act1_facts"].get("fix") or "Verified fix: bigger first stage",
             "other": (a3.get("deployed", {}).get("enc") or {}).get("object_b", {}).get("name", "another satellite"),
             "miss_m": f"{(a3.get('deployed', {}).get('enc') or {}).get('miss_distance_km', 0) * 1000:,.0f}",
             "action": action.replace("_", " ").title() or "decision",
+            "action2": action2.replace("_", " ").title() or "decision",
             "miss_km": f"{(a3.get('deployed', {}).get('enc') or {}).get('miss_distance_km', 0):.1f}",
             "vrel": f"{(a3.get('deployed', {}).get('enc') or {}).get('relative_speed_kms', 0):.0f}"}
 
@@ -75,9 +78,9 @@ SHOTS = [
      "Launch. JIMIN-1 joins the catalog, and CRIC marks when it can photograph Seoul."),
     ("C2", 14, "app", ("act3", "assess", "decision"), f"Close approach: {F['other']} · the CRIC pipeline, live (time-lapse)",
      "A close approach. The same CRIC pipeline takes over: collision probability, verified burn options, a cited "
-     "dossier, three votes, a validator. On public data, it asks for precise data."),
-    ("C3", 8, "app", ("act3", "precise", "encounter"), "Precise ephemeris: decided again · no propellant spent",
-     "The precise ephemeris arrives, and the risk is gone."),
+     f"dossier, three votes, a validator. On public data: {F['action'].lower()}."),
+    ("C3", 8, "app", ("act3", "precise", "encounter"), f"Precise ephemeris: decided again · {F['action2']} · no propellant spent",
+     f"The precise ephemeris arrives and CRIC decides again: {F['action2'].lower()}, with no propellant spent."),
     ("C4", 8, "app", ("act3", "encounter", "encounter_end"), "The pass in slow motion · positions from SGP4",
      f"Here is that pass: {F['miss_km']} kilometres, at {F['vrel']} kilometres a second."),
     ("C5", 5, "app", ("act3", "encounter_end", "end"), "Jimin approves · logged, hash-chained · nothing is sent to a spacecraft",

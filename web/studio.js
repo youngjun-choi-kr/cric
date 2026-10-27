@@ -354,6 +354,11 @@ async function fly() {
   if (S.flight.target_reached) { unlock(2); }
   launch3d(r);
 }
+// Before a window is chosen, the launch is lit at the next local noon at the site (the note on screen says so)
+function nextNoon(lon) {
+  const now = new Date(NOW()), d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12) - lon / 15 * 3600e3);
+  return d < now ? new Date(d.getTime() + 864e5) : d;
+}
 // Launch in close-up; the globe takes over above ~150 km, and gets the deploy back in orbit.
 function launch3d(r) {
   const f = r.flight;
@@ -365,7 +370,7 @@ function launch3d(r) {
   const row = S.heat?.rows.find((x) => x.site === r.site.id);
   const hr = when && row?.hours?.find((h) => h.t.slice(0, 13) === when.slice(0, 13));
   CV.playLaunch(f, r.vehicle, r.site, {
-    date: when ? new Date(when) : new Date(), cloudCover: hr?.cloud_cover ?? 25,
+    date: when ? new Date(when) : nextNoon(r.site.lon), cloudCover: hr?.cloud_cover ?? 25,
     onHandoff: (tH) => {
       globeOn = true;
       const k = Math.max(0, f.samples.findIndex((x) => x[0] >= tH));
