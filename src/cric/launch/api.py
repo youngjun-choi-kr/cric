@@ -84,9 +84,11 @@ def _fly(m: dict, record: bool = False) -> dict:
 def _flight_payload(m: dict, g, r: dict) -> dict:
     r = dict(r)
     s = r.get("samples") or []
-    if len(s) > 1500:                                  # the page draws a line; every few seconds is plenty
-        step = math.ceil(len(s) / 1500)
-        r["samples"] = s[::step] + [s[-1]]
+    if len(s) > 1500:   # keep the low, fast part at full rate for the close-up view; thin the long burns and coasts
+        low = [x for x in s if x[1] < 200]
+        high = [x for x in s if x[1] >= 200]
+        step = math.ceil(len(high) / max(1500 - len(low), 300))
+        r["samples"] = sorted(low + high[::step] + [s[-1]], key=lambda x: x[0])
     return {"flight": r, "guidance": [g.h_turn_km, g.phi_end1_deg, g.phi0_deg, g.phi1_deg],
             "azimuth_deg": round(m["az"], 2), "azimuth_note": m["az_note"], "azimuth_ok": m["az_ok"],
             "inclination_target_deg": round(m["incl"], 2), "vehicle": m["veh"].to_dict(),

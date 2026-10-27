@@ -2,6 +2,7 @@
 // All physics runs on the local server (cric.launch); this page draws it on the same globe as the console.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createCloseView } from './launch3d/closeview.js';
 
 const $ = (id) => document.getElementById(id);
 const RE = 6.378137;                                   // 1 unit = 1000 km, as in the console
@@ -50,6 +51,8 @@ const IMG = 'https://unpkg.com/three-globe@2.31.0/example/img/';
 const loader = new THREE.TextureLoader();
 const load = (f) => loader.loadAsync(IMG + f).then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; });
 const [dayTex, nightTex, skyTex] = await Promise.all([load('earth-blue-marble.jpg'), load('earth-night.jpg'), load('night-sky.png')]);
+const CV = createCloseView($('close'), { earthTex: dayTex });   // the close-up stage: hangar, launch, deploy
+let globeOn = true;                                              // the globe pauses while the close-up covers it
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 32), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, depthWrite: false, color: 0x8090b8 })));
 const sunU = { value: new THREE.Vector3(1, 0, 0) };
 function setSun(date) {                                   // subsolar point, good to a degree
@@ -121,6 +124,34 @@ function showStep(n) {
   if (n === 3) dropLabels('imp');
   if (n === 2 && !S.heat) loadHeat();
   catPts.visible = n === 3;
+  if (n !== 1) { CV.hide(); globeOn = true; document.body.classList.remove('flying'); }
+  else if (view === 'bay' && !document.body.classList.contains('flying')) showBay();
+}
+let view = 'bay';
+function setView(v, apply = true) {
+  view = v;
+  document.querySelectorAll('#viewSw button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  if (!apply) return;
+  if (v === 'bay') showBay(); else { CV.hide(); globeOn = true; }
+}
+function landed() { document.body.classList.remove('flying'); setView('globe', false); }
+document.querySelectorAll('#viewSw button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.v)));
+function insets() {                 // the hangar centres between the panels that are open
+  const w = (id) => { const el = $(id); return el && !el.hidden ? el.getBoundingClientRect().right + 8 : 0; };
+  const rw = (id) => { const el = $(id); return el && !el.hidden ? innerWidth - el.getBoundingClientRect().left + 8 : 0; };
+  CV.setInsets(innerWidth > 900 ? w('left1') : 0, innerWidth > 900 ? rw('right1') : 0);
+}
+addEventListener('resize', insets);
+function showBay() {
+  insets();
+  const id = P.vehicles[S.vehicle.id] ? S.vehicle.id : S.vehicle.id || 'custom';
+  CV.showBay(P.vehicles, id, S.vehicle, +$('payload').value || 5);
+  globeOn = false;
+}
+let bayT = null;
+function vehicleEdited() {          // the hangar shows each edit (debounced while a slider moves)
+  clearTimeout(bayT);
+  bayT = setTimeout(() => { if (CV.mode === 'bay') CV.updateCurrent(S.vehicle, +$('payload').value || 5); }, 120);
 }
 document.querySelectorAll('#steps button').forEach((b) => b.addEventListener('click', () => showStep(+b.dataset.step)));
 const unlock = (n) => { document.querySelector(`#steps button[data-step="${n}"]`).disabled = false; };
@@ -152,6 +183,7 @@ function loadPreset(id) {
   $('editPreset').onclick = (e) => { e.preventDefault(); setMethod('form'); };
   if (v.published?.orbit_alt_km) { $('alt').value = v.published.orbit_alt_km; }
   updateIncl();
+  if (view === 'bay' && !document.body.classList.contains('flying')) showBay();
 }
 $('presetSel').addEventListener('change', () => loadPreset($('presetSel').value));
 
@@ -190,12 +222,14 @@ function renderForm() {
       const sc = FIELDS.find((f) => f[0] === inp.dataset.k)[2];
       st[inp.dataset.k] = inp.value === '' ? null : +inp.value / sc; markEdited(st, inp.dataset.k);
       inp.previousElementSibling.className = 'prov edited'; inp.previousElementSibling.textContent = 'edited';
+      vehicleEdited();
     }));
     el.querySelector('[data-solid]').onchange = (e) => { st.solid = e.target.checked; };
     el.querySelectorAll('input[data-scale]').forEach((r) => r.addEventListener('input', () => {
       const f = +r.value / 100; r.nextElementSibling.textContent = r.value + '%';
       if (r.dataset.scale === 'prop') { st.prop_kg = base.prop_kg * f; st.dry_kg = base.dry_kg * f; markEdited(st, 'prop_kg'); markEdited(st, 'dry_kg'); }
       else { st.thrust_vac_n = base.thrust_vac_n * f; markEdited(st, 'thrust_vac_n'); }
+      vehicleEdited();
       for (const k of ['prop_kg', 'dry_kg', 'thrust_vac_n']) {
         const inp = el.querySelector(`input[data-k="${k}"]`), sc = FIELDS.find((x) => x[0] === k)[2];
         inp.value = +(st[k] * sc).toFixed(sc < 1 ? 2 : 1);
@@ -226,6 +260,7 @@ async function readSheet(file) {
     ${v.missing.length ? `<div class="small" style="color:var(--warn)">Not on the sheet: ${esc(v.missing.join(', '))}. Placeholder values were put in; check them in the form.</div>` : ''}
     ${v.notes ? `<div class="small dim">${esc(v.notes)}</div>` : ''}<div class="small dim">${r.usage.calls} model call · $${r.usage.cost_usd.toFixed(4)}</div></div>`;
   setMethod('form');
+  setView('bay');
 }
 
 // target orbit
@@ -308,9 +343,36 @@ async function fly() {
   S.flight = r.flight; S.guidance = r.guidance; S.az = r.azimuth_deg;
   S.lcola = null; S.cands = [];
   $('fixBox').innerHTML = ''; $('dispBox').innerHTML = ''; clear(layer.disp);
+  document.body.classList.add('flying');
   renderFlight(r);
   showStep(1);
   if (S.flight.target_reached) { unlock(2); }
+  launch3d(r);
+}
+// Launch in close-up; the globe takes over above ~150 km, and gets the deploy back in orbit.
+function launch3d(r) {
+  const f = r.flight;
+  document.body.classList.add('flying');
+  globeOn = false;
+  if (anim) { anim.playing = false; anim.trail.geometry.setDrawRange(0, 0); }
+  CV.playLaunch(f, r.vehicle, r.site, {
+    onHandoff: (tH) => {
+      globeOn = true;
+      const k = Math.max(0, f.samples.findIndex((x) => x[0] >= tH));
+      const sp = f.samples[k];
+      camera.position.copy(llv(sp[4], sp[5], sp[1]).multiplyScalar(1.004).add(llv(sp[4], sp[5], 0).normalize().multiplyScalar(0.25)));
+      controls.target.set(0, 0, 0);
+      camGoal = llv(sp[4], sp[5]).normalize().multiplyScalar(15);
+      CV.hide();
+      anim.t = tH; anim.playing = true;
+      anim.onEnd = () => {
+        if (f.target_reached) {
+          globeOn = false;
+          CV.playDeploy(f, r.vehicle, r.site, { onDone: () => { CV.hide(); globeOn = true; landed(); } });
+        } else landed();
+      };
+    },
+  });
 }
 const STAGE_COL = [0xffb347, 0x5ab0ff, 0x4fe3a1, 0xd3a6ff];
 let anim = null;
@@ -332,7 +394,7 @@ function renderFlight(r) {
     ${ok && !thin ? '' : `<button id="adviseBtn" class="primary">${ok ? 'Add a reserve' : 'Why? How do I fix it?'}</button>`}
     <button id="dispBtn">Where could it fall? (500 runs)</button>
     ${ok ? `<button id="toStep2" class="${thin ? '' : 'primary'}">Next: launch window →</button>` : ''}`;
-  $('replayBtn').onclick = () => startAnim(f);
+  $('replayBtn').onclick = () => launch3d(r);
   $('dispBtn').onclick = runDispersion;
   if ($('adviseBtn')) $('adviseBtn').onclick = runAdvise;
   if ($('toStep2')) $('toStep2').onclick = () => showStep(2);
@@ -364,7 +426,7 @@ function renderFlight(r) {
   }
   if (f.impact) { const p = llv(f.impact.lat, f.impact.lon, 2); layer.flight.add(points([p], 0xff3b2f, 12)); label('✕ vehicle comes down here', p, 'imp'); }
   anim = { f, trail, marker, pts, t: 0 };
-  startAnim(f);
+  trail.geometry.setDrawRange(0, 0);
   lookAt(r.site.lat, r.site.lon, 14);
 }
 const fmtLL = (la, lo) => `${Math.abs(la).toFixed(1)}°${la >= 0 ? 'N' : 'S'} ${Math.abs(((lo + 540) % 360) - 180).toFixed(1)}°${((lo + 540) % 360) - 180 >= 0 ? 'E' : 'W'}`;
@@ -372,12 +434,12 @@ function startAnim(f) { if (!anim) return; anim.t = 0; anim.playing = true; anim
 function stepAnim(dt) {
   if (!anim?.playing) return;
   const s = anim.f.samples, last = s[s.length - 1][0];
-  const rate = anim.t < (anim.f.insertion?.t ?? last) && s.find((x) => x[0] >= anim.t)?.[7] === 'coast' ? 120 : 30;
+  const rate = anim.t < (anim.f.insertion?.t ?? last) && s.find((x) => x[0] >= anim.t)?.[7] === 'coast' ? 90 : 25;
   anim.t = Math.min(last, anim.t + dt * rate);
   let k = s.findIndex((x) => x[0] >= anim.t); if (k < 0) k = s.length - 1;
   anim.trail.geometry.setDrawRange(0, k + 1);
   anim.marker.geometry.setFromPoints([anim.pts[k]]);
-  if (anim.t >= last) anim.playing = false;
+  if (anim.t >= last) { anim.playing = false; const cb = anim.onEnd; anim.onEnd = null; cb?.(); }
 }
 
 async function runAdvise() {
@@ -390,6 +452,7 @@ async function runAdvise() {
   $('fixBox').querySelectorAll('[data-fix]').forEach((b) => b.addEventListener('click', () => applyFix(S.fixes[+b.dataset.fix])));
 }
 function applyFix(x) {
+  setView('bay');                                   // the hangar shows the rocket as it was, then the change
   if (x.kind === 'payload') { $('payload').value = x.payload_kg; S.prov.payload_kg = 'edited'; }
   else {
     const st = S.vehicle.stages.find((s) => s.name === x.stage);
@@ -399,7 +462,8 @@ function applyFix(x) {
     st.source = { ...st.source, prop_kg: 'edited', dry_kg: 'edited', ...(x.kind === 'stage+thrust' ? { thrust_vac_n: 'edited' } : {}) };
   }
   if (S.method === 'form') renderForm();
-  fly();
+  setTimeout(() => CV.updateCurrent(S.vehicle, +$('payload').value || 5), 600);   // the stage grows, then it flies
+  setTimeout(fly, 2600);
 }
 
 async function runDispersion() {
@@ -624,10 +688,11 @@ function frame(now) {
   }
   controls.update();
   placeLabels();
-  renderer.render(scene, camera);
+  document.querySelectorAll('.lbl').forEach((el) => { if (!globeOn) el.style.display = 'none'; });
+  if (globeOn) renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
-window.studio = { S, camera, llv };                   // for debugging from the console
+window.studio = { S, camera, llv, CV };                   // for debugging from the console
 loadPreset('garage');
 $('targetText').value = 'My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit.';
 updateIncl();

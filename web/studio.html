@@ -6,6 +6,7 @@
 <title>CRIC Mission Studio</title>
 <link rel="stylesheet" href="console.css">
 <link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -13,6 +14,8 @@
 </head>
 <body>
 <div id="loading"><div>Loading Earth…</div></div>
+<div id="close"></div>
+<div id="viewSw" data-for="1"><button data-v="bay" class="on">Hangar</button><button data-v="globe">Globe</button></div>
 
 <div class="panel" id="studioHud">
   <h1>CRIC MISSION STUDIO</h1>

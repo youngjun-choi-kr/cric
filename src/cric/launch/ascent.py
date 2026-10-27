@@ -107,6 +107,12 @@ def _ballistic(s, t, cd_a, vs0, t_max=3 * 3600.0):
     return None
 
 
+def alt_now_rec(s) -> float:
+    return math.hypot(s[0], s[1]) - RE
+
+
+# samples: [t, alt_km, inertial_downrange_km, speed, lat, lon, stage index, mode,
+#           pitch_deg (thrust above local horizontal), q_kpa, accel_g (thrust / mass), mass_kg, thrust_kN]
 def simulate(veh: Vehicle, payload_kg: float, g: Guidance, *, lat: float, lon: float, az: float,
              target_alt_km: float = 500.0, dt: float = 0.5, record: bool = True, perturb: dict | None = None) -> dict:
     """Fly one ascent. perturb (for dispersion): thrust, isp, dry scale factors, stage-1 pitch and azimuth offsets."""
@@ -193,9 +199,18 @@ def simulate(veh: Vehicle, payload_kg: float, g: Guidance, *, lat: float, lon: f
             cur["prop"] -= mdot * step
         if record and t >= next_rec:
             lat_, lon_, alt_km = inertial_to_latlon(*plane_to_inertial(math.atan2(s[0], s[1]), math.hypot(s[0], s[1]), basis), t)
+            # attitude for the close-up view: thrust direction above the local horizontal (flight path when coasting)
+            r1 = math.hypot(s[0], s[1])
+            vr1 = (s[0] * s[2] + s[1] * s[3]) / r1
+            vh1 = (s[1] * s[2] - s[0] * s[3]) / r1
+            pitch = math.degrees(phi) if thrust > 0 else math.degrees(math.atan2(vr1, vh1))
+            kk = vs0 * r1 / RE
+            w2 = (s[2] - kk * s[1] / r1) ** 2 + (s[3] + kk * s[0] / r1) ** 2
             samples.append([round(t, 1), round(alt_km, 2), round(RE * math.atan2(s[0], s[1]) / 1000, 1),
-                            round(math.hypot(s[2], s[3]), 1), round(lat_, 4), round(lon_, 4), i, mode])
-            next_rec = t + (2.0 if mode != "coast" else 20.0)
+                            round(math.hypot(s[2], s[3]), 1), round(lat_, 4), round(lon_, 4), i, mode,
+                            round(pitch, 2), round(0.5 * density(r1 - RE) * w2 / 1000, 2),
+                            round(thrust / s[4] / G0, 2), round(s[4]), round(thrust / 1000, 1)])
+            next_rec = t + (1.0 if mode in ("burn", "circ") else 2.0 if alt_now_rec(s) < 200e3 else 20.0)
         alt_now = math.hypot(s[0], s[1]) - RE
         if fairing and alt_now > veh.fairing_sep_km * 1000:
             fairing = 0.0
