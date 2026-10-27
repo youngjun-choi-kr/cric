@@ -131,7 +131,8 @@ def main() -> None:
             until(f"deploy{tag}", f"!{flying} || (studio.CV.mode === 'launch' && studio.CV.flight.deploy)")
             until(f"landed{tag}", f"!{flying}")
 
-        rec.start(); rec.hold(4); rec.mark("start")                  # the hangar line-up
+        rec.start(); rec.hold(3); rec.mark("start")                  # the hangar line-up, then X-ray (provenance)
+        page.click("#cvXray"); rec.mark("xray"); rec.hold(3.5); page.click("#cvXray"); rec.hold(1)
         page.click("#targetBtn"); idle(); rec.mark("target"); rec.hold(2)
         page.click("#flyBtn"); rec.mark("fly"); idle(); rec.mark("verdict")
         flight("")
@@ -175,7 +176,8 @@ def main() -> None:
         print("act 3: operate")
         rec.start(); rec.hold(0.5); rec.mark("start")
         page.click("#toStep3"); rec.hold(2.5)
-        page.click("#deployBtn"); rec.mark("deploy"); idle(); rec.mark("in_orbit"); rec.hold(9)
+        page.click("#deployBtn"); rec.mark("deploy"); idle(); rec.mark("in_orbit"); rec.hold(4)
+        page.evaluate("document.querySelector('.pass.img')?.scrollIntoView({block: 'center'})"); rec.hold(5)   # photo passes
         enc = page.evaluate("studio.S.deployed.encounters")
         if not enc:
             marks["act3"] = rec.stop("act3")
@@ -186,6 +188,9 @@ def main() -> None:
         page.click(".nextPrecise"); rec.mark("precise")                # the provider's ephemeris arrives
         page.wait_for_function("document.querySelectorAll('.decision').length > 1", timeout=400000); rec.mark("decision2"); rec.hold(2)
         page.evaluate("[...document.querySelectorAll('.decision')].pop().scrollIntoView({behavior: 'smooth', block: 'end'})"); rec.hold(3)
+        page.evaluate("document.querySelector('.decision .encView').click()")   # the encounter in 3D
+        page.wait_for_function("studio.CV.mode === 'encounter'", timeout=60000); rec.mark("encounter")
+        page.wait_for_function("studio.CV.mode !== 'encounter'", timeout=120000); rec.mark("encounter_end"); rec.hold(1.5)
         page.evaluate("[...document.querySelectorAll('.decision .apOk')].pop().click()")
         page.wait_for_function("[...document.querySelectorAll('.decision .apOut')].pop().textContent.length > 0", timeout=30000)
         rec.mark("approved"); rec.hold(4)

@@ -168,6 +168,9 @@ function loadPreset(id) {
   S.prov = { payload_kg: id === 'garage' ? 'assumed' : 'published' };
   $('payload').value = v.payload_kg;
   const val = VAL[v.name];
+  if (val && val.model_payload_kg < v.payload_kg) {   // start where this model can deliver; the card shows the published figure
+    $('payload').value = Math.floor(val.model_payload_kg * 0.97); S.prov.payload_kg = 'derived';
+  }
   $('presetCard').innerHTML = `<div class="row"><b>${esc(v.name)}</b><span>${fmt(v.glow_kg / 1000, 1)} t at liftoff · ${v.stages.length} stages</span></div>
     <div class="dim small">${esc(v.note)}</div>
     ${v.published?.payload_kg ? `<div class="row small mt"><span>Published</span><span>${fmt(v.published.payload_kg)} kg to ${esc(v.published.orbit)}</span></div>` : ''}
@@ -177,7 +180,12 @@ function loadPreset(id) {
     <div class="small mt"><a href="#" id="editPreset">Edit these numbers →</a></div>`;
   $('editPreset').onclick = (e) => { e.preventDefault(); setMethod('form'); };
   if (v.published?.orbit_alt_km) { $('alt').value = v.published.orbit_alt_km; }
+  // a published launcher flies its published mission from its own site, as the model check above does
+  if (v.published?.site) { $('siteSel').value = v.published.site; S.site = v.published.site; }
+  const sso = /SSO/.test(v.published?.orbit || 'SSO');
+  $('orbitKind').value = sso ? 'sso' : 'inclination';
   updateIncl();
+  if (!sso && v.published?.incl_deg) { $('incl').value = v.published.incl_deg; updateAz(); }
   if (view === 'bay' && !document.body.classList.contains('flying')) showBay();
 }
 $('presetSel').addEventListener('change', () => loadPreset($('presetSel').value));

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 import html
+import math
 import json
 import re
 import time
@@ -34,7 +35,8 @@ def call(path: str, body=None, *, raw: bytes | None = None, mime: str = "applica
     t = time.time()
     r = requests.post(f"{URL}/api/launch/{path}", headers=H | {"Content-Type": mime},
                       data=raw if raw is not None else json.dumps(body), timeout=900)
-    r.raise_for_status()
+    if not r.ok:
+        raise SystemExit(f"{path}: HTTP {r.status_code} {r.text[:400]}")
     res = r.json()
     if keep:
         entries.append({"path": path, "req": body if raw is None else {"upload": mime}, "res": res,
@@ -91,11 +93,36 @@ def main() -> None:
     cands = sorted({worst["liftoff_utc"], *[x["liftoff_utc"] for x in go[:2]]})
     board = call("gonogo", m_ok | {"candidates": cands, "notes": NOTES})
     liftoff = board["brief"]["liftoff_utc"]
+    print("  board", board["brief"]["decision"], liftoff, board["brief"].get("guard"),
+          [(w["liftoff_utc"][11:16], w["status"], [x["effect"] for x in w["team_notes"]]) for w in board["windows"]],
+          (board.get("notes") or {}).get("dropped"), flush=True)
+    if not liftoff:
+        raise SystemExit("the director held; nothing to launch")
     dep = call("deploy", m_ok | {"liftoff_utc": liftoff, "name": "JIMIN-1", "owner": "Jimin", "mission": "photograph Seoul",
                                  "can_maneuver": True, "home": {"name": "Seoul", "lat": 37.5665, "lon": 126.978}})
     for enc in dep["encounters"][:1]:                 # the 3D encounter view and the engine-out what-if
         call("encounter", {"ours": enc["object_a"]["norad_id"], "other": enc["object_b"]["norad_id"], "tca_utc": enc["tca_utc"]})
     call("whatif", m_ok | {"engine_out_t": 60})
+    # step 1 for every published preset as the page sets it up (its own site and published orbit),
+    # so a visitor can fly any of them in the hosted replay; steps 2-3 stay the JIMIN-1 story
+    from cric.launch.geo import sso_inclination
+
+    for vid, v in presets["vehicles"].items():
+        if vid == "garage":
+            continue
+        pub = v["published"]                          # its own site and published orbit, as the page sets it up
+        alt_v = float(pub.get("orbit_alt_km") or 500)
+        incl_v = round(sso_inclination(alt_v), 2) if "SSO" in pub.get("orbit", "SSO") else pub["incl_deg"]
+        val = presets["validation"].get(v["name"])
+        pay_v = math.floor(val["model_payload_kg"] * 0.97) if val and val["model_payload_kg"] < v["payload_kg"] else v["payload_kg"]
+        mv = {"vehicle": v, "payload_kg": pay_v, "site": pub.get("site", site), "target_alt_km": alt_v,
+              "incl_deg": incl_v}
+        fv = call("simulate", mv | {"guidance": None})
+        mv["guidance"] = fv["guidance"]
+        call("dispersion", mv | {"runs": 500})
+        call("whatif", mv | {"engine_out_t": 60})
+        if not fv["flight"]["target_reached"] or (fv["flight"]["margin_dv_ms"] or 0) < 50:
+            call("advise", mv | {"explain": True})
     incidents = {}
     for enc in dep["encounters"][:1]:
         for preset in ("quiet", "precise"):           # public TLE data first, then the provider's ephemeris
@@ -106,6 +133,8 @@ def main() -> None:
                 for line in r.iter_lines(decode_unicode=True):
                     if line and line.startswith("data: "):
                         ev.append(json.loads(line[6:]))
+            if any(e["kind"] == "error" for e in ev) or not any(e["kind"] == "result" for e in ev):
+                raise SystemExit(f"incident {preset} failed: {[e for e in ev if e['kind'] == 'error'][:1]}")
             incidents[f"{enc['object_a']['norad_id']}-{enc['object_b']['norad_id']}-{preset}"] = ev
             print(f"  incident    {preset:8} {time.time() - t:5.1f} s  {len(ev)} events", flush=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)

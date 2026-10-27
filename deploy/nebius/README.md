@@ -53,6 +53,26 @@ nebius ai job logs <job-id>
 
 Each cycle logs one line (`objects screened, encounters, for our fleet`) and one JSON line per incident.
 
+## Mission Studio: impact dispersion as a batch job
+
+The same image runs Mission Studio's Monte Carlo at a size the page does not: thousands of perturbed ascents
+(thrust, Isp, mass, pitch, azimuth) with the forecast winds aloft, written to the volume. No API keys are needed
+(Open-Meteo is public).
+
+```bash
+nebius ai job create \
+  --name cric-dispersion \
+  --image cr.<region>.nebius.cloud/<registry-id>/cric:latest \
+  --container-command cric \
+  --args "launch-dispersion --vehicle electron --site mahia --runs 20000 --wind --out /data/dispersion_electron.json" \
+  --volume "s3://<bucket>:/data:rw" \
+  --platform <cpu-platform> --preset <cpu-preset-with-many-cores> \
+  --timeout 2h
+```
+
+It uses every core of the preset; on an 8-core laptop 2,000 runs take about 12 s, so 20,000 take a few minutes.
+Locally: `docker run -v "$PWD/data:/data" cric launch-dispersion --vehicle electron --site mahia --runs 2000 --wind --out /data/d.json`.
+
 ## Try it locally first
 
 ```bash

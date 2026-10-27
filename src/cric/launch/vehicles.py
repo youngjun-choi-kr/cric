@@ -89,7 +89,7 @@ def _nuri() -> Vehicle:
             "burn_s": "published", "prop_kg": "derived (thrust x burn / Isp g0, scaled to 200 t)",
             "dry_kg": f"assumed ({int(f * 100)}% of stage)", "thrust_vac_n": "derived (mean over the burn)"}))
     return Vehicle("nuri", "Nuri (KSLV-II)", stages, 3.5, fairing, payload,
-                   {"glow_t": 200, "payload_kg": 1_900, "orbit": "700 km SSO", "orbit_alt_km": 700, "incl_deg": 98.2},
+                   {"glow_t": 200, "payload_kg": 1_900, "orbit": "700 km SSO", "orbit_alt_km": 700, "incl_deg": 98.2, "site": "naro"},
                    ["https://en.wikipedia.org/wiki/Nuri_(rocket)"], "Korea's three-stage launcher.")
 
 
@@ -108,7 +108,7 @@ def _electron() -> Vehicle:
                   "prop_kg": "assumed", "dry_kg": "assumed"})
     s2.prop_kg -= 80                                  # keep the stack at the published 13.0 t
     return Vehicle("electron", "Electron", [s1, s2, kick], 1.2, 50.0, 200.0,
-                   {"glow_t": 13.0, "payload_kg": 200, "orbit": "500 km SSO", "orbit_alt_km": 500, "incl_deg": 97.4},
+                   {"glow_t": 13.0, "payload_kg": 200, "orbit": "500 km SSO", "orbit_alt_km": 500, "incl_deg": 97.4, "site": "mahia"},
                    ["https://en.wikipedia.org/wiki/Electron_(rocket)"], "Rocket Lab's small launcher.")
 
 
@@ -132,7 +132,7 @@ def _sslv() -> Vehicle:
     payload, fairing, glow = 300.0, 300.0, 120_000.0
     st[0].dry_kg = glow - payload - fairing - st[0].prop_kg - sum(s.prop_kg + s.dry_kg for s in st[1:])
     return Vehicle("sslv", "SSLV", st, 2.0, fairing, payload,
-                   {"glow_t": 120, "payload_kg": 500, "orbit": "500 km LEO", "orbit_alt_km": 500, "incl_deg": 45.0,
+                   {"glow_t": 120, "payload_kg": 500, "orbit": "500 km LEO", "orbit_alt_km": 500, "incl_deg": 45.0, "site": "sriharikota",
                     "note": "published LEO figure; the source does not give the LEO inclination, 45 deg assumed"},
                    ["https://en.wikipedia.org/wiki/Small_Satellite_Launch_Vehicle"],
                    "India's small launcher: three solid stages and a liquid trim module that circularises.")
@@ -147,7 +147,7 @@ def _alpha() -> Vehicle:
                {"thrust_vac_n": "published", "isp_vac_s": "published", "isp_sl_s": "assumed (= vacuum)",
                 "prop_kg": "assumed", "dry_kg": "assumed"})
     return Vehicle("alpha", "Firefly Alpha", [s1, s2], 1.82, 400.0, 630.0,
-                   {"glow_t": 54, "payload_kg": 630, "orbit": "500 km SSO", "orbit_alt_km": 500, "incl_deg": 97.4},
+                   {"glow_t": 54, "payload_kg": 630, "orbit": "500 km SSO", "orbit_alt_km": 500, "incl_deg": 97.4, "site": "vandenberg"},
                    ["https://en.wikipedia.org/wiki/Firefly_Alpha"], "Firefly Aerospace's two-stage launcher.")
 
 
@@ -155,7 +155,7 @@ def _garage() -> Vehicle:
     # Fictional: a student two-stage rocket sized so that a 5 kg cubesat falls just short of a 500 km
     # sun-synchronous orbit from Naro, and a bigger first stage gets it there. Every number is assumed.
     fic = {k: "assumed (fictional)" for k in ("prop_kg", "dry_kg", "thrust_vac_n", "isp_vac_s", "isp_sl_s")}
-    s1 = Stage("Stage 1", 4_600, 520, 92e3, 275.0, 250.0, dict(fic))
+    s1 = Stage("Stage 1", 4_300, 486, 86e3, 275.0, 250.0, dict(fic))
     s2 = Stage("Stage 2", 400, 75, 9e3, 300.0, 300.0, dict(fic))
     return Vehicle("garage", "Garage One (fictional)", [s1, s2], 0.9, 20.0, 5.0, {}, [],
                    "A fictional student rocket that falls just short of orbit.")

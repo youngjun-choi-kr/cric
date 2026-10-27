@@ -117,11 +117,23 @@ def cmd_launch_dispersion(args) -> None:
     azs = [a for a in azimuths_for(site.lat, incl) if in_corridor(site, a)]
     if not azs:
         raise SystemExit(f"inclination {incl:.1f} is not reachable over the {site.name} corridor")
-    payload = args.payload if args.payload is not None else veh.payload_kg
+    payload = args.payload
+    if payload is None:                      # as the studio does: what this model can deliver, if below published
+        import math
+
+        from .config import ROOT
+        val = {r["vehicle"]: r for r in json.loads((ROOT / "fixtures" / "launch" / "vehicle_validation.json").read_text())["rows"]}
+        cap = val.get(veh.name, {}).get("model_payload_kg")
+        payload = math.floor(cap * 0.97) if cap and cap < veh.payload_kg else veh.payload_kg
     kw = {"lat": site.lat, "lon": site.lon, "az": azs[0], "target_alt_km": args.alt}
     t0 = time.time()
     g, r = optimise(veh, payload, parallel=True, **kw)
-    d = dispersion(veh, payload, g, runs=args.runs, seed=args.seed, **kw)
+    wind = None
+    if args.wind:
+        from .launch.windows import wind_profile
+
+        wind = wind_profile(site.id)
+    d = dispersion(veh, payload, g, runs=args.runs, seed=args.seed, wind=wind, **kw)
     d |= {"vehicle": veh.name, "payload_kg": payload, "site": site.name, "azimuth_deg": azs[0], "target_alt_km": args.alt,
           "inclination_deg": incl, "nominal": {k: r[k] for k in ("orbit", "target_reached", "perigee_km", "apogee_km")},
           "seconds": round(time.time() - t0, 1)}
@@ -196,6 +208,7 @@ def main() -> None:
     ld.add_argument("--incl", type=float, help="inclination, deg (default: sun-synchronous)")
     ld.add_argument("--runs", type=int, default=5000)
     ld.add_argument("--seed", type=int, default=0)
+    ld.add_argument("--wind", action="store_true", help="falling stages drift with the Open-Meteo forecast winds aloft")
     ld.add_argument("--out")
     ld.set_defaults(func=cmd_launch_dispersion)
 

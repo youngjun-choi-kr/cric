@@ -38,7 +38,9 @@ def facts() -> dict:
             "orbit": orbit.group(1) if orbit else "orbit", "fix": M["act1_facts"].get("fix") or "Verified fix: bigger first stage",
             "other": (a3.get("deployed", {}).get("enc") or {}).get("object_b", {}).get("name", "another satellite"),
             "miss_m": f"{(a3.get('deployed', {}).get('enc') or {}).get('miss_distance_km', 0) * 1000:,.0f}",
-            "action": action.replace("_", " ").title() or "decision"}
+            "action": action.replace("_", " ").title() or "decision",
+            "miss_km": f"{(a3.get('deployed', {}).get('enc') or {}).get('miss_distance_km', 0):.1f}",
+            "vrel": f"{(a3.get('deployed', {}).get('enc') or {}).get('relative_speed_kms', 0):.0f}"}
 
 
 F = facts()
@@ -48,49 +50,43 @@ SHOTS = [
      "Eighteen thousand objects are already in orbit. Jimin wants to add one."),
     ("J2", 4, "title", None, "CRIC Mission Studio\nYour rocket · your launch window · your satellite in orbit",
      "This is CRIC Mission Studio."),
-    ("J3", 10, "app", ("act1", "start", "fly"), "Rockets built from their numbers · true scale · Nemotron Nano reads the mission",
-     "Jimin's student rocket, Garage One, stands beside real launchers, built from its own numbers. Nemotron Nano "
-     "reads the mission; code computes the orbit."),
-    ("J4", 10, "app", ("act1", "verdict", "maxq"), "Every motion from the 3-DOF simulation · plume and sky are illustration",
-     "Liftoff. Every motion on screen comes from the flight simulation."),
-    ("J5", 8, "app", ("act1", "maxq", "handoff"), "Max Q · stage separation · fairing",
-     "Max Q. Stage separation. Fairing away."),
-    ("J6", 8, "app", ("act1", "handoff", "advise"), "Perigee below the ~150 km needed: it falls back after one orbit",
-     "But it is too slow. The perigee is too low, and it falls back after one orbit."),
-    ("J7", 10, "app", ("act1", "advise", "apply"), "Every fix is re-flown before it is shown · Nemotron 3 Super explains",
-     "Nemotron 3 Super explains where the delta-v went. The fix comes from the simulator, not the model."),
-    ("J7b", 6, "app", ("act1", "apply", "fly2"), f"{F['fix']}",
-     "A bigger first stage."),
-    ("J7c", 10, "app", ("act1", "liftoff2", "handoff2"), f"Second flight → {F['orbit']}",
-     "This time it climbs all the way."),
-    ("J7d", 9, "app", ("act1", "deploy2", "landed2"), "Orbit · payload deployed",
-     "Orbit. JIMIN-1 is deployed."),
-    ("J7e", 7, "app", ("act1", "disp", "end"), "500 dispersed flights · where stage 1 can fall",
-     "Five hundred scattered flights show where the first stage can land."),
-    ("J8", 9, "app", ("act2", "start", "hour"), "7 days × 9 sites · Open-Meteo · NOAA Kp · assumed small-launcher limits",
-     "When to launch? Every site that can reach the orbit, hour by hour for a week: wind, rain, lightning, upper "
-     "winds and space weather."),
-    ("J9", 13, "app", ("act2", "hour", "team"),
-     "Launch hour chosen for the film after screening the real forecast and catalog · LCOLA, first orbit",
-     f"Then every minute of that hour is screened against the catalog. Lifting off at {F['worst_t']}, Jimin's "
-     f"satellite would pass {F['worst_km']} kilometres from {F['worst_obj']}. Other minutes are clear."),
-    ("J10", 14, "app", ("act2", "team", "end"), "Weather · range · orbital safety: Nemotron 3 Super · director: Nemotron 3 Ultra",
-     f"Three launch-team roles vote on each candidate. Nemotron 3 Ultra, as mission director, calls go for "
-     f"{F['liftoff']}, and code makes sure it can never pick a vetoed window."),
-    ("J11", 12, "app", ("act3", "start", "assess"), "TLE from the insertion state · tracked with the catalog · screened for 72 h",
-     "Launch. JIMIN-1 joins the catalog. CRIC knows when it passes over Seoul, and screens it against everything "
-     "else for three days."),
-    ("J12", 18, "app", ("act3", "assess", "decision"),
-     f"Close approach: {F['other']} · {F['miss_m']} m · the CRIC pipeline, live (time-lapse)",
-     "A close approach. The same CRIC pipeline takes over: collision probability, burn options checked against "
-     "the catalog, a cited dossier on the other satellite, three votes, and a validator in code."),
-    ("J13", 9, "app", ("act3", "decision", "end"), f"{F['action']} · Jimin approves · logged, hash-chained · nothing is sent to a spacecraft",
-     "And the last word is Jimin's."),
+    ("A1", 8, "app", ("act1", "start", "target"), "Rockets built from their numbers, at true scale · X-ray: where each number came from",
+     "Jimin's student rocket, Garage One, stands next to real launchers, built from its own numbers."),
+    ("A2", 8, "app", ("act1", "target", "liftoff"), "Nemotron Nano reads the mission · orbit computed in code",
+     "Nemotron Nano reads the mission from one sentence; code works out the orbit. Liftoff."),
+    ("A3", 9, "app", ("act1", "liftoff", "handoff"), "Every motion from the 3-DOF simulation · plume and sky are illustration",
+     "Every motion comes from the flight simulation: max Q, staging, the fairing. But it is too slow."),
+    ("A4", 6, "app", ("act1", "handoff", "advise"), "Perigee below the ~150 km needed: it falls back",
+     "Its lowest point is too low, and it falls back."),
+    ("A5", 9, "app", ("act1", "advise", "apply"), "Every fix is flown again before it is shown · Nemotron 3 Super explains",
+     "Nemotron 3 Super explains where the speed went. The fix comes from the simulator, flown again before it is shown."),
+    ("A6", 6, "app", ("act1", "apply", "fly2"), f"{F['fix']}", "A bigger first stage."),
+    ("A7", 9, "app", ("act1", "liftoff2", "handoff2"), f"Second flight → {F['orbit']}", "This time it climbs all the way,"),
+    ("A8", 8, "app", ("act1", "deploy2", "landed2"), "Orbit · payload deployed", "and JIMIN-1 is in orbit."),
+    ("A9", 7, "app", ("act1", "disp", "end"), "500 scattered flights · forecast winds aloft · land check",
+     "Five hundred scattered flights, with the forecast winds aloft, show where stage one can land: at sea."),
+    ("B1", 9, "app", ("act2", "start", "hour"), "Outlined hours: the orbit crosses the equator at 10:30 local (LTDN) · Open-Meteo · NOAA Kp",
+     "When to launch? For an imaging satellite, the launch time sets the local time it passes over the ground."),
+    ("B2", 10, "app", ("act2", "hour", "team"), "Launch hour chosen for the film after screening the real forecast and catalog · LCOLA",
+     f"Every minute of that hour is screened against the catalog: at {F['worst_t']}, it would pass {F['worst_km']} kilometres from {F['worst_obj']}."),
+    ("B3", 13, "app", ("act2", "team", "end"), "Notes → rules with exact quotes (Nemotron 3 Super) · votes · director: Nemotron 3 Ultra",
+     f"The range notice and the customer's request, in Korean, become checked rules. Three roles vote, and Nemotron 3 Ultra calls go for {F['liftoff']}."),
+    ("C1", 10, "app", ("act3", "start", "assess"), "TLE from the insertion state · photo passes over Seoul marked",
+     "Launch. JIMIN-1 joins the catalog, and CRIC marks when it can photograph Seoul."),
+    ("C2", 14, "app", ("act3", "assess", "decision"), f"Close approach: {F['other']} · the CRIC pipeline, live (time-lapse)",
+     "A close approach. The same CRIC pipeline takes over: collision probability, verified burn options, a cited "
+     "dossier, three votes, a validator. On public data, it asks for precise data."),
+    ("C3", 8, "app", ("act3", "precise", "encounter"), "Precise ephemeris: decided again · no propellant spent",
+     "The precise ephemeris arrives, and the risk is gone."),
+    ("C4", 8, "app", ("act3", "encounter", "encounter_end"), "The pass in slow motion · positions from SGP4",
+     f"Here is that pass: {F['miss_km']} kilometres, at {F['vrel']} kilometres a second."),
+    ("C5", 5, "app", ("act3", "encounter_end", "end"), "Jimin approves · logged, hash-chained · nothing is sent to a spacecraft",
+     "And Jimin approves."),
     ("J14", 9, "card", None, "Code for what can be checked.\nNemotron for what must be read.\nPeople for what must be decided.",
      "From a garage rocket to a satellite that is looked after. Code for what can be checked, Nemotron for what "
      "must be read, people for what must be decided."),
-    ("J15", 5, "title", None, "CRIC Mission Studio\nNVIDIA Nemotron on Nebius Token Factory · Open-Meteo · NOAA · CelesTrak\n"
-                             "github.com/youngjun-choi-kr/cric", ""),
+    ("J15", 4, "title", None, "CRIC Mission Studio\nNVIDIA Nemotron on Nebius Token Factory · Open-Meteo · NOAA · CelesTrak\n"
+                             "youngjun-choi-kr.github.io/cric", ""),
 ]
 
 

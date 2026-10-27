@@ -97,7 +97,14 @@ def satcat(norad: int) -> dict:
     if cache.exists() and time.time() - cache.stat().st_mtime < SATCAT_MAX_AGE_S:
         row = json.loads(cache.read_text())
     else:
-        rows = requests.get(SATCAT_URL.format(norad=norad), timeout=30).json()
+        for attempt in range(3):                  # CelesTrak is occasionally slow; a timeout should not end an incident
+            try:
+                rows = requests.get(SATCAT_URL.format(norad=norad), timeout=30).json()
+                break
+            except requests.RequestException:
+                if attempt == 2:
+                    raise
+                time.sleep(3 * (attempt + 1))
         if not rows:
             raise LookupError(f"NORAD {norad} not found in SATCAT")
         row = rows[0]

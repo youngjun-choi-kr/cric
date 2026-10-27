@@ -67,7 +67,8 @@
     "payload_kg": 1900,
     "orbit": "700 km SSO",
     "orbit_alt_km": 700,
-    "incl_deg": 98.2
+    "incl_deg": 98.2,
+    "site": "naro"
    },
    "sources": [
     "https://en.wikipedia.org/wiki/Nuri_(rocket)"
@@ -142,7 +143,8 @@
     "payload_kg": 200,
     "orbit": "500 km SSO",
     "orbit_alt_km": 500,
-    "incl_deg": 97.4
+    "incl_deg": 97.4,
+    "site": "mahia"
    },
    "sources": [
     "https://en.wikipedia.org/wiki/Electron_(rocket)"
@@ -238,6 +240,7 @@
     "orbit": "500 km LEO",
     "orbit_alt_km": 500,
     "incl_deg": 45.0,
+    "site": "sriharikota",
     "note": "published LEO figure; the source does not give the LEO inclination, 45 deg assumed"
    },
    "sources": [
@@ -296,7 +299,8 @@
     "payload_kg": 630,
     "orbit": "500 km SSO",
     "orbit_alt_km": 500,
-    "incl_deg": 97.4
+    "incl_deg": 97.4,
+    "site": "vandenberg"
    },
    "sources": [
     "https://en.wikipedia.org/wiki/Firefly_Alpha"
@@ -313,9 +317,9 @@
    "stages": [
     {
      "name": "Stage 1",
-     "prop_kg": 4600,
-     "dry_kg": 520,
-     "thrust_vac_n": 92000.0,
+     "prop_kg": 4300,
+     "dry_kg": 486,
+     "thrust_vac_n": 86000.0,
      "isp_vac_s": 275.0,
      "isp_sl_s": 250.0,
      "source": {
@@ -355,7 +359,7 @@
    "cd": 0.4,
    "residual_frac": 0.015,
    "fairing_sep_km": 110.0,
-   "glow_kg": 5620
+   "glow_kg": 5286
   }
  },
  "sites": {
