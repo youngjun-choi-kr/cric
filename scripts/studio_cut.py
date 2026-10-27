@@ -65,7 +65,7 @@ SHOTS = [
      "When to launch? Every site that can reach the orbit, hour by hour for a week: wind, rain, lightning, upper "
      "winds and space weather."),
     ("J9", 13, "app", ("act2", "hour", "team"),
-     f"Launch hour chosen for the film after screening the real forecast and catalog · LCOLA, first orbit",
+     "Launch hour chosen for the film after screening the real forecast and catalog · LCOLA, first orbit",
      f"Then every minute of that hour is screened against the catalog. Lifting off at {F['worst_t']}, Jimin's "
      f"satellite would pass {F['worst_km']} kilometres from {F['worst_obj']}. Other minutes are clear."),
     ("J10", 14, "app", ("act2", "team", "end"), "Weather · range · orbital safety: Nemotron 3 Super · director: Nemotron 3 Ultra",
