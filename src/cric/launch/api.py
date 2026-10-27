@@ -89,7 +89,9 @@ def _flight_payload(m: dict, g, r: dict) -> dict:
         high = [x for x in s if x[1] >= 200]
         step = math.ceil(len(high) / max(1500 - len(low), 300))
         r["samples"] = sorted(low + high[::step] + [s[-1]], key=lambda x: x[0])
-    return {"flight": r, "guidance": [g.h_turn_km, g.phi_end1_deg, g.phi0_deg, g.phi1_deg],
+    from .land import range_check
+
+    return {"flight": r, "range": range_check(r), "guidance": [g.h_turn_km, g.phi_end1_deg, g.phi0_deg, g.phi1_deg],
             "azimuth_deg": round(m["az"], 2), "azimuth_note": m["az_note"], "azimuth_ok": m["az_ok"],
             "inclination_target_deg": round(m["incl"], 2), "vehicle": m["veh"].to_dict(),
             "site": vars(m["site"])}
@@ -129,8 +131,12 @@ def dispersion(b: dict) -> dict:
     m = _mission(b)
     if m["g"] is None:
         raise BadRequest("fly the rocket first")
+    from .land import range_check
+
     runs = max(50, min(int(b.get("runs", 500)), 3000))
-    return disp.dispersion(m["veh"], m["payload"], m["g"], runs=runs, **_kw(m))
+    d = disp.dispersion(m["veh"], m["payload"], m["g"], runs=runs, **_kw(m))
+    d["range"] = range_check(_fly(m), d)
+    return d
 
 
 def sheet(body: bytes, mime: str) -> dict:
@@ -162,7 +168,7 @@ def lcola(b: dict) -> dict:
     return windows.lcola(_fly(m), start, _catalog(), minutes=minutes)
 
 
-def _window_facts(m: dict, r: dict, t: str, wx_hours: dict, lc_rows: dict) -> dict:
+def _window_facts(m: dict, r: dict, t: str, wx_hours: dict, lc_rows: dict, rng: dict) -> dict:
     h = wx_hours.get(t[:13] + ":00:00Z") or {}
     lc = lc_rows.get(t) or {}
     kp = next((c for c in h.get("checks", []) if c["check"].startswith("space weather")), None)
@@ -172,9 +178,10 @@ def _window_facts(m: dict, r: dict, t: str, wx_hours: dict, lc_rows: dict) -> di
         "weather": [c for c in h.get("checks", []) if not c["check"].startswith("space weather")] or "no forecast",
         "range": {"site": m["site"].name, "azimuth_deg": round(m["az"], 2), "azimuth_inside_corridor": m["az_ok"],
                   "corridor_deg": m["site"].corridors,
-                  "stage_impacts": [{k: s.get(k) for k in ("stage", "lat", "lon", "downrange_km")}
-                                    for s in r["stage_impacts"] if "lat" in s],
-                  "rule": "no-go if the azimuth is outside the corridor (impacts over populated land)"},
+                  "stage_impacts": [{k: s.get(k) for k in ("stage", "lat", "lon", "downrange_km", "on_land")}
+                                    for s in rng["nominal"]],
+                  "land_check": rng["status"], "land_check_source": rng["source"],
+                  "rule": "no-go if the azimuth is outside the corridor or any spent stage comes down on land"},
         "lcola": {"closest_km": lc.get("closest_km"), "object": lc.get("object"),
                   "minutes_after_insertion": lc.get("minutes_after_insertion"),
                   "caution_km": windows.CRITERIA["lcola_km"][0], "nogo_km": windows.CRITERIA["lcola_km"][1]},
@@ -199,16 +206,29 @@ def gonogo(b: dict) -> dict:
     span = int((max(parse_utc(t) for t in cands) - start).total_seconds() // 60) + 1
     lc = windows.lcola(r, start, _catalog(), minutes=max(span, 1))
     lc_rows = {x["liftoff_utc"]: x for x in lc.get("rows", [])}
-    facts = [_window_facts(m, r, t, wx, lc_rows) for t in cands]
-    if not m["az_ok"]:
+    from .agents import apply_rules, read_launch_notes
+    from .land import range_check
+
+    rng = range_check(r)
+    facts = [_window_facts(m, r, t, wx, lc_rows, rng) for t in cands]
+    if not m["az_ok"] or rng["status"] == "nogo":
         for f in facts:
             f["status"] = "nogo"
     u = Usage()
+    notes = str(b.get("notes") or "").strip()
+    read = read_launch_notes(notes, m["site"].id, m["site"].name, cands[0][:10], usage=u,
+                             window=(min(cands), max(cands))) if notes else None
+    for f in facts:
+        f["team_notes"] = apply_rules(read["rules"], f["liftoff_utc"], m["site"].lat, m["site"].lon, f["weather"]) if read else []
+        if any(x["effect"] == "nogo" for x in f["team_notes"]):
+            f["status"] = "nogo"
     with ThreadPoolExecutor(len(facts)) as ex:
         voted = dict(zip(cands, ex.map(lambda f: votes(f, usage=u), facts)))
-    brief = director([{k: f[k] for k in ("liftoff_utc", "status")} | {"lcola_closest_km": f["lcola"]["closest_km"]}
-                      for f in facts], voted, usage=u)
-    return {"windows": facts, "votes": voted, "brief": brief, "usage": u.as_dict()}
+    brief = director([{k: f[k] for k in ("liftoff_utc", "status")} | {"lcola_closest_km": f["lcola"]["closest_km"],
+                      "team_notes": [x for x in f["team_notes"] if x["effect"] != "ok"]} for f in facts], voted, usage=u,
+                     needs_person="a note with a launch restriction could not be read reliably"
+                     if read and read["needs_person"] else None)
+    return {"windows": facts, "votes": voted, "brief": brief, "notes": read, "usage": u.as_dict()}
 
 
 def deploy(b: dict) -> dict:

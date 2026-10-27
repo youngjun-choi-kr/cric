@@ -182,12 +182,17 @@ def main() -> None:
         page.click("[data-enc='0']"); rec.mark("assess")
         page.wait_for_selector(".decision", timeout=400000); rec.mark("decision"); rec.hold(2)
         page.evaluate("document.querySelector('.decision').scrollIntoView({behavior: 'smooth', block: 'end'})"); rec.hold(3)
-        page.click("#apOk"); page.wait_for_function("document.getElementById('apOut').textContent.length > 0", timeout=30000)
+        page.click(".nextPrecise"); rec.mark("precise")                # the provider's ephemeris arrives
+        page.wait_for_function("document.querySelectorAll('.decision').length > 1", timeout=400000); rec.mark("decision2"); rec.hold(2)
+        page.evaluate("[...document.querySelectorAll('.decision')].pop().scrollIntoView({behavior: 'smooth', block: 'end'})"); rec.hold(3)
+        page.evaluate("[...document.querySelectorAll('.decision .apOk')].pop().click()")
+        page.wait_for_function("[...document.querySelectorAll('.decision .apOut')].pop().textContent.length > 0", timeout=30000)
         rec.mark("approved"); rec.hold(4)
         marks["act3"] = rec.stop("act3")
         marks["act3_facts"] = page.evaluate("""() => ({deployed: {norad: studio.S.deployed.norad_id, n: studio.S.deployed.objects_in_catalog,
             enc: studio.S.deployed.encounters[0], passes: studio.S.deployed.passes?.length},
-            decision: document.querySelector('.decision')?.innerText})""")
+            decision: document.querySelector('.decision')?.innerText,
+            decision2: [...document.querySelectorAll('.decision')].pop()?.innerText})""")
         browser.close()
     (OUT / "studio_markers.json").write_text(json.dumps(marks, indent=1, ensure_ascii=False))
     print(OUT / "studio_markers.json")

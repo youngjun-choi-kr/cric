@@ -126,6 +126,10 @@ CRIC is a research prototype for decision support. It is not an operational coll
   misread unit would propagate; the form shows every value for the owner to check.
 - Dispersion sigmas (thrust 1.5%, Isp 0.5%, dry mass 2%, pitch 0.3 deg, azimuth 0.3 deg) are assumptions, not
   any vehicle's data. Impacts ignore wind drift and break-up.
+- The land check uses Natural Earth 1:50m outlines: small islands and coastlines are approximate (a few km), and it
+  ignores wind drift and debris spread beyond the dispersion runs. A range's hazard areas are larger and official.
+- Team notes are read by a model and checked in code (quote present, no instruction-like text, values in range).
+  A note that is wrong but well-formed (a closure typed with the wrong hour) is applied as written.
 - Launch commit criteria are simplified assumptions for a small launcher (CRITERIA in `cric/launch/windows.py`);
   real ranges use their own, stricter rules (lightning field mills, cloud ceilings, toxic-plume corridors). Site
   corridors are coarse azimuth ranges over the sea, not range safety analysis.

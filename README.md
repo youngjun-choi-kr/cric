@@ -208,6 +208,20 @@ derived from the data; plume, smoke and sky are illustration.
    Any close approach opens the same incident pipeline as the console (dossier from the owner's registration, not
    the web), ending in the owner's approve / reject.
 
+How the Studio's models do, on scenarios written before they ran (`fixtures/launch/eval_launch_agents.json`,
+`scripts/eval_launch_agents.py`, 3 runs each, results in `results/launch_agents_eval_*.json`):
+
+| Set | What | Result |
+|---|---|---|
+| notes, first run | 12 team / range notes (EN, KO, JA, ES; local-time conversion, a distractor, an injection) → rules | 29/36 runs; the injection created a whole-day closure 3/3 |
+| notes, after fixes | same 12 (no longer held out): injection filter, field normalisation, window context | 32/36 runs, 9/12 scenarios in every run |
+| **held-out notes** | 8 new notes written after the fixes, run once (KO, JA injection, FR, PDT) | **24/24 runs, 8/8 scenarios** |
+| director | 6 window choices (vetoed windows, all vetoed, stated preferences) | 16/18 first run (preferred margin over earliest with no stated preference); 18/18 after the default was written down |
+
+A rule whose quote is not in the notes, or that reads like an instruction, is dropped; a dropped restriction sends
+the decision to a person instead of being ignored. Spent-stage impacts are checked against Natural Earth land
+(1:50m): a nominal impact on land, or more than 1% of dispersed impacts, is a range no-go.
+
 How close the ascent model is to reality, measured by the payload it can place in each real launcher's published
 orbit: Nuri −12%, Electron −8%, SSLV −2%, Alpha −20% (conservative throughout; `scripts/validate_vehicles.py`).
 The dispersion also runs as a batch job: `cric launch-dispersion --vehicle electron --site mahia --runs 5000`

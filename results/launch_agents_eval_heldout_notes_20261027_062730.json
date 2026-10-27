@@ -1,0 +1,431 @@
+{
+ "summary": {
+  "notes_runs_passed": "24/24",
+  "notes_scenarios_all_runs_passed": "8/8",
+  "notes_rules_dropped_by_code": 0,
+  "notes_runs_sent_to_a_person": 0,
+  "director_runs_model_correct": null,
+  "director_runs_final_correct": "0/0",
+  "director_guard_interventions": 0,
+  "usage": {
+   "calls": 24,
+   "tokens_in": 9702,
+   "tokens_out": 12964,
+   "cost_usd": 0.01458,
+   "by_model": {
+    "nvidia/nemotron-3-super-120b-a12b": {
+     "calls": 24,
+     "cost_usd": 0.01458
+    }
+   }
+  },
+  "seconds": 17.9,
+  "repeats": 3,
+  "set": "heldout_notes"
+ },
+ "notes": [
+  {
+   "id": "H01",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:50:00Z",
+     "end_utc": "2026-11-01T00:05:00Z",
+     "value": 0.0,
+     "quote": "해상 통제 공지: 11월 1일 08시 50분부터 09시 05분(KST)까지 발사 금지.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H01",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:50:00",
+     "end_utc": "2026-11-01T00:05:00",
+     "value": 0.0,
+     "quote": "해상 통제 공지: 11월 1일 08시 50분부터 09시 05분(KST)까지 발사 금지.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H01",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:50:00Z",
+     "end_utc": "2026-11-01T00:05:00Z",
+     "value": 0.0,
+     "quote": "해상 통제 공지: 11월 1일 08시 50분부터 09시 05분(KST)까지 발사 금지.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H02",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:40:00",
+     "end_utc": "2026-10-31T23:55:00",
+     "value": 0.0,
+     "quote": "Range: hold all launches between 16:40 and 16:55 PDT on Oct 31 for a sounding rocket.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H02",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:40:00",
+     "end_utc": "2026-10-31T23:55:00",
+     "value": 0.0,
+     "quote": "hold all launches between 16:40 and 16:55 PDT on Oct 31 for a sounding rocket.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H02",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:40:00",
+     "end_utc": "2026-10-31T23:55:00",
+     "value": 0.0,
+     "quote": "hold all launches between 16:40 and 16:55 PDT on Oct 31 for a sounding rocket.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H03",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_wind_ms",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 8.0,
+     "quote": "Weather lead: sustained ground wind must stay under 8 m/s for this vehicle.",
+     "note": "Weather lead: sustained ground wind must stay under 8 m/s for this vehicle."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H03",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_wind_ms",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 8.0,
+     "quote": "sustained ground wind must stay under 8 m/s for this vehicle.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H03",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_wind_ms",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 8.0,
+     "quote": "sustained ground wind must stay under 8 m/s for this vehicle.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H04",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H04",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H04",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H05",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H05",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H05",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H06",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "night_only",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 0.0,
+     "quote": "we only want a launch after dark",
+     "note": "Customer requests launch after dark for night-time camera test"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H06",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "night_only",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "Customer: we only want a launch after dark, for the night-time camera test.",
+     "note": "Customer requests launch after dark for night-time camera test."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H06",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "night_only",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "we only want a launch after dark, for the night-time camera test.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H07",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 0.0,
+     "quote": "Le client préfère la fenêtre la plus tardive si plusieurs sont possibles.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H07",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "Le client préfère la fenêtre la plus tardive si plusieurs sont possibles.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H07",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "Le client préfère la fenêtre la plus tardive si plusieurs sont possibles.",
+     "note": "Le client préfère la fenêtre la plus tardive si plusieurs sont possibles."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H08",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-10-31T23:40:00",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "no launch before 23:40 UTC today",
+     "note": ""
+    },
+    {
+     "kind": "max_precip_pct",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 30.0,
+     "quote": "the rain chance has to be below 30%.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H08",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-10-31T23:40:00",
+     "end_utc": "2026-10-31T23:40:00",
+     "value": 0.0,
+     "quote": "no launch before 23:40 UTC today",
+     "note": ""
+    },
+    {
+     "kind": "max_precip_pct",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 30.0,
+     "quote": "the rain chance has to be below 30%",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "H08",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-10-31T23:40:00Z",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "no launch before 23:40 UTC today",
+     "note": "no launch before 23:40 UTC today"
+    },
+    {
+     "kind": "max_precip_pct",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 30.0,
+     "quote": "the rain chance has to be below 30%",
+     "note": "the rain chance has to be below 30%"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  }
+ ],
+ "director": []
+}

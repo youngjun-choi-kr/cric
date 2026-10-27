@@ -11,7 +11,9 @@ stores every response, plus the CRIC decision stream for the first close approac
 from __future__ import annotations
 
 import copy
+import html
 import json
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +25,7 @@ OUT = ROOT / "web" / "launch" / "replay" / "jimin1.json"
 URL = "http://localhost:8765"
 H = {"Host": "localhost:8765"}
 TEXT = "My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit."
+NOTES = html.unescape(re.search(r'<textarea id="teamNotes"[^>]*>(.*?)</textarea>', (ROOT / "web" / "studio.html").read_text(), re.S).group(1))
 entries: list[dict] = []
 
 
@@ -81,21 +84,22 @@ def main() -> None:
     go = sorted((x for x in lc["rows"] if x["status"] == "go"), key=lambda x: -(x["closest_km"] or 1e9))
     worst = min((x for x in lc["rows"] if x["closest_km"] is not None), key=lambda x: x["closest_km"])
     cands = sorted({worst["liftoff_utc"], *[x["liftoff_utc"] for x in go[:2]]})
-    board = call("gonogo", m_ok | {"candidates": cands})
+    board = call("gonogo", m_ok | {"candidates": cands, "notes": NOTES})
     liftoff = board["brief"]["liftoff_utc"]
     dep = call("deploy", m_ok | {"liftoff_utc": liftoff, "name": "JIMIN-1", "owner": "Jimin", "mission": "photograph Seoul",
                                  "can_maneuver": True, "home": {"name": "Seoul", "lat": 37.5665, "lon": 126.978}})
     incidents = {}
     for enc in dep["encounters"][:1]:
-        t = time.time()
-        ev = []
-        with requests.get(f"{URL}/api/incident", headers=H, stream=True, timeout=900,
-                          params={"ours": enc["object_a"]["norad_id"], "other": enc["object_b"]["norad_id"], "preset": "quiet", "mode": "live"}) as r:
-            for line in r.iter_lines(decode_unicode=True):
-                if line and line.startswith("data: "):
-                    ev.append(json.loads(line[6:]))
-        incidents[f"{enc['object_a']['norad_id']}-{enc['object_b']['norad_id']}"] = ev
-        print(f"  incident    {time.time() - t:5.1f} s  {len(ev)} events", flush=True)
+        for preset in ("quiet", "precise"):           # public TLE data first, then the provider's ephemeris
+            t = time.time()
+            ev = []
+            with requests.get(f"{URL}/api/incident", headers=H, stream=True, timeout=900,
+                              params={"ours": enc["object_a"]["norad_id"], "other": enc["object_b"]["norad_id"], "preset": preset, "mode": "live"}) as r:
+                for line in r.iter_lines(decode_unicode=True):
+                    if line and line.startswith("data: "):
+                        ev.append(json.loads(line[6:]))
+            incidents[f"{enc['object_a']['norad_id']}-{enc['object_b']['norad_id']}-{preset}"] = ev
+            print(f"  incident    {preset:8} {time.time() - t:5.1f} s  {len(ev)} events", flush=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({"recorded_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "hour": hour,
                                "liftoff_utc": liftoff, "entries": entries, "incidents": incidents},

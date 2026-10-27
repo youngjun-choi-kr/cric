@@ -423,7 +423,11 @@ function renderFlight(r) {
           <div class="kv"><span>Highest point</span><b>${fmt(f.apex_km)} km</b>
           ${f.perigee_km > 0 ? `<span>Perigee</span><b>${fmt(f.perigee_km)} km: below the ~150 km needed to stay up, so the atmosphere pulls it down</b>` : ''}
           ${f.impact ? `<span>Comes down</span><b>${fmtLL(f.impact.lat, f.impact.lon)} · ${fmt(f.impact.t / 60)} min after liftoff${f.impact.t > 3000 ? ' (after most of an orbit)' : `, ${fmt(Math.abs(f.impact.downrange_km))} km downrange`}</b>` : ''}</div>`) +
-    `<div class="kv">${f.stage_impacts.map((s) => `<span>${esc(s.stage)}</span><b>${s.stays_in_orbit ? 'stays in orbit' : `falls at ${fmtLL(s.lat, s.lon)}, ${fmt(Math.abs(s.downrange_km))} km downrange`}</b>`).join('')}</div>`;
+    `<div class="kv">${f.stage_impacts.map((s) => {
+      const land = r.range?.nominal.find((n) => n.stage === s.stage)?.on_land;
+      return `<span>${esc(s.stage)}</span><b>${s.stays_in_orbit ? 'stays in orbit' : `falls at ${fmtLL(s.lat, s.lon)}, ${fmt(Math.abs(s.downrange_km))} km downrange
+        ${land == null ? '' : land ? '<span class="tag bad">ON LAND · range no-go</span>' : '<span class="tag ok">at sea</span>'}`}</b>`;
+    }).join('')}</div>`;
   $('flightBar').innerHTML = `<button id="replayBtn">⟲ Replay ascent</button>
     ${ok && !thin ? '' : `<button id="adviseBtn" class="primary">${ok ? 'Add a reserve' : 'Why? How do I fix it?'}</button>`}
     <button id="dispBtn">Where could it fall? (500 runs)</button>
@@ -512,6 +516,8 @@ async function runDispersion() {
     <div class="row"><span>Reaches orbit</span><b>${(r.p_orbit * 100).toFixed(0)}%</b></div><div class="row"><span>Reaches the target orbit</span><b>${(r.p_target * 100).toFixed(0)}%</b></div>
     <table class="t mt"><tr><th>falls</th><th>runs</th><th>95% area</th></tr>${rows}
     ${r.vehicle_impacts.length ? `<tr><td>whole vehicle</td><td>${r.vehicle_impacts.length}</td><td>${r.vehicle_ellipse ? `${r.vehicle_ellipse.p95_axes_km[0]} × ${r.vehicle_ellipse.p95_axes_km[1]} km` : 'along the ground track (no ellipse)'}</td></tr>` : ''}</table>
+    ${r.range ? `<div class="row small mt"><span>Range safety (land check)</span><b class="${r.range.status === 'go' ? '' : 'bad'}" style="color:var(--${r.range.status === 'go' ? 'ok' : 'warn'})">${r.range.status === 'go' ? 'clear of land' : esc(r.range.reasons.join('; '))}</b></div>
+      <div class="small dim">${Object.entries(r.range.dispersed_land_share).map(([k, v]) => `${esc(k)}: ${(v * 100).toFixed(1)}% of impacts on land`).join(' · ')} (limit ${r.range.land_limit * 100}% per spent stage; ${esc(r.range.source)})</div>` : ''}
     <div class="small dim">1σ: thrust ${r.sigma.thrust * 100}%, Isp ${r.sigma.isp * 100}%, dry mass ${r.sigma.dry * 100}%, pitch ${r.sigma.kick_add}°, azimuth ${r.sigma.az_add}°. Same code runs as a batch job for thousands of runs (Nebius Serverless Jobs).</div></div>`;
 }
 
@@ -591,15 +597,18 @@ function renderCands() {
 }
 $('teamBtn').addEventListener('click', async () => {
   const r = await busy('Launch team voting (weather, range safety, orbital safety · Nemotron 3 Super) and mission director brief (Nemotron 3 Ultra)…',
-    () => api('gonogo', mission({ candidates: [...S.cands].sort() })));
+    () => api('gonogo', mission({ candidates: [...S.cands].sort(), notes: $('teamNotes').value })));
   const ROLE = { weather: 'Weather', range: 'Range', orbital: 'Orbital' };
   const b = r.brief;
   $('board').innerHTML = r.windows.map((w) => {
     const vs = r.votes[w.liftoff_utc];
     return `<div class="win"><div class="hd"><span>${w.liftoff_utc.slice(5, 10)} ${hhmm(w.liftoff_utc)} UTC</span><span class="tag ${w.status === 'go' ? 'ok' : w.status === 'nogo' ? 'bad' : 'mid'}">checks: ${w.status}</span></div>
       ${Object.entries(vs).map(([k, v]) => `<div class="vote"><span class="r">${ROLE[k]}</span><span class="tag ${v.vote === 'go' ? 'ok' : 'bad'}">${v.vote}</span><span>${esc(v.reason)}</span></div>`).join('')}
+      ${(w.team_notes || []).filter((x) => x.effect !== 'ok').map((x) => `<div class="vote"><span class="r">Notes</span><span class="tag ${x.effect === 'nogo' ? 'bad' : 'blue'}">${esc(x.effect)}</span><span>${esc(x.kind.replace(/_/g, ' '))}: “${esc(x.quote)}”</span></div>`).join('')}
       <div class="small dim">LCOLA ${w.lcola.closest_km != null ? fmt(w.lcola.closest_km, 1) + ' km (' + esc(w.lcola.object) + ')' : 'clear'} · Kp ${typeof w.kp === 'object' ? w.kp.value : w.kp}</div></div>`;
-  }).join('') + `<div class="brief ${b.decision === 'go' ? '' : 'hold'}"><div class="dim small">MISSION DIRECTOR · Nemotron 3 Ultra</div>
+  }).join('') + (r.notes ? `<div class="card mt"><b>From the notes</b> <span class="model">Nemotron 3 Super · quotes checked in code</span>
+      ${r.notes.rules.map((x) => `<div class="small">✓ ${esc(x.kind.replace(/_/g, ' '))}${x.start_utc ? ` ${esc(x.start_utc.slice(11, 16))}–${esc((x.end_utc || '').slice(11, 16))} UTC` : ''}${x.value ? ` ≥ ${x.value}` : ''} · <span class="dim">“${esc(x.quote)}”</span></div>`).join('')}
+      ${r.notes.dropped.map((x) => `<div class="small" style="color:var(--warn)">✗ dropped (${esc(x.dropped)}): “${esc(x.quote)}”</div>`).join('')}</div>` : '') + `<div class="brief ${b.decision === 'go' ? '' : 'hold'}"><div class="dim small">MISSION DIRECTOR · Nemotron 3 Ultra</div>
     <div class="big">${b.decision === 'go' ? `GO for ${hhmm(b.liftoff_utc)} UTC` : 'HOLD'}</div><div>${esc(b.summary)}</div>
     ${b.watch_items?.length ? `<div class="small mt"><b>Watch:</b> ${b.watch_items.map(esc).join(' · ')}</div>` : ''}
     ${b.guard ? `<div class="small" style="color:var(--mid)">Guard: ${esc(b.guard)}</div>` : ''}
@@ -679,12 +688,18 @@ const STEP_TXT = {
   decision: (e) => `Model proposes ${e.decision.action}`, validation: (e) => `Safety validator: ${e.final_action}`,
   agreement: (e) => `Coded rules and model ${e.agree ? 'agree' : 'disagree'} → ${e.final?.action}`,
 };
-function assess(enc) {
+function assess(enc, preset = 'quiet', prev = null) {
+  // preset 'precise': the screening provider's ephemeris arrives (CDM-grade covariance) and CRIC decides again
   const out = $('incOut');
-  out.innerHTML = `<h2 class="mt">CRIC · ${esc(enc.object_a.name)} × ${esc(enc.object_b.name)}</h2><div class="stream" id="stream"></div>`;
-  const add = (t, k = '•') => { const d = document.createElement('div'); d.innerHTML = `<span class="k">${k}</span>${esc(t)}`; $('stream').append(d); };
+  if (!prev) out.innerHTML = '';
+  const head = document.createElement('div');
+  head.innerHTML = `<h2 class="mt">CRIC · ${esc(enc.object_a.name)} × ${esc(enc.object_b.name)}${preset === 'precise' ? ' · precise data' : ''}</h2>`;
+  const stream = document.createElement('div'); stream.className = 'stream';
+  out.append(head, stream);
+  const add = (t, k = '•') => { const d = document.createElement('div'); d.innerHTML = `<span class="k">${k}</span>${esc(t)}`; stream.append(d); stream.scrollIntoView({ block: 'end', behavior: 'smooth' }); };
+  const pair = `${enc.object_a.norad_id}-${enc.object_b.norad_id}`;
   if (!HAS_API) {                                   // replay the recorded stream at a quicker pace
-    const ev = REPLAY?.incidents?.[`${enc.object_a.norad_id}-${enc.object_b.norad_id}`];
+    const ev = REPLAY?.incidents?.[`${pair}-${preset}`] || (preset === 'quiet' ? REPLAY?.incidents?.[pair] : null);
     if (!ev) { add('Not in this recording: run Mission Studio locally for a live decision.', '⚠'); return; }
     add('Replay of the recorded live run (Token Factory + Tavily)', '⟲');
     (async () => {
@@ -692,41 +707,48 @@ function assess(enc) {
       for (const e of ev) {
         await sleep(Math.min(1200, Math.max(60, ((e.t ?? last) - last) * 250))); last = e.t ?? last;
         if (STEP_TXT[e.kind]) add(STEP_TXT[e.kind](e));
-        if (e.kind === 'result') showDecision(e);
+        if (e.kind === 'result') showDecision(e, enc, preset, prev);
       }
     })();
     return;
   }
-  const es = new EventSource(`/api/incident?ours=${enc.object_a.norad_id}&other=${enc.object_b.norad_id}&preset=quiet&mode=live`);
-  add('Live run: Token Factory + Tavily (about a minute, ~$0.03)', '▶');
+  const es = new EventSource(`/api/incident?ours=${enc.object_a.norad_id}&other=${enc.object_b.norad_id}&preset=${preset}&mode=live`);
+  add(`Live run: Token Factory + Tavily (about a minute, ~$0.03)${preset === 'precise' ? ' · precise ephemeris' : ''}`, '▶');
   es.onmessage = (m) => {
     const e = JSON.parse(m.data);
     if (STEP_TXT[e.kind]) add(STEP_TXT[e.kind](e));
     if (e.kind === 'error') { add(e.message, '⚠'); es.close(); }
     if (e.kind === 'end') es.close();
-    if (e.kind === 'result') showDecision(e);
+    if (e.kind === 'result') showDecision(e, enc, preset, prev);
   };
   es.onerror = () => { es.close(); };
 }
-function showDecision(e) {
+function showDecision(e, enc, preset, prev) {
   const fin = e.validation.final_action, opt = e.options.find((o) => o.id === e.validation.final_option_id);
+  const pc = (x) => (x ? x.toExponential(1) : '≈ 0');
   const box = document.createElement('div'); box.className = 'decision';
   box.innerHTML = `<div class="dim small">DECISION · ${e.seconds.toFixed(0)} s · $${e.usage.cost_usd.toFixed(3)}</div>
-    <div class="big">${esc(fin)}${opt ? ` · ${opt.dv_ms.toFixed(3)} m/s ${esc(opt.direction)} at ${opt.burn_utc.slice(11, 16)} UTC` : ''}</div>
+    <div class="big">${esc(fin.replace(/_/g, ' '))}${opt ? ` · ${opt.dv_ms.toFixed(3)} m/s ${esc(opt.direction)} at ${opt.burn_utc.slice(11, 16)} UTC` : ''}</div>
+    ${prev ? `<div class="pcmove">Collision probability <b>${pc(prev.pc)}</b> on public TLE data → <b>${pc(e.risk.pc)}</b> with precise ephemeris${
+      e.risk.pc < 1e-6 && !opt ? ' · <span style="color:var(--ok)">cleared, no propellant spent</span>' : ''}</div>` : ''}
     <div>${esc(e.decision.rationale)}</div>
-    <div class="small dim mt">Pc ${e.risk.pc ? e.risk.pc.toExponential(1) : '≈ 0'} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${esc(e.other.name)} can manoeuvre: ${esc(e.other.capability?.can_maneuver)}</div>
-    <div class="ctl mt"><input id="opName" placeholder="Your name (who decides)" value="${esc($('satOwner').value)}">
-      <button id="apOk" class="primary">Approve</button><button id="apNo">Reject</button></div><div id="apOut" class="small"></div>`;
+    <div class="small dim mt">Pc ${pc(e.risk.pc)} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${e.options.length} burn options verified (${e.options.map((o) => `${o.id} ${o.dv_ms.toFixed(2)} m/s`).join(', ')}) · ${esc(e.other.name)} can manoeuvre: ${esc(e.other.capability?.can_maneuver)}</div>
+    <div class="ctl mt"><input class="opName" placeholder="Your name (who decides)" value="${esc($('satOwner').value)}">
+      <button class="apOk primary">Approve</button><button class="apNo">Reject</button></div><div class="apOut small"></div>
+    ${fin === 'REQUEST_PRECISE_DATA' && preset === 'quiet' ? '<div class="ctl mt"><button class="nextPrecise">Precise ephemeris arrives → decide again</button><span class="small dim">simulated: the screening provider\'s covariance (CDM grade)</span></div>' : ''}`;
   $('incOut').append(box);
+  box.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  const q = (c) => box.querySelector(c);
   const send = async (verdict) => {
     const reason = verdict === 'reject' ? prompt('Why reject?') : '';
     if (verdict === 'reject' && !reason) return;
-    if (!HAS_API) { $('apOut').innerHTML = `Replay: ${esc(verdict)} noted on this page only. With the server, the decision is logged and hash-chained.`; return; }
+    if (!HAS_API) { q('.apOut').innerHTML = `Replay: ${esc(verdict)} noted on this page only. With the server, the decision is logged and hash-chained.`; return; }
     const r = await fetch('/api/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file: e.file, action: fin, option_id: e.validation.final_option_id || '', verdict, reason, operator: $('opName').value }) }).then((x) => x.json());
-    $('apOut').innerHTML = `✓ ${esc(verdict)}d by ${esc(r.operator)} · logged (hash ${esc(r.hash?.slice(0, 10))}…) · ${esc(r.note)}`;
+      body: JSON.stringify({ file: e.file, action: fin, option_id: e.validation.final_option_id || '', verdict, reason, operator: q('.opName').value }) }).then((x) => x.json());
+    q('.apOut').innerHTML = `✓ ${esc(verdict)}d by ${esc(r.operator)} · logged (hash ${esc(r.hash?.slice(0, 10))}…) · ${esc(r.note)}`;
   };
-  $('apOk').onclick = () => send('approve'); $('apNo').onclick = () => send('reject');
+  q('.apOk').onclick = () => send('approve'); q('.apNo').onclick = () => send('reject');
+  if (q('.nextPrecise')) q('.nextPrecise').onclick = () => { q('.nextPrecise').disabled = true; assess(enc, 'precise', e.risk); };
 }
 
 // ---------- loop ----------

@@ -96,3 +96,34 @@ def test_static_presets_match_the_api():
 
     path = Path(__file__).resolve().parents[1] / "web" / "launch" / "presets.json"
     assert json.loads(path.read_text()) == json.loads(json.dumps(presets({})))
+
+
+def test_land_check_knows_land_from_sea():
+    from cric.launch.land import on_land, range_check
+
+    assert on_land(37.57, 126.98) and on_land(33.4, 126.55) and not on_land(30.0, 125.0) and not on_land(20.0, -150.0)
+    flight = {"stage_impacts": [{"stage": "Stage 1", "lat": 30.0, "lon": 125.0}, {"stage": "Stage 2", "lat": 37.57, "lon": 126.98}]}
+    r = range_check(flight)
+    assert r["status"] == "nogo" and r["reasons"] == ["Stage 2 comes down on land"]
+    disp = {"stages": {"Stage 1": {"impacts": [[30.0, 125.0]] * 99 + [[37.57, 126.98]]}}}
+    assert range_check({"stage_impacts": []}, disp)["status"] == "go"           # 1% on land is the limit
+
+
+def test_notes_guards_and_rules(monkeypatch):
+    notes = "Range closed 23:50-00:10 UTC (31 Oct to 1 Nov). Launch only in daylight."
+    fake = agents.LaunchRules(rules=[
+        agents.LaunchRule(kind="closure", start_utc="2026-10-31T23:50:00Z", end_utc="2026-10-31T00:10:00Z",
+                          quote="Range closed 23:50-00:10 UTC (31 Oct to 1 Nov)."),          # end rolls to the next day
+        agents.LaunchRule(kind="daylight_only", quote="Launch only in daylight."),
+        agents.LaunchRule(kind="closure", start_utc="2026-10-31T00:00:00Z", end_utc="2026-11-01T00:00:00Z",
+                          quote="closed all day"),                                             # not in the notes
+    ])
+    monkeypatch.setattr(agents, "structured_call", lambda *a, **k: (fake, ""))
+    r = agents.read_launch_notes(notes, "naro", "Naro", "2026-10-31")
+    assert [x["kind"] for x in r["rules"]] == ["closure", "daylight_only"] and r["rules"][0]["end_utc"] == "2026-11-01T00:10:00Z"
+    assert r["dropped"][0]["dropped"] == "quote not found in the notes" and r["needs_person"]   # a restriction was lost
+    eff = lambda t: {x["kind"]: x["effect"] for x in agents.apply_rules(r["rules"], t, 34.43, 127.53, [])}
+    assert eff("2026-10-31T23:55:00Z") == {"closure": "nogo", "daylight_only": "ok"}       # 08:55 KST, sun up
+    assert eff("2026-10-31T13:00:00Z")["daylight_only"] == "nogo"                          # 22:00 KST
+    b = agents.director([{"liftoff_utc": "2026-10-31T23:55:00Z", "status": "go"}], {}, needs_person="test")
+    assert b["decision"] == "hold"

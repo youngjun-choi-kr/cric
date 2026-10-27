@@ -1,0 +1,845 @@
+{
+ "summary": {
+  "notes_runs_passed": "31/36",
+  "notes_scenarios_all_runs_passed": "7/12",
+  "notes_rules_dropped_by_code": 4,
+  "notes_runs_sent_to_a_person": 4,
+  "director_runs_model_correct": "18/18",
+  "director_runs_final_correct": "18/18",
+  "director_guard_interventions": 0,
+  "usage": {
+   "calls": 54,
+   "tokens_in": 23460,
+   "tokens_out": 31969,
+   "cost_usd": 0.05767,
+   "by_model": {
+    "nvidia/nemotron-3-super-120b-a12b": {
+     "calls": 36,
+     "cost_usd": 0.02644
+    },
+    "nvidia/Nemotron-3-Ultra-550b-a55b": {
+     "calls": 18,
+     "cost_usd": 0.03123
+    }
+   }
+  },
+  "seconds": 48.3,
+  "repeats": 3
+ },
+ "notes": [
+  {
+   "id": "N01",
+   "pass": false,
+   "rules": [],
+   "dropped": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31 23:30 UTC",
+     "end_utc": "2026-10-31 23:45 UTC",
+     "value": 0.0,
+     "quote": "the sea area south of the pad is closed to launches from 08:30 to 08:45 KST on 1 Nov for a fishing fleet transit.",
+     "note": "Converted to UTC: 23:30-23:45 UTC on 31 Oct 2026",
+     "dropped": "unreadable time"
+    }
+   ],
+   "needs_person": true,
+   "missing": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:30:00Z",
+     "end_utc": "2026-10-31T23:45:00Z"
+    }
+   ],
+   "extra": []
+  },
+  {
+   "id": "N01",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:30:00",
+     "end_utc": "2026-10-31T23:45:00",
+     "value": 0.0,
+     "quote": "the sea area south of the pad is closed to launches from 08:30 to 08:45 KST on 1 Nov for a fishing fleet transit.",
+     "note": "Converted closure times to UTC: 2026-10-31 23:30–23:45 UTC."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N01",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:30:00",
+     "end_utc": "2026-10-31T23:45:00",
+     "value": 0.0,
+     "quote": "the sea area south of the pad is closed to launches from 08:30 to 08:45 KST on 1 Nov for a fishing fleet transit.",
+     "note": "Converted to UTC: 2026-10-31 23:30-23:45 UTC."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N02",
+   "pass": false,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "고객사 요청: 발사는 현지 일출 이후에만 해 주세요.",
+     "note": "Customer request: launch only after local sunrise."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [
+    {
+     "kind": "daylight_only"
+    }
+   ],
+   "extra": [
+    {
+     "kind": "other",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "고객사 요청: 발사는 현지 일출 이후에만 해 주세요.",
+     "note": "Customer request: launch only after local sunrise."
+    }
+   ]
+  },
+  {
+   "id": "N02",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "daylight_only",
+     "start_utc": "2026-10-31T21:45:00Z",
+     "end_utc": "2026-11-01T08:50:00Z",
+     "value": 0.0,
+     "quote": "고객사 요청: 발사는 현지 일출 이후에만 해 주세요.",
+     "note": "고객사 요청: 발사는 현지 일출 이후에만 해 주세요."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N02",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "daylight_only",
+     "start_utc": "2026-10-31T21:30:00",
+     "end_utc": "2026-11-01T08:30:00",
+     "value": 0.0,
+     "quote": "고객사 요청: 발사는 현지 일출 이후에만 해 주세요.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N03",
+   "pass": false,
+   "rules": [],
+   "dropped": [
+    {
+     "kind": "max_gust_ms",
+     "start_utc": "2026-10-31 23:00 UTC",
+     "end_utc": "2026-10-31 23:59 UTC",
+     "value": 12.0,
+     "quote": "今回のキャンペーンでは、地上の突風が12m/s以上の場合は打ち上げを中止します。",
+     "note": "Maximum gust wind speed limit of 12 m/s.",
+     "dropped": "unreadable time"
+    }
+   ],
+   "needs_person": true,
+   "missing": [
+    {
+     "kind": "max_gust_ms",
+     "value": 12
+    }
+   ],
+   "extra": []
+  },
+  {
+   "id": "N03",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_gust_ms",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 12.0,
+     "quote": "今回のキャンペーンでは、地上の突風が12m/s以上の場合は打ち上げを中止します。",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N03",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_gust_ms",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 12.0,
+     "quote": "今回のキャンペーンでは、地上の突風が12m/s以上の場合は打ち上げを中止します。",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N04",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-11-01T00:00:00",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "Por favor, no lanzar antes de las 09:00 hora local del 1 de noviembre.",
+     "note": "Por favor, no lanzar antes de las 09:00 hora local del 1 de noviembre."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N04",
+   "pass": false,
+   "rules": [],
+   "dropped": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-10-31 00:00 UTC",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "Por favor, no lanzar antes de las 09:00 hora local del 1 de noviembre.",
+     "note": "Converted from local 09:00 (UTC+9) on 2026-11-01",
+     "dropped": "unreadable time"
+    }
+   ],
+   "needs_person": true,
+   "missing": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-11-01T00:00:00Z"
+    }
+   ],
+   "extra": []
+  },
+  {
+   "id": "N04",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_before",
+     "start_utc": "2026-11-01T00:00:00",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "Por favor, no lanzar antes de las 09:00 hora local del 1 de noviembre.",
+     "note": "not_before"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N05",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N05",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N05",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N06",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N06",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N06",
+   "pass": true,
+   "rules": [],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N07",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:50:00",
+     "end_utc": "2026-11-01T00:10:00",
+     "value": 0.0,
+     "quote": "Range closed 23:50-00:10 UTC (31 Oct to 1 Nov)",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N07",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:50:00",
+     "end_utc": "2026-11-01T00:10:00",
+     "value": 0.0,
+     "quote": "Range closed 23:50-00:10 UTC (31 Oct to 1 Nov) for an aircraft transit.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N07",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:50:00",
+     "end_utc": "2026-11-01T00:10:00",
+     "value": 0.0,
+     "quote": "Range closed 23:50-00:10 UTC (31 Oct to 1 Nov) for an aircraft transit.",
+     "note": "Aircraft transit causes range closure"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N08",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_precip_pct",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 40.0,
+     "quote": "Do not launch if the chance of rain is 40% or higher.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N08",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_precip_pct",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 40.0,
+     "quote": "Do not launch if the chance of rain is 40% or higher.",
+     "note": "Maximum allowable precipitation probability"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N08",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "max_precip_pct",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 40.0,
+     "quote": "Do not launch if the chance of rain is 40% or higher.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N09",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "night_only",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "이번 임무는 야간 발사만 허용됩니다.",
+     "note": "Only night launches are allowed."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N09",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "night_only",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 0.0,
+     "quote": "이번 임무는 야간 발사만 허용됩니다.",
+     "note": "Night only launch permitted"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N09",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "night_only",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "이번 임무는 야간 발사만 허용됩니다.",
+     "note": "Only night launches are permitted."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N10",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "",
+     "end_utc": "",
+     "value": 0.0,
+     "quote": "The customer would like the window with the most margin from other satellites.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N10",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 0.0,
+     "quote": "The customer would like the window with the most margin from other satellites.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N10",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "other",
+     "start_utc": "2026-10-31T23:00:00",
+     "end_utc": "2026-10-31T23:59:00",
+     "value": 0.0,
+     "quote": "The customer would like the window with the most margin from other satellites.",
+     "note": "The customer would like the window with the most margin from other satellites."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N11",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_after",
+     "start_utc": "",
+     "end_utc": "2026-11-01T01:00:00Z",
+     "value": 0.0,
+     "quote": "Mahia: no launches after 14:00 local time on 1 November.",
+     "note": "Converted to UTC: not after 01:00 UTC on 2026-11-01."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N11",
+   "pass": false,
+   "rules": [],
+   "dropped": [
+    {
+     "kind": "not_after",
+     "start_utc": "",
+     "end_utc": "2026-11-01 01:00 UTC",
+     "value": 0.0,
+     "quote": "Mahia: no launches after 14:00 local time on 1 November.",
+     "note": "Converted to UTC: not after 01:00 UTC on 2026-11-01",
+     "dropped": "unreadable time"
+    }
+   ],
+   "needs_person": true,
+   "missing": [
+    {
+     "kind": "not_after",
+     "end_utc": "2026-11-01T01:00:00Z"
+    }
+   ],
+   "extra": []
+  },
+  {
+   "id": "N11",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "not_after",
+     "start_utc": "2026-11-01T01:00:00Z",
+     "end_utc": "2026-11-01T01:00:00Z",
+     "value": 0.0,
+     "quote": "Mahia: no launches after 14:00 local time on 1 November.",
+     "note": "Converted to UTC: not after 01:00 UTC on 2026-11-01."
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N12",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:20:00",
+     "end_utc": "2026-10-31T23:35:00",
+     "value": 0.0,
+     "quote": "launches are now not allowed between 23:20 and 23:35 UTC on 31 Oct.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N12",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:20:00",
+     "end_utc": "2026-10-31T23:35:00",
+     "value": 0.0,
+     "quote": "Range: the maritime exercise has moved, and launches are now not allowed between 23:20 and 23:35 UTC on 31 Oct.",
+     "note": ""
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  },
+  {
+   "id": "N12",
+   "pass": true,
+   "rules": [
+    {
+     "kind": "closure",
+     "start_utc": "2026-10-31T23:20:00",
+     "end_utc": "2026-10-31T23:35:00",
+     "value": 0.0,
+     "quote": "launches are now not allowed between 23:20 and 23:35 UTC on 31 Oct.",
+     "note": "Range"
+    }
+   ],
+   "dropped": [],
+   "needs_person": false,
+   "missing": [],
+   "extra": []
+  }
+ ],
+ "director": [
+  {
+   "id": "D01",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected the earliest qualifying window (2026-10-31T23:46:00Z) which has a 'go' status and unanimous go votes from weather, range, and orbital. The earlier window at 23:36 was nogo with an orbital no-go vote, and the later window at 23:56 also qualifies but is later."
+  },
+  {
+   "id": "D01",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected 2026-10-31T23:46:00Z as earliest window with status go and unanimous go votes."
+  },
+  {
+   "id": "D01",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected the earliest qualifying window (2026-10-31T23:46:00Z) which has a 'go' status and unanimous go votes from weather, range, and orbital."
+  },
+  {
+   "id": "D02",
+   "expect": null,
+   "model_pick": null,
+   "final": null,
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both candidate windows have orbital no-go votes and status nogo; no qualifying window."
+  },
+  {
+   "id": "D02",
+   "expect": null,
+   "model_pick": null,
+   "final": null,
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both candidate windows have a 'nogo' status and received a 'no-go' vote from orbital. No window meets the criteria of all-go votes and a go status."
+  },
+  {
+   "id": "D02",
+   "expect": null,
+   "model_pick": null,
+   "final": null,
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both candidate windows have orbital no-go votes and status nogo; no qualifying window. Hold."
+  },
+  {
+   "id": "D03",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected 2026-10-31T23:46:00Z as it has all go votes and no no-go votes."
+  },
+  {
+   "id": "D03",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected the 23:46 UTC window as it is the only candidate with a 'go' status and no no-go votes. The earlier 23:36 UTC window had a weather no-go vote."
+  },
+  {
+   "id": "D03",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "The 23:36 window was disqualified due to a weather no-go vote. The 23:46 window has status go and all three disciplines (weather, range, orbital) voted go, making it the only qualifying window. Selected as the earliest (and only) qualifying window."
+  },
+  {
+   "id": "D04",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both candidate windows have all-go votes and no no-go votes. The customer's preference (noted for the director) is to maximize margin from other satellites. The 23:46 window offers 31 km closest approach versus 12 km for the 23:36 window, so it is selected."
+  },
+  {
+   "id": "D04",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both windows are graded go with all votes go. The customer prefers the window with the most margin from other satellites (lcola_closest_km). The 23:46 window has 31 km margin vs 12 km for the 23:36 window, so it is selected."
+  },
+  {
+   "id": "D04",
+   "expect": "2026-10-31T23:46:00Z",
+   "model_pick": "2026-10-31T23:46:00Z",
+   "final": "2026-10-31T23:46:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both windows have all go votes and no no-go votes. The customer requested the window with the most margin from other satellites (lcola_closest_km). The 23:46 window has 31 km margin vs 12 km for the 23:36 window, so it is selected."
+  },
+  {
+   "id": "D05",
+   "expect": "2026-10-31T23:36:00Z",
+   "model_pick": "2026-10-31T23:36:00Z",
+   "final": "2026-10-31T23:36:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both candidate windows have all-go votes and no no-go votes. The customer preference for the earliest clear window directs selection of the 23:36 UTC window."
+  },
+  {
+   "id": "D05",
+   "expect": "2026-10-31T23:36:00Z",
+   "model_pick": "2026-10-31T23:36:00Z",
+   "final": "2026-10-31T23:36:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both candidate windows have all-go votes and no no-go votes. The customer prefers the earliest clear window, so the 23:36 UTC window is selected."
+  },
+  {
+   "id": "D05",
+   "expect": "2026-10-31T23:36:00Z",
+   "model_pick": "2026-10-31T23:36:00Z",
+   "final": "2026-10-31T23:36:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Both windows are go with all votes go. Customer preference for earliest window applies; selected 2026-10-31T23:36:00Z."
+  },
+  {
+   "id": "D06",
+   "expect": "2026-10-31T23:58:00Z",
+   "model_pick": "2026-10-31T23:58:00Z",
+   "final": "2026-10-31T23:58:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Only the 23:58 UTC window has a 'go' status from checks and unanimous 'go' votes from weather, range, and orbital. The earlier windows are closed by range closure and have no-go votes."
+  },
+  {
+   "id": "D06",
+   "expect": "2026-10-31T23:58:00Z",
+   "model_pick": "2026-10-31T23:58:00Z",
+   "final": "2026-10-31T23:58:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected the 23:58 UTC window as it is the only candidate with a 'go' status and unanimous go votes from weather, range, and orbital."
+  },
+  {
+   "id": "D06",
+   "expect": "2026-10-31T23:58:00Z",
+   "model_pick": "2026-10-31T23:58:00Z",
+   "final": "2026-10-31T23:58:00Z",
+   "model_ok": true,
+   "final_ok": true,
+   "guard": null,
+   "summary": "Selected the only qualifying window (2026-10-31T23:58:00Z) which has a 'go' status and unanimous go votes from weather, range, and orbital."
+  }
+ ]
+}
