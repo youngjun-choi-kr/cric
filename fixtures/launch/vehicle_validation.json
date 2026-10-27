@@ -18,8 +18,8 @@
    "orbit": "500 km SSO",
    "inclination_flown_deg": 97.4,
    "published_payload_kg": 200,
-   "model_payload_kg": 184,
-   "error_pct": -8.0,
+   "model_payload_kg": 195,
+   "error_pct": -2.7,
    "note": ""
   },
   {
@@ -29,8 +29,8 @@
    "orbit": "500 km LEO",
    "inclination_flown_deg": 45.0,
    "published_payload_kg": 500,
-   "model_payload_kg": 492,
-   "error_pct": -1.6,
+   "model_payload_kg": 519,
+   "error_pct": 3.7,
    "note": ""
   },
   {
@@ -40,8 +40,8 @@
    "orbit": "500 km SSO",
    "inclination_flown_deg": 97.4,
    "published_payload_kg": 630,
-   "model_payload_kg": 502,
-   "error_pct": -20.3,
+   "model_payload_kg": 524,
+   "error_pct": -16.8,
    "note": ""
   }
  ],

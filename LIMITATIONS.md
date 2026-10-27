@@ -116,10 +116,15 @@ CRIC is a research prototype for decision support. It is not an operational coll
 - The approval step logs a decision; it does not send anything. There is no uplink.
 
 ## Mission Studio
-- The ascent is 3-DOF in one plane: no yaw steering or dog-legs, no winds aloft in the flight, an exponential
-  atmosphere, a constant drag coefficient. Guidance is a four-number pitch program found by an optimiser, not a
-  real closed-loop guidance. Against published capacities it is conservative by 2-20% (README); for a rocket
-  that has never flown, treat "reaches orbit" as a first check, not a qualification.
+- The ascent is 3-DOF in one plane: no yaw steering or dog-legs, no winds in the powered flight (winds aloft only
+  move falling stages), the US 1976 standard atmosphere, a constant drag coefficient. Guidance is a four-number
+  pitch program found by an optimiser, not real closed-loop guidance; the engine-out what-if flies the same plan
+  without re-planning. Against published capacities it is within -17% to +4% (README); for a rocket that has never
+  flown, treat "reaches orbit" as a first check, not a qualification.
+- Wind drift of falling stages uses terminal speed below 12 km and the forecast profile at five pressure levels,
+  with 20% speed and 15 deg direction error per run; break-up and lift are ignored.
+- LCOLA collision probability uses assumed uncertainties (new satellite 1 / 6 / 1 km radial / along-track /
+  normal, catalogue 0.4 / 2 / 0.4 km) and a 10 m hard-body radius; real values come from the launch provider.
 - Preset numbers mix published figures with derived and assumed ones; each field says which. Garage One is
   fictional.
 - Spec-sheet reading copies numbers it can see; gaps are filled with labelled defaults and listed as missing. A

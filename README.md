@@ -234,7 +234,7 @@ test plants an object 1 km above the insertion and must flag it no-go); LTAN mov
 delay; the land check knows Seoul and Jeju from the East China Sea.
 
 How close the ascent model is to reality, measured by the payload it can place in each real launcher's published
-orbit: Nuri −12%, Electron −8%, SSLV −2%, Alpha −20% (conservative throughout; `scripts/validate_vehicles.py`).
+orbit: Nuri −12%, Electron −3%, SSLV +4%, Alpha −17% (`scripts/validate_vehicles.py`; US Standard Atmosphere 1976).
 The dispersion also runs as a batch job: `cric launch-dispersion --vehicle electron --site mahia --runs 5000`
 (2,000 runs in 12 s on an 8-core laptop), the shape of a Nebius Serverless Job. Limits: [LIMITATIONS.md](LIMITATIONS.md#mission-studio).
 

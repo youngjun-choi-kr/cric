@@ -58,7 +58,8 @@ const SKY = {
       float s = max(dot(vD, normalize(sun)), 0.);
       c += vec3(1., .9, .7) * (pow(s, 900.) * 6. + pow(s, 12.) * .25 * (1. - k * .7));
       c *= mix(0.04, 1.0, day);                                       // night: the sky goes dark
-      vec3 q = floor(vD * 420.); float st = step(.9985, h(q)) * max(smoothstep(30., 70., alt), 1. - day) * step(0., y + .05);
+      vec3 q = floor(vD * 420.), fq = fract(vD * 420.) - .5;          // one star per lit cell, a small round point
+      float st = step(.9985, h(q)) * smoothstep(.16, .04, length(fq)) * max(smoothstep(30., 70., alt), 1. - day) * step(0., y + .05);
       c += vec3(st) * .9;
       gl_FragColor = vec4(c, 1.);
       #include <tonemapping_fragment>
@@ -378,16 +379,17 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     const [sl, so] = subsolar(date);
     const sunL = toLocal(F, ecef(sl, so, 1.5e11)).normalize();
     if (opts.inOrbit && sunL.y < 0.35) sunL.set(0.5, 0.6, 0.62).normalize();   // deploy shot: illustrative daylight
-    scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x404030, 0.6));
+    const hemi = new THREE.HemisphereLight(0xbfd6ff, 0x404030, 0.6); scene.add(hemi);
     const dayK = THREE.MathUtils.smoothstep(sunL.y, -0.12, 0.08);   // 0 at night, 1 in daylight
     sky.material.uniforms.day.value = dayK;
+    hemi.intensity = 0.12 + 0.48 * dayK;
     const sunLight = new THREE.DirectionalLight(0xfff2dd, 0.15 + 2.45 * dayK); sunLight.castShadow = true;
     const plumeLight = new THREE.PointLight(0xffa64d, 0, 4000, 1.6); scene.add(plumeLight);
     const cover = opts.cloudCover ?? 25;                            // % from the forecast hour, or illustrative
     let clouds = null;
     if (cover > 3 && !opts.inOrbit) {
-      clouds = new THREE.Mesh(new THREE.PlaneGeometry(60000, 60000), new THREE.MeshLambertMaterial({ map: cloudTexture(cover), transparent: true,
-        opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+      clouds = new THREE.Mesh(new THREE.PlaneGeometry(26000, 26000), new THREE.MeshLambertMaterial({ map: cloudTexture(cover), transparent: true,
+        opacity: 0.7, depthWrite: false, side: THREE.DoubleSide, fog: false, color: new THREE.Color().setScalar(0.05 + 0.95 * dayK) }));
       clouds.rotation.x = -Math.PI / 2; clouds.position.y = 2600; clouds.renderOrder = 2; scene.add(clouds);
     }
     sunLight.shadow.mapSize.set(2048, 2048);
@@ -427,7 +429,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     if (tAlt) tHand = Math.min(tHand, tAlt);
     tHand = Math.min(tHand, S[S.length - 1][0]);
     fl = { flight, vehicle, site, S, F, scene, rk, holder, flames, diamonds, smoke, spark, sunL, sunLight, ground, sepT, fairT, tHand,
-      plumeLight, dayK, clouds, cloudOpacity: 0.85,
+      plumeLight, dayK, clouds, cloudOpacity: 0.7,
       t: -10, rate: 1, camMode: 'auto', spent: [], fairDone: false, toast: [], done: false, opts, base, hadSep: new Set(),
       pos: new THREE.Vector3(), dir: new THREE.Vector3(0, 1, 0), up: new THREE.Vector3(0, 1, 0), along: new THREE.Vector3(1, 0, 0), vel: new THREE.Vector3() };
     // HUD timeline
@@ -659,13 +661,13 @@ export function createCloseView(root, { earthTex, onState } = {}) {
         const jitter = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(4);
         const back = f.vel.clone().multiplyScalar(Math.random()).negate().multiplyScalar(0.0);
         const at = tail.clone().addScaledVector(f.vel, -Math.random() * dt);
-        const grey = 0.78 + Math.random() * 0.15;
+        const grey = (0.78 + Math.random() * 0.15) * (0.25 + 0.75 * f.dayK);   // smoke is dark at night
         f.smoke.emit(at, jitter.add(back), 20 + Math.random() * 15, f.rk.D * 1.5, f.rk.D * (6 + 20 * (1 - pr)), 0.22 * (0.4 + 0.6 * pr), [grey, grey, grey * 1.02]);
       }
       if (f.t < 3) for (let k = 0; k < 6; k++) {                  // ground cloud from the flame trench
         const a = Math.random() * Math.PI * 2, sp = 12 + Math.random() * 18;
         f.smoke.emit(new THREE.Vector3(Math.cos(a) * 3, 2, Math.sin(a) * 3 + 6), new THREE.Vector3(Math.cos(a) * sp, 1 + Math.random() * 3, Math.sin(a) * sp),
-          12 + Math.random() * 8, 4, 16, 0.2, [0.86, 0.85, 0.83]);
+          12 + Math.random() * 8, 4, 16, 0.2, [0.86, 0.85, 0.83].map((c) => c * (0.25 + 0.75 * f.dayK)));
       }
     }
     f.smoke.step(dt, 0.25); f.spark.step(dt, 1.2);
@@ -699,7 +701,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
       f.scene.fog.near = s[1] * 300; f.scene.fog.far = s[1] * 2600; f.scene.fog.color.setRGB(0.22, 0.4, 0.74);
     } else {
       f.scene.fog.near = 2e3 + s[1] * 4e3; f.scene.fog.far = 9e4 + s[1] * 6e4;
-      f.scene.fog.color.setRGB(0.74 - Math.min(0.6, s[1] / 60), 0.83 - Math.min(0.65, s[1] / 60), 0.94 - Math.min(0.7, s[1] / 70));
+      f.scene.fog.color.setRGB(0.74 - Math.min(0.6, s[1] / 60), 0.83 - Math.min(0.65, s[1] / 60), 0.94 - Math.min(0.7, s[1] / 70)).multiplyScalar(0.06 + 0.94 * f.dayK);
     }
     // camera
     cameraFor(f.camMode === 'auto' ? autoCam(f.t) : f.camMode, dtReal);
@@ -769,7 +771,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     const dist = Math.max(3500, e.miss_km * 1000 * 3.2);
     cam.position.copy(at).add(pTca).multiplyScalar(0.5).addScaledVector(side, dist).addScaledVector(new THREE.Vector3(0, 1, 0), dist * 0.35);
     cam.up.set(0, 1, 0); cam.fov = 50; cam.near = 1; cam.far = 3e7; cam.updateProjectionMatrix();
-    cam.lookAt(at.clone().add(pTca).multiplyScalar(0.5));
+    cam.lookAt(at.clone().add(pTca).multiplyScalar(0.5).addScaledVector(new THREE.Vector3(0, 1, 0), -dist * 0.55));   // Earth's limb in view
     const lblMe = label(`<b>${esc(e.ours)}</b>`, 'enc me'), lblOther = label(`<b>${esc(e.other)}</b>`, 'enc'), lblMiss = label('', 'enc miss');
     $('cvTitle').textContent = `${e.ours} × ${e.other} · closest approach ${e.tca_utc.slice(0, 16).replace('T', ' ')} UTC`;
     root.querySelector('.cv-note').textContent = 'Positions from SGP4 on public TLE data (about 1 km) · slow motion, 1 s of the encounter = 25 s · markers not to scale';
