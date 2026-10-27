@@ -696,6 +696,7 @@ function orbitRing(rec, t0) {
   return ring;
 }
 function showOps(r, home, lat, lon) {
+  S.ops = { passes: r.passes || [], encounters: r.encounters || [] };
   const kst = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().slice(5, 16).replace('T', ' ');
   const imaging = (p) => p.max_elevation_deg >= 30 && sunElev(new Date(p.max_utc), lat, lon) > 5;   // daylight, high enough
   $('opsOut').innerHTML = `${r.passes?.length ? `<h2 class="mt">PASSES OVER ${esc(home.toUpperCase())}</h2>
@@ -814,7 +815,7 @@ function applyBurn(p, r) {
   showAfter(null);
   me.line = line(orbitRing(rec, Date.parse(S.deployed.epoch_utc)), 0x4fe3a1, 0.9); me.line.userData.inertial = true; layer.orbit.add(me.line);
   showFuel(r.propulsion);
-  simMs = Math.max(simMs, Date.parse(p.burn_utc));
+  simMs = Math.max(simMs, Date.parse(p.burn_utc)); clock.trackAt = -1;
   const [lat, lon] = $('homeLL').value.split(',').map(Number);
   showOps({ ...S.deployed, passes: p.passes || S.deployed.passes, encounters: p.encounters.slice(0, 10), screen_hours: p.screen_hours }, $('homeName').value, lat, lon);
   burnPreview();
@@ -909,6 +910,45 @@ function showDecision(e, enc, preset, prev) {
   };
 }
 
+// ---------- mission clock: fast-forward, ground track, what comes next ----------
+const clock = { dragging: false, trackAt: -1, track: null };
+document.querySelectorAll('#clockBar [data-r]').forEach((b) => b.addEventListener('click', () => setRate(+b.dataset.r)));
+function setRate(r) { simRate = r; document.querySelectorAll('#clockBar [data-r]').forEach((x) => x.classList.toggle('on', +x.dataset.r === r)); }
+$('clockR').addEventListener('input', () => { clock.dragging = true; simMs = Date.parse(S.deployed.epoch_utc) + +$('clockR').value * 1000; clock.trackAt = -1; });
+$('clockR').addEventListener('change', () => { clock.dragging = false; });
+const until = (ms) => { const m = Math.round(ms / 60e3); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} m`; };
+function upcoming() {
+  const [lat, lon] = $('homeLL').value.split(',').map(Number), home = $('homeName').value;
+  const ev = [];
+  (S.ops?.passes || []).forEach((p) => ev.push({ t: Date.parse(p.max_utc), txt: `${p.max_elevation_deg >= 30 && sunElev(new Date(p.max_utc), lat, lon) > 5 ? '📷 photo pass' : '📡 pass'} over ${home}` }));
+  (S.ops?.encounters || []).forEach((e) => ev.push({ t: Date.parse(e.tca_utc), txt: `⚠ ${e.object_b.name} at ${fmt(e.miss_distance_km * 1000)} m` }));
+  return ev.filter((e) => e.t > simMs - 60e3).sort((a, b) => a.t - b.t).slice(0, 3);
+}
+function groundTrack(d) {                                  // the next orbit traced on the ground (Earth-fixed)
+  if (clock.track) layer.orbit.remove(clock.track);
+  const period = 2 * Math.PI / me.rec.no * 60e3, pts = [];
+  for (let k = 0; k <= 240; k++) {
+    const t = new Date(d.getTime() + period * k / 160), p = satellite.propagate(me.rec, t).position;
+    if (p) pts.push(eci2scene(p, t).normalize().multiplyScalar(RE * 1.003));
+  }
+  clock.track = line(pts, 0x4fe3a1, 0.35); layer.orbit.add(clock.track);
+  clock.trackAt = d.getTime();
+}
+function tickClock(d) {
+  const bar = $('clockBar');
+  bar.hidden = !(layer.orbit.visible && me && S.deployed);
+  if (bar.hidden) return;
+  const t0 = Date.parse(S.deployed.epoch_utc);
+  if (simMs > t0 + 259200e3) simMs = t0 + 259200e3;        // the screened span: stop at its end
+  if (!clock.dragging) $('clockR').value = Math.round((simMs - t0) / 1000);
+  $('clockT').textContent = `${d.toISOString().slice(5, 16).replace('T', ' ')} UTC · day ${Math.floor((simMs - t0) / 864e5) + 1} of 3`;
+  if (Math.abs(simMs - clock.trackAt) > 10 * 60e3) groundTrack(d);
+  const next = upcoming();
+  $('clockNext').innerHTML = next.map((e) => `<span class="${e.t - simMs < 15 * 60e3 ? 'soon' : ''}">${esc(e.txt)} · ${e.t <= simMs ? 'now' : 'in ' + until(e.t - simMs)}</span>`).join('') || '<span class="dim">Nothing scheduled in the screened 3 days.</span>';
+  if (next[0] && simRate > 60 && next[0].t > simMs && (next[0].t - simMs) / simRate < 2000) setRate(simRate / (simRate > 600 ? 6 : 10));   // ease off as an event comes up
+  setSun(d);
+}
+
 // ---------- loop ----------
 let last = performance.now();
 function frame(now) {
@@ -921,8 +961,10 @@ function frame(now) {
     updateCatalog(d);
     const p = satellite.propagate(me.rec, d).position;
     if (p) { const v = eci2scene(p, d); me.dot.geometry.setFromPoints([v]); me.lbl.pos.copy(v); }
-    layer.orbit.children.forEach((c) => { if (c.userData.inertial) c.rotation.y = satellite.gstime(new Date(Date.parse(S.deployed.epoch_utc))) - satellite.gstime(d); });
-  }
+    tickClock(d);
+    catPts.visible = simRate <= 600;                       // faster than that, a quarter-per-frame update smears the catalog
+    if (S.deployed) layer.orbit.children.forEach((c) => { if (c.userData.inertial) c.rotation.y = satellite.gstime(new Date(Date.parse(S.deployed.epoch_utc))) - satellite.gstime(d); });
+  } else $('clockBar').hidden = true;
   controls.update();
   placeLabels();
   document.querySelectorAll('.lbl').forEach((el) => { if (!globeOn) el.style.display = 'none'; });

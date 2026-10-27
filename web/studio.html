@@ -144,6 +144,12 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
   <div id="incOut"></div>
 </div>
 
+<div id="clockBar" hidden>
+  <div class="row"><span id="clockT">--</span>
+    <span class="rates"><button data-r="0" title="Pause">❚❚</button><button data-r="1">×1</button><button data-r="60" class="on">×60</button><button data-r="600">×600</button><button data-r="3600">×3600</button></span></div>
+  <input id="clockR" type="range" min="0" max="259200" step="60" value="0" title="Mission clock: the 3 days CRIC has screened">
+  <div id="clockNext" class="small"></div>
+</div>
 <div id="tip" hidden></div>
 <div id="busy" hidden><div class="spin"></div><span id="busyTxt"></span></div>
 <script type="module" src="studio.js"></script>

@@ -223,3 +223,12 @@ abbr.g { text-decoration:underline dotted rgba(90,176,255,.7); text-underline-of
 .burn .alt { margin-top:8px; padding:8px; border-radius:8px; background:rgba(79,227,161,.08); }
 .cmd { padding:4px 0; border-bottom:1px solid rgba(255,255,255,.06); }
 .cmd b.approve { color:var(--ok); } .cmd b.reject { color:var(--warn); }
+#clockBar { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); z-index:3; width:min(560px, calc(100vw - 32px));
+  background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-size:12px; font-variant-numeric:tabular-nums; }
+#clockBar .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+#clockBar .rates { display:flex; gap:3px; } #clockBar .rates button { font-size:11px; padding:2px 8px; border-radius:99px; }
+#clockBar .rates button.on { background:var(--accent); color:#04101f; }
+#clockBar input { width:100%; margin:6px 0 2px; }
+#clockNext span { margin-right:12px; } #clockNext .soon { color:var(--mid); font-weight:600; }
+body.flying #clockBar { display:none !important; }
+#clockBar .row { flex-wrap:wrap; } #clockT { white-space:nowrap; }
