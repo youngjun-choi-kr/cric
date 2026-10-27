@@ -89,5 +89,13 @@ def test_studio_hosted_replay_end_to_end(site):
         page.click(".nextPrecise")
         page.wait_for_function("document.querySelectorAll('.decision').length > 1", timeout=60000)
         assert "precise orbit" in page.evaluate("[...document.querySelectorAll('.decision')].pop().innerText")
+        # mission control from the recording: the "lower" goal, CRIC's caution and safer time, approval, the log
+        page.click("[data-goal='lower']"); page.click("#burnBtn"); page.evaluate(idle)
+        assert page.evaluate("document.querySelector('#burnOut .burn').dataset.v") != "go"
+        page.click("#burnOut .useAlt"); page.evaluate(idle)
+        assert page.evaluate("document.querySelector('#burnOut .burn').dataset.v") == "go"
+        page.click("#burnOut .bOk")
+        page.wait_for_function("document.querySelector('#burnOut .bOut').textContent.includes('approved')", timeout=10000)
+        assert "approve" in page.inner_text("#cmdLog") and "g of" in page.inner_text("#fuel")
         browser.close()
     assert not errors, errors

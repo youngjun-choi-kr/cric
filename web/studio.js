@@ -794,6 +794,8 @@ $('burnBtn').addEventListener('click', () => {
   checkBurn(t.toISOString().replace('.000', ''), $('burnDir').value, +(+$('burnDv').value).toFixed(1));
 });
 function showBurn(p) {
+  (S.burns = S.burns || []).push({ verdict: p.verdict, why: p.why, burn_utc: p.burn_utc, dv_ms: p.dv_ms, direction: p.direction,
+    worst: p.encounters.find((e) => e.level !== 'ok') || null, alternative: p.alternative || null });
   const box = document.createElement('div'); box.className = 'burn'; box.dataset.v = p.verdict;
   const km = (x) => `${fmt(x, 1)} km`;
   const near = p.encounters.filter((e) => e.level !== 'ok').concat(p.encounters.filter((e) => e.level === 'ok')).slice(0, 4);
@@ -1100,7 +1102,7 @@ function frame(now) {
   if (globeOn) renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
-window.studio = { S, camera, llv, CV };                   // for debugging from the console
+window.studio = { S, camera, llv, CV, simNow: () => simMs };                   // for debugging from the console
 loadPreset('garage');
 $('targetText').value = 'My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit.';
 updateIncl();

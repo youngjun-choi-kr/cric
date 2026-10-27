@@ -76,6 +76,9 @@ class Recorder:
         return dict(self.marks)
 
 
+REPLAY = Path(__file__).resolve().parents[1] / "web" / "launch" / "replay" / "jimin1.json"
+
+
 def pick_hour(page) -> dict:
     """Screen upcoming go hours at Naro; prefer one with a no-go minute and a clear minute (the film's contrast)."""
     return page.evaluate("""async () => {
@@ -193,7 +196,31 @@ def main() -> None:
         page.wait_for_function("studio.CV.mode !== 'encounter'", timeout=120000); rec.mark("encounter_end"); rec.hold(1.5)
         page.evaluate("[...document.querySelectorAll('.decision .apOk')].pop().click()")
         page.wait_for_function("[...document.querySelectorAll('.decision .apOut')].pop().textContent.length > 0", timeout=30000)
-        rec.mark("approved"); rec.hold(4)
+        rec.mark("approved"); rec.hold(3)
+        # mission control: the "lower it for sharper photos" burn at the time the replay recorded (the default, 3 h after
+        # insertion, unless that hour was clean), then CRIC's safer time if it offers one, approval, the clock
+        burn_at = next(e["req"]["burn_utc"] for e in json.loads(REPLAY.read_text())["entries"]
+                       if e["path"] == "burn" and e["req"]["direction"] == "retrograde")
+        page.click("#clockBar [data-r='0']")                             # pause the clock so the burn time is exact
+        page.evaluate("document.getElementById('ctlBox').scrollIntoView({behavior: 'smooth', block: 'start'})"); rec.hold(1.5)
+        rec.mark("ctl")
+        page.click("[data-goal='lower']"); rec.hold(1)
+        page.evaluate(f"""() => {{ const t = Date.parse('{burn_at}'), s = studio.simNow();
+            const el = document.getElementById('burnIn'); el.value = ((t - s) / 3600e3 + 0.1 / 60).toFixed(4); el.dispatchEvent(new Event('input')); }}""")
+        rec.hold(2)
+        page.click("#burnBtn"); rec.mark("burn"); idle(); rec.mark("burn_checked"); rec.hold(3)
+        page.evaluate("document.querySelector('#burnOut .alt')?.scrollIntoView({behavior: 'smooth', block: 'center'})"); rec.hold(3)
+        burn1 = page.evaluate("() => ({v: document.querySelector('#burnOut .burn').dataset.v, why: document.querySelector('#burnOut .burn ul')?.innerText, alt: !!document.querySelector('#burnOut .useAlt')})")
+        if burn1["alt"]:
+            page.click("#burnOut .useAlt"); rec.mark("alt"); idle(); rec.mark("alt_checked"); rec.hold(2.5)
+        page.evaluate("document.querySelector('#burnOut .bOk').scrollIntoView({behavior: 'smooth', block: 'center'})"); rec.hold(1)
+        page.click("#burnOut .bOk")
+        page.wait_for_function("document.querySelector('#burnOut .bOut').textContent.length > 0", timeout=30000)
+        rec.mark("burn_approved"); rec.hold(1.5)
+        page.evaluate("document.getElementById('cmdLog').scrollIntoView({behavior: 'smooth', block: 'center'})"); rec.hold(2.5)
+        page.click("#clockBar [data-r='600']"); rec.mark("ff"); rec.hold(8); rec.mark("ff_end")
+        marks["burn_facts"] = page.evaluate("""() => { const p = studio.S.burns || []; return {first: p[0] || null, last: p[p.length - 1] || null}; }""")
+        marks["burn_facts"]["first_view"] = burn1
         marks["act3"] = rec.stop("act3")
         marks["act3_facts"] = page.evaluate("""() => ({deployed: {norad: studio.S.deployed.norad_id, n: studio.S.deployed.objects_in_catalog,
             enc: studio.S.deployed.encounters[0], passes: studio.S.deployed.passes?.length},
