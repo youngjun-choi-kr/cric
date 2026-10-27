@@ -32,6 +32,33 @@ CRITERIA = {   # assumed thresholds (small launcher), not any range's official r
     "wind250_ms": (50.0, 70.0), "kp": (6.0, 8.0), "lcola_km": (10.0, 2.0),
 }
 WX_CACHE = DATA / "weather"
+LEVELS = ((850, 1.5), (700, 3.0), (500, 5.6), (300, 9.2), (250, 10.4))   # pressure level, standard altitude km
+
+
+def wind_profile(site_id: str, when: datetime | None = None) -> dict | None:
+    """Forecast wind (east, north m/s) by altitude at the site for the hour, for the impact drift of falling stages."""
+    try:
+        w = weather(site_id)["hourly"]
+    except requests.RequestException:
+        return None
+    if "wind_speed_850hPa" not in w:              # an older cache without the levels
+        (WX_CACHE / f"{site_id}.json").unlink(missing_ok=True)
+        try:
+            w = weather(site_id)["hourly"]
+        except requests.RequestException:
+            return None
+    key = (when or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:00")
+    k = w["time"].index(key) if key in w["time"] else 0
+    rows = [(0.01, w["wind_speed_10m"][k], w.get("wind_direction_10m", [None] * (k + 1))[k])]
+    rows += [(alt, w[f"wind_speed_{p}hPa"][k], w[f"wind_direction_{p}hPa"][k]) for p, alt in LEVELS]
+    prof = []
+    for alt, spd, frm in rows:
+        if spd is None or frm is None:
+            continue
+        to = math.radians((frm + 180) % 360)          # meteorological direction is where the wind comes from
+        prof.append((alt, spd * math.sin(to), spd * math.cos(to)))
+    return {"hour_utc": w["time"][k] + ":00Z", "levels": [{"alt_km": a, "east_ms": round(e, 1), "north_ms": round(n, 1)} for a, e, n in prof],
+            "source": "Open-Meteo hourly forecast, pressure levels"} if len(prof) >= 3 else None
 
 
 def weather(site_id: str, days: int = 7) -> dict:
@@ -42,7 +69,8 @@ def weather(site_id: str, days: int = 7) -> dict:
     s = SITES[site_id]
     r = requests.get("https://api.open-meteo.com/v1/forecast", timeout=30, params={
         "latitude": s.lat, "longitude": s.lon, "forecast_days": days, "timezone": "UTC", "wind_speed_unit": "ms",
-        "hourly": "wind_speed_10m,wind_gusts_10m,precipitation_probability,cloud_cover,cape,wind_speed_250hPa"})
+        "hourly": "wind_speed_10m,wind_gusts_10m,precipitation_probability,cloud_cover,cape,wind_speed_250hPa,"
+                  "wind_direction_10m," + ",".join(f"wind_speed_{p}hPa,wind_direction_{p}hPa" for p, _ in LEVELS)})
     r.raise_for_status()
     data = r.json()
     path.write_text(json.dumps(data))
@@ -112,7 +140,8 @@ def heatmap(incl_deg: float, *, days: int = 7, sites: list[str] | None = None) -
         for k, t in enumerate(w["time"]):
             h = {key: (w[key][k] if w.get(key) else None) for key in w if key != "time"}
             a = assess_hour(h, kp.get(t))
-            hours.append({"t": t + ":00Z", "status": a["status"], "reasons": a["reasons"], "checks": a["checks"]})
+            hours.append({"t": t + ":00Z", "status": a["status"], "reasons": a["reasons"], "checks": a["checks"],
+                          "cloud_cover": h.get("cloud_cover")})
         rows.append({"site": sid, "name": s.name, "reachable": True, "azimuth_deg": round(azs[0], 2), "lat": s.lat,
                      "lon": s.lon, "hours": hours})
     return {"incl_deg": incl_deg, "criteria": CRITERIA, "rows": rows,
@@ -152,6 +181,20 @@ def _propagate(r0, v0, steps: int, dt: float, first: float = 0.0) -> tuple[np.nd
     return R, V
 
 
+# Pc for the first orbit: assumed 1-sigma position uncertainty (radial, along-track, normal) of a satellite just
+# inserted (no tracking yet) and of a catalogued object on public TLE data; combined hard-body radius 10 m.
+SIG_NEW, SIG_CAT, HBR_KM = (1.0, 6.0, 1.0), (0.4, 2.0, 0.4), 0.010
+PC_LIMITS = (1e-4, 1e-5)          # no-go, caution: the same thresholds as CRIC's operations policy
+
+
+def _pc(r1, v1, r2, v2) -> float:
+    from ..physics.cdm import pc_foster, rtn_to_inertial
+
+    c1 = rtn_to_inertial(r1, v1, np.diag(np.square(SIG_NEW)))
+    c2 = rtn_to_inertial(r2, v2, np.diag(np.square(SIG_CAT)))
+    return pc_foster(r1, v1, c1, r2, v2, c2, HBR_KM)
+
+
 def lcola(result: dict, start: datetime, cat, *, minutes: int = 60, step_min: int = 1, horizon_min: float = 95,
           dt: float = 20.0) -> dict:
     """Closest predicted approach to any catalogued object in the first orbit, for each liftoff minute."""
@@ -178,7 +221,7 @@ def lcola(result: dict, start: datetime, cat, *, minutes: int = 60, step_min: in
         k_ins = (epoch - start).total_seconds() / dt
         k0 = math.ceil(k_ins)                         # our samples on the catalog's time grid, so positions compare
         R, Vo = _propagate(r0, v0, steps, dt, first=(k0 - k_ins) * dt)   # at the same instant
-        best = (math.inf, None, None)
+        best = (math.inf, None, None, None)
         for k in range(steps):
             ka = k0 + k
             if ka >= len(offs):
@@ -195,15 +238,24 @@ def lcola(result: dict, start: datetime, cat, *, minutes: int = 60, step_min: in
                 tt = max(-dt / 2, min(dt / 2, -float(rel @ rv) / max(float(rv @ rv), 1e-9)))
                 d = float(np.linalg.norm(rel + rv * tt))
                 if d < best[0]:
-                    best = (d, ids[j], ((ka - k_ins) * dt + tt) / 60)
+                    best = (d, ids[j], ((ka - k_ins) * dt + tt) / 60,
+                            (R[k] + Vo[k] * tt, Vo[k], P[j, ka] + V[j, ka] * tt, V[j, ka]))
         c, n = CRITERIA["lcola_km"]
         status = "nogo" if best[0] <= n else "caution" if best[0] <= c else "go"
+        pc = None
+        if best[3] is not None:
+            pc = _pc(*best[3])
+            pcs = "nogo" if pc >= PC_LIMITS[0] else "caution" if pc >= PC_LIMITS[1] else "go"
+            status = max(status, pcs, key=["go", "caution", "nogo"].index)
         rows.append({"liftoff_utc": iso(t0), "status": status,
                      "closest_km": None if not math.isfinite(best[0]) else round(best[0], 2),
                      "object": cat.names.get(best[1]) if best[1] else None, "norad_id": best[1],
-                     "minutes_after_insertion": None if best[2] is None else round(best[2], 1)})
+                     "minutes_after_insertion": None if best[2] is None else round(best[2], 1),
+                     "pc": None if pc is None else float(f"{pc:.2e}")})
     return {"start_utc": iso(start), "objects_screened": len(ids), "horizon_min": horizon_min, "rows": rows,
             "criteria_km": {"caution": CRITERIA["lcola_km"][0], "nogo": CRITERIA["lcola_km"][1]},
+            "criteria_pc": {"caution": PC_LIMITS[1], "nogo": PC_LIMITS[0], "sigma_new_rtn_km": SIG_NEW, "sigma_catalog_rtn_km": SIG_CAT,
+                            "hard_body_m": HBR_KM * 1000},
             "note": "screening grade (public TLE data); a real launch uses a provider's LCOLA with covariance"}
 
 

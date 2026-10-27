@@ -112,7 +112,9 @@ export function buildRocket(v, { payloadKg = 5, name } = {}) {
       band = new THREE.Mesh(new THREE.CylinderGeometry(dm.d / 2 * 1.005, dm.d / 2 * 1.005, lay.inter, 48, 1, true), black);
       g.add(band);
     }
-    if (i === 0 && !dm.solid) {                                       // name down the side
+    // Name down the side only for rockets that are not someone's real product (a trademark is not ours to paint)
+    const own = !v.published?.payload_kg || /fictional/i.test(v.name) || name;
+    if (i === 0 && !dm.solid && own) {
       const deco = new THREE.Mesh(new THREE.CylinderGeometry(dm.d / 2 * 1.004, dm.d / 2 * 1.004, 1, 32, 1, true, -0.6, 1.2),
         new THREE.MeshStandardMaterial({ map: nameTexture(name || v.name.replace(/\s*\(.*\)/, '')), transparent: true, roughness: 0.5 }));
       deco.position.y = 0.5; bodyPivot.add(deco);

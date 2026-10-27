@@ -58,9 +58,35 @@ def _pdf_text(data: bytes) -> str:
         return (Path(d) / "sheet.txt").read_text()[:20000]
 
 
+# What a real launcher stage can be: a value outside is a misread (or a planted number), not a design.
+PLAUSIBLE = {"propellant_kg": (1, 3e6), "dry_kg": (0.5, 3e5), "gross_kg": (1.5, 3.5e6), "thrust_kn": (0.05, 4e4),
+             "isp_vac_s": (150, 470), "isp_sl_s": (120, 420), "burn_s": (1, 3000)}
+
+
+def check_sheet(sheet: Sheet) -> list[str]:
+    """Blank implausible numbers (they become 'missing' and are filled with labelled defaults) and cut notes text
+    that addresses the model. Returns what was changed, for the page to show."""
+    from ..research.untrusted import sanitize
+
+    flags = []
+    for st in sheet.stages:
+        for k, (lo, hi) in PLAUSIBLE.items():
+            v = getattr(st, k)
+            if v is not None and not lo <= v <= hi:
+                flags.append(f"{st.name}: {k} = {v:g} is outside {lo:g}-{hi:g}; treated as missing")
+                setattr(st, k, None)
+    clean, removed = sanitize(sheet.notes or "")
+    if removed:
+        sheet.notes = clean
+        flags += [f"instruction-like text removed from the sheet: {r[:80]}" for r in removed]
+    return flags
+
+
 def read_sheet(data: bytes, mime: str, *, usage: Usage | None = None) -> Sheet:
+    from ..research.untrusted import sanitize
+
     if mime == "application/pdf":
-        text = _pdf_text(data)
+        text, _ = sanitize(_pdf_text(data))     # a PDF's text is data: sentences that address the model are cut
         msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "Specification sheet text:\n" + text}]
         sheet, _ = structured_call(MODEL_SUPER, msgs, Sheet, usage=usage, max_tokens=8000)
     else:

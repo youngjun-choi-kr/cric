@@ -59,9 +59,10 @@
   <div class="ctl"><button id="targetBtn">Read it <span class="model">Nemotron Nano</span></button><span id="targetStatus" class="small dim"></span></div>
   <div class="grid2">
     <label>Altitude <span class="dim">km</span><input id="alt" type="number" value="500" min="160" max="2000" step="10"></label>
-    <label>Orbit <select id="orbitKind"><option value="sso">Sun-synchronous</option><option value="inclination">Inclination…</option><option value="polar">Polar (90°)</option><option value="iss">ISS-like (51.6°)</option></select></label>
+    <label>Orbit <select id="orbitKind"><option value="sso" title="A near-polar orbit whose plane turns with the Sun, so it passes over each place at the same local time.">Sun-synchronous</option><option value="inclination">Inclination…</option><option value="polar">Polar (90°)</option><option value="iss">ISS-like (51.6°)</option></select></label>
     <label>Inclination <span class="dim">°</span><input id="incl" type="number" step="0.1" disabled></label>
     <label>Payload <span class="dim">kg</span><input id="payload" type="number" min="0" step="1"></label>
+    <label title="Throttle the first stage down when dynamic pressure would exceed this (optional)"><abbr class="g" title="Maximum dynamic pressure: the moment the air pushes hardest on the rocket.">Max Q</abbr> limit <span class="dim">kPa, optional</span><input id="qLim" type="number" min="10" max="100" placeholder="none"></label>
   </div>
   <label class="full">Launch site <select id="siteSel"></select></label>
   <div id="azNote" class="small dim"></div>
@@ -73,14 +74,14 @@
   <div id="flightBar" class="ctl"></div>
   <div id="fixBox"></div>
   <div id="dispBox"></div>
-  <details open><summary>Δv budget</summary><div id="dvTable"></div></details>
+  <details open><summary><abbr class="g" title="Delta-v: the change of speed the rocket can deliver, minus what gravity, drag and steering take.">Δv</abbr> budget</summary><div id="dvTable"></div></details>
   <details><summary>Flight events</summary><div id="events"></div></details>
   <details><summary>Rocket as flown</summary><div id="flownSpec" class="small"></div></details>
 </div>
 
 <!-- ======================= STEP 2 ======================= -->
 <div class="panel" id="bottom2" data-for="2" hidden>
-  <h2><span>WHEN AND WHERE · next 7 days, hourly</span><span class="ltdn small">imaging orbit: equator crossing (LTDN)
+  <h2><span>WHEN AND WHERE · next 7 days, hourly</span><span class="ltdn small">imaging orbit: equator crossing (<abbr class="g" title="Local time of the descending node: the local clock time when the satellite crosses the equator going south. A sun-synchronous orbit keeps it fixed, so every image of a place has the same lighting.">LTDN</abbr>)
     <input id="ltdnT" value="10:30" size="5"> ± <input id="ltdnTol" value="45" size="3"> min</span><span class="dim small" id="heatNote"></span></h2>
   <div id="heat"></div>
   <div id="lcolaBox"></div>

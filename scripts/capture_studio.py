@@ -109,7 +109,7 @@ def main() -> None:
         browser = p.chromium.launch(channel="chrome", headless=True, args=["--use-angle=metal", "--enable-gpu"])
         page = browser.new_page(viewport={"width": W, "height": H}, device_scale_factor=SCALE)
         page.on("dialog", lambda d: d.accept())
-        page.goto("http://localhost:8765/studio.html", wait_until="networkidle")
+        page.goto("http://localhost:8765/studio.html?notour=1", wait_until="networkidle")
         page.wait_for_function("!document.getElementById('loading')", timeout=60000)
         page.wait_for_timeout(2500)                     # camera settles on Naro
         rec = Recorder(page)

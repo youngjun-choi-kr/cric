@@ -93,6 +93,9 @@ def main() -> None:
     liftoff = board["brief"]["liftoff_utc"]
     dep = call("deploy", m_ok | {"liftoff_utc": liftoff, "name": "JIMIN-1", "owner": "Jimin", "mission": "photograph Seoul",
                                  "can_maneuver": True, "home": {"name": "Seoul", "lat": 37.5665, "lon": 126.978}})
+    for enc in dep["encounters"][:1]:                 # the 3D encounter view and the engine-out what-if
+        call("encounter", {"ours": enc["object_a"]["norad_id"], "other": enc["object_b"]["norad_id"], "tca_utc": enc["tca_utc"]})
+    call("whatif", m_ok | {"engine_out_t": 60})
     incidents = {}
     for enc in dep["encounters"][:1]:
         for preset in ("quiet", "precise"):           # public TLE data first, then the provider's ephemeris

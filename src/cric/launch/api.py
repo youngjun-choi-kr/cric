@@ -68,7 +68,8 @@ def _mission(b: dict) -> dict:
                    "the azimuth for this inclination would overfly land; flown at the corridor edge instead")
     return {"veh": veh, "payload": float(b.get("payload_kg", veh.payload_kg)), "site": site, "alt": alt,
             "incl": incl, "az": az, "az_note": az_note, "az_ok": bool(ok) or b.get("az") is not None,
-            "g": ascent.Guidance(*b["guidance"]) if b.get("guidance") else None}
+            "g": ascent.Guidance(*b["guidance"]) if b.get("guidance") else None,
+            "q_lim": float(b["q_limit_kpa"]) if b.get("q_limit_kpa") else None}
 
 
 def _kw(m: dict) -> dict:
@@ -78,7 +79,8 @@ def _kw(m: dict) -> dict:
 def _fly(m: dict, record: bool = False) -> dict:
     if m["g"] is None:
         raise BadRequest("fly the rocket first (simulate) and send its guidance")
-    return ascent.simulate(m["veh"], m["payload"], m["g"], record=record, **_kw(m))
+    return ascent.simulate(m["veh"], m["payload"], m["g"], record=record, **_kw(m),
+                           perturb={"q_limit_kpa": m["q_lim"]} if m["q_lim"] else None)
 
 
 def _flight_payload(m: dict, g, r: dict) -> dict:
@@ -106,8 +108,23 @@ def presets(_q: dict) -> dict:
 
 def simulate(b: dict) -> dict:
     m = _mission(b)
-    g, r = ascent.optimise(m["veh"], m["payload"], parallel=True, **_kw(m))
+    g, r = ascent.optimise(m["veh"], m["payload"], parallel=True, q_limit_kpa=m["q_lim"], **_kw(m))
     return _flight_payload(m, g, r)
+
+
+def whatif(b: dict) -> dict:
+    """The same planned guidance, flown with one first-stage engine lost at t seconds: where does it go?"""
+    from .land import range_check
+
+    m = _mission(b)
+    if m["g"] is None:
+        raise BadRequest("fly the rocket first")
+    t = float(b.get("engine_out_t", 60))
+    p = {"engine_out_t": t} | ({"q_limit_kpa": m["q_lim"]} if m["q_lim"] else {})
+    r = ascent.simulate(m["veh"], m["payload"], m["g"], record=True, perturb=p, **_kw(m))
+    n = ascent.engine_count(m["veh"])
+    out = _flight_payload(m, m["g"], r)
+    return out | {"engine_out_t": t, "engines": n, "range": range_check(r)}
 
 
 def advise(b: dict) -> dict:
@@ -134,7 +151,8 @@ def dispersion(b: dict) -> dict:
     from .land import range_check
 
     runs = max(50, min(int(b.get("runs", 500)), 3000))
-    d = disp.dispersion(m["veh"], m["payload"], m["g"], runs=runs, **_kw(m))
+    when = parse_utc(b["wind_utc"]) if b.get("wind_utc") else None
+    d = disp.dispersion(m["veh"], m["payload"], m["g"], runs=runs, wind=windows.wind_profile(m["site"].id, when), **_kw(m))
     d["range"] = range_check(_fly(m), d)
     return d
 
@@ -144,9 +162,12 @@ def sheet(body: bytes, mime: str) -> dict:
 
     if mime not in ("application/pdf", "image/png", "image/jpeg", "image/webp"):
         raise BadRequest("upload a PNG, JPEG, WebP or PDF")
+    from .specsheet import check_sheet
+
     u = Usage()
     s = read_sheet(body, mime, usage=u)
-    return {"sheet": s.model_dump(), "vehicle": to_vehicle_dict(s), "usage": u.as_dict()}
+    flags = check_sheet(s)
+    return {"sheet": s.model_dump(), "vehicle": to_vehicle_dict(s), "flags": flags, "usage": u.as_dict()}
 
 
 def target(b: dict) -> dict:
@@ -275,8 +296,42 @@ def deploy(b: dict) -> dict:
     return out
 
 
+def encounter(b: dict) -> dict:
+    """The other object's motion relative to ours near closest approach, in our radial / along-track / normal frame."""
+    import numpy as np
+    from sgp4.api import SatrecArray
+
+    from . import deploy as dep
+    from ..physics.screen import closest_approach
+    from ..physics.timeutil import jdfr
+    from .insertion import gmst
+
+    base = _catalog()
+    cat = type(base)(dict(base.sats), dict(base.names), base.source, base.fetched_at)
+    dep.add_to_catalog(cat)
+    ours, other = int(b["ours"]), int(b["other"])
+    if ours not in cat.sats or other not in cat.sats:
+        raise BadRequest("unknown object")
+    tca, miss, vrel, alt = closest_approach(cat.sats[ours], cat.sats[other], parse_utc(b["tca_utc"]), 30.0, 0.05)
+    offs = np.arange(-2.0, 2.0001, 0.02)
+    jd, fr = jdfr(tca, offs)
+    _, P, V = SatrecArray([cat.sats[ours], cat.sats[other]]).sgp4(jd, fr)
+    k0 = len(offs) // 2
+    r0, v0 = P[0, k0], V[0, k0]
+    R = r0 / np.linalg.norm(r0); N = np.cross(r0, v0); N /= np.linalg.norm(N); T = np.cross(N, R)
+    rel = P[1] - P[0]
+    track = [[round(float(t), 3), *(round(float(x), 4) for x in (d @ R, d @ T, d @ N))] for t, d in zip(offs, rel)]
+    th = gmst(tca)
+    x, y, z = r0
+    lon = (np.degrees(np.arctan2(y, x) - th) + 540) % 360 - 180
+    lat = float(np.degrees(np.arctan2(z, np.hypot(x, y))))
+    return {"ours": cat.names[ours], "other": cat.names[other], "tca_utc": iso(tca), "miss_km": round(miss, 3),
+            "rel_speed_kms": round(vrel, 2), "alt_km": round(alt, 1), "lat": round(lat, 3), "lon": round(float(lon), 3),
+            "track_rtn_km": track, "frame": "ours: R radial, T along-track, N orbit normal"}
+
+
 GET = {"/api/launch/presets": presets}
-POST = {"/api/launch/simulate": simulate, "/api/launch/advise": advise, "/api/launch/dispersion": dispersion,
+POST = {"/api/launch/simulate": simulate, "/api/launch/whatif": whatif, "/api/launch/encounter": encounter, "/api/launch/advise": advise, "/api/launch/dispersion": dispersion,
         "/api/launch/target": target, "/api/launch/windows": windows_, "/api/launch/lcola": lcola,
         "/api/launch/gonogo": gonogo, "/api/launch/deploy": deploy}
 PAID = {"/api/launch/sheet", "/api/launch/target", "/api/launch/gonogo"}   # spend API credits

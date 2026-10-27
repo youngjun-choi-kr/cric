@@ -36,8 +36,25 @@ class Guidance:
     phi1_deg: float = -5.0       # ... at the end of the upper-stage burns
 
 
+# US Standard Atmosphere 1976, density by layer: (base altitude m, base density kg/m^3, local scale height m)
+US76 = ((0, 1.225, 8440), (11e3, 0.3639, 6490), (20e3, 0.0880, 6750), (32e3, 0.0132, 7070), (47e3, 1.43e-3, 7470),
+        (51e3, 8.62e-4, 7290), (71e3, 6.42e-5, 6550), (86e3, 6.96e-6, 5800), (100e3, 5.60e-7, 6000),
+        (110e3, 9.71e-8, 7000), (120e3, 2.22e-8, 9500), (130e3, 8.15e-9, 12000), (140e3, 3.83e-9, 14000))
+
+
 def density(h: float) -> float:
-    return 1.225 * math.exp(-h / 8500.0) if h < 150e3 else 0.0
+    if h >= 150e3:
+        return 0.0
+    for base, rho, scale in reversed(US76):
+        if h >= base:
+            return rho * math.exp(-(h - base) / scale)
+    return 1.225
+
+
+def engine_count(veh: Vehicle) -> int:
+    """First-stage engine count, the same rule the 3D model uses (web/launch3d/rocketgen.js)."""
+    s, d = veh.stages[0], max(0.3, veh.diameter_m)
+    return 1 if s.solid else 4 if d >= 1.6 else 9 if s.thrust_vac_n / 1000 / (d * d) > 140 else 1
 
 
 def pressure_ratio(h: float) -> float:
@@ -118,6 +135,10 @@ def simulate(veh: Vehicle, payload_kg: float, g: Guidance, *, lat: float, lon: f
     """Fly one ascent. perturb (for dispersion): thrust, isp, dry scale factors, stage-1 pitch and azimuth offsets."""
     p = perturb or {}
     az = az + p.get("az_add", 0.0)
+    q_lim = (p.get("q_limit_kpa") or 0) * 1000 or None
+    eo_t = p.get("engine_out_t")
+    n_eng = engine_count(veh)
+    eo_left = (n_eng - 1) / n_eng if eo_t is not None else 1.0       # a single-engine stage loses all thrust
     basis = plane_basis(lat, lon, az)
     vs0 = surface_speed_along(lat, az)
     cd_a = veh.cd * veh.area_m2
@@ -163,6 +184,12 @@ def simulate(veh: Vehicle, payload_kg: float, g: Guidance, *, lat: float, lon: f
             if mode not in ("burn", "circ"):
                 return 0.0, 0.0, 0.0
             md = cur["mdot"]
+            if i == 0 and eo_t is not None and tt >= eo_t:               # one first-stage engine lost
+                md *= eo_left
+            if i == 0 and q_lim and md > 0:                              # throttle down through max-Q
+                q = 0.5 * density(alt_) * (v_rad_ ** 2 + (v_hor_ - k_) ** 2)
+                if q > q_lim:
+                    md *= max(0.55, q_lim / q)
             th = md * (cur["isp_v"] - (cur["isp_v"] - cur["isp_s"]) * pressure_ratio(alt_)) * G0
             if mode == "circ":
                 return th, md, 0.0                                  # horizontal: raise perigee near apogee
@@ -325,9 +352,10 @@ def _score(res: dict) -> float:
 class _Objective:
     """Picklable objective so the global search can score its population on several processes."""
 
-    def __init__(self, veh, payload_kg, lat, lon, az, target_alt_km):
+    def __init__(self, veh, payload_kg, lat, lon, az, target_alt_km, perturb=None):
         self.args = (veh, payload_kg)
-        self.kw = {"lat": lat, "lon": lon, "az": az, "target_alt_km": target_alt_km, "dt": 2.0, "record": False}
+        self.kw = {"lat": lat, "lon": lon, "az": az, "target_alt_km": target_alt_km, "dt": 2.0, "record": False,
+                   "perturb": perturb}
 
     def __call__(self, xv):
         return -_score(simulate(*self.args, Guidance(*map(float, xv)), **self.kw))
@@ -349,13 +377,15 @@ def pool():
 
 
 def optimise(veh: Vehicle, payload_kg: float, *, lat: float, lon: float, az: float, target_alt_km: float = 500.0,
-             maxiter: int = 18, parallel: bool = False, seeds: tuple = (0, 1, 2)) -> tuple[Guidance, dict]:
+             maxiter: int = 18, parallel: bool = False, seeds: tuple = (0, 1, 2),
+             q_limit_kpa: float | None = None) -> tuple[Guidance, dict]:
     """Global search over the four guidance parameters maximising margin, or getting closest to orbit; the
     score has cliffs (orbit / no orbit), so a local search alone stalls. parallel=True scores the population on
     all cores (use from a top-level call, not from inside another process pool)."""
     from scipy.optimize import differential_evolution
 
-    obj = _Objective(veh, payload_kg, lat, lon, az, target_alt_km)
+    design = {"q_limit_kpa": q_limit_kpa} if q_limit_kpa else None      # part of the design, flown every time
+    obj = _Objective(veh, payload_kg, lat, lon, az, target_alt_km, design)
     kw = {"workers": pool().map, "updating": "deferred"} if parallel else {}
     best = None
     for seed in seeds:
@@ -366,7 +396,8 @@ def optimise(veh: Vehicle, payload_kg: float, *, lat: float, lon: float, az: flo
         if -best.fun >= 1e5:                                # reached the target: another search would only polish
             break
     g = Guidance(*map(float, best.x))
-    return g, simulate(veh, payload_kg, g, lat=lat, lon=lon, az=az, target_alt_km=target_alt_km, dt=0.5, record=True)
+    return g, simulate(veh, payload_kg, g, lat=lat, lon=lon, az=az, target_alt_km=target_alt_km, dt=0.5, record=True,
+                       perturb=design)
 
 
 RESERVE_MS = 50.0   # a fix must leave this much delta-v in the last stage: with none, half of real flights miss

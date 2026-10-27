@@ -44,9 +44,9 @@ function subsolar(date) {
 
 // ---------- shaders ----------
 const SKY = {
-  uniforms: { alt: { value: 0 }, sun: { value: new THREE.Vector3(0, 1, 0) } },
+  uniforms: { alt: { value: 0 }, sun: { value: new THREE.Vector3(0, 1, 0) }, day: { value: 1 } },
   vertexShader: `varying vec3 vD; void main(){ vD = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.); gl_Position = p.xyww; }`,
-  fragmentShader: `uniform float alt; uniform vec3 sun; varying vec3 vD;
+  fragmentShader: `uniform float alt; uniform vec3 sun; uniform float day; varying vec3 vD;
     float h(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,45.164))) * 43758.5453); }
     void main(){
       float k = smoothstep(8., 75., alt);
@@ -57,7 +57,8 @@ const SKY = {
       c = mix(c, hor * .6, clamp(-y * 3., 0., 1.));
       float s = max(dot(vD, normalize(sun)), 0.);
       c += vec3(1., .9, .7) * (pow(s, 900.) * 6. + pow(s, 12.) * .25 * (1. - k * .7));
-      vec3 q = floor(vD * 420.); float st = step(.9985, h(q)) * smoothstep(30., 70., alt) * step(0., y + .05);
+      c *= mix(0.04, 1.0, day);                                       // night: the sky goes dark
+      vec3 q = floor(vD * 420.); float st = step(.9985, h(q)) * max(smoothstep(30., 70., alt), 1. - day) * step(0., y + .05);
       c += vec3(st) * .9;
       gl_FragColor = vec4(c, 1.);
       #include <tonemapping_fragment>
@@ -97,6 +98,42 @@ function softDot() {
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
 }
 
+function cloudTexture(coverPct) {
+  // value noise, a few octaves, cut at the forecast cover so roughly that share of the sky is cloud
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N), rnd = [];
+  for (let i = 0; i < 64 * 64; i++) rnd.push(Math.random());
+  const val = (x, y, f) => {
+    const X = (x * f) % 64, Y = (y * f) % 64, x0 = Math.floor(X), y0 = Math.floor(Y), tx = X - x0, ty = Y - y0;
+    const R = (i, j) => rnd[((j + 64) % 64) * 64 + ((i + 64) % 64)], sm = (t) => t * t * (3 - 2 * t);
+    const a = R(x0, y0) + (R(x0 + 1, y0) - R(x0, y0)) * sm(tx), b = R(x0, y0 + 1) + (R(x0 + 1, y0 + 1) - R(x0, y0 + 1)) * sm(tx);
+    return a + (b - a) * sm(ty);
+  };
+  const cut = 1 - Math.min(0.95, coverPct / 100);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = x / N, v = y / N;
+    const n = 0.55 * val(u, v, 4) + 0.27 * val(u, v, 9) + 0.13 * val(u, v, 19) + 0.05 * val(u, v, 41);
+    const a = Math.max(0, Math.min(1, (n - cut) * 6));
+    const k = (y * N + x) * 4; img.data[k] = img.data[k + 1] = img.data[k + 2] = 245; img.data[k + 3] = a * 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); return t;
+}
+
+let audio = null, soundOn = false;
+function rumble(level) {                         // brown noise through a low-pass filter, louder while burning
+  if (!soundOn) { if (audio) audio.gain.gain.value = 0; return; }
+  if (!audio) {
+    const ctx = new AudioContext(), len = ctx.sampleRate * 2, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    let last = 0; for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180;
+    const gain = ctx.createGain(); gain.gain.value = 0;
+    src.connect(lp).connect(gain).connect(ctx.destination); src.start(); audio = { ctx, gain };
+  }
+  audio.gain.gain.value += (level * 0.8 - audio.gain.gain.value) * 0.1;
+}
+
 class Particles {
   constructor(n, map, blending = THREE.NormalBlending) {
     this.n = n; this.k = 0;
@@ -130,13 +167,15 @@ class Particles {
   clear() { this.age.fill(1e9); this.alpha.fill(0); }
 }
 
+const NOTE = 'Shape derived from the vehicle data · motion from the 3-DOF simulation · plume, smoke, sky and cloud texture are illustration (cloud amount: forecast at the chosen hour, else 25%)';
+
 export function createCloseView(root, { earthTex, onState } = {}) {
   root.innerHTML = `<div class="cv-hud" hidden>
       <div class="cv-top"><div class="cv-live"><b>SIMULATED FLIGHT</b> <span id="cvTitle"></span></div>
-        <div class="cv-note">Shape derived from the vehicle data · motion from the 3-DOF simulation · plume and sky are illustration</div></div>
+        <div class="cv-note">Shape derived from the vehicle data · motion from the 3-DOF simulation · plume, smoke, sky and cloud texture are illustration (cloud amount: forecast at the chosen hour, else 25%)</div></div>
       <div class="cv-toast" id="cvToast"></div>
       <div class="cv-cams"><button data-cam="auto" class="on">Auto</button><button data-cam="pad">Pad</button><button data-cam="track">Tracking</button>
-        <button data-cam="chase">Chase</button><button data-cam="onboard">Onboard</button><button id="cvSkip" title="Skip to the globe view">Skip ▸</button></div>
+        <button data-cam="chase">Chase</button><button data-cam="onboard">Onboard</button><button id="cvSound" title="Engine rumble (synthesised)">🔇</button><button id="cvSkip" title="Skip to the globe view">Skip ▸</button></div>
       <div class="cv-side"><canvas id="cvMap" width="480" height="280"></canvas><canvas id="cvGraph" width="480" height="150"></canvas>
         <div class="cv-legend2"><i style="background:#5ab0ff"></i>altitude <i style="background:#ffc857"></i>speed</div></div>
       <div class="cv-stack" id="cvStack"></div>
@@ -277,7 +316,15 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     g.setIndex(idx); g.computeVertexNormals();
     const tex = earthTex.clone(); tex.wrapS = THREE.RepeatWrapping; tex.needsUpdate = true;
-    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 }));
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 });
+    mat.onBeforeCompile = (sh) => {                                   // water (blue, dark) is smooth: it glints
+      sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', `
+        float roughnessFactor = roughness;
+        vec4 wtex = texture2D(map, vMapUv);
+        float water = smoothstep(0.03, 0.12, wtex.b - max(wtex.r, wtex.g));
+        roughnessFactor = mix(roughness, 0.22, water);`);
+    };
+    const m = new THREE.Mesh(g, mat);
     m.receiveShadow = true;
     return m;
   }
@@ -332,7 +379,17 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     const sunL = toLocal(F, ecef(sl, so, 1.5e11)).normalize();
     if (opts.inOrbit && sunL.y < 0.35) sunL.set(0.5, 0.6, 0.62).normalize();   // deploy shot: illustrative daylight
     scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x404030, 0.6));
-    const sunLight = new THREE.DirectionalLight(0xfff2dd, 2.6); sunLight.castShadow = true;
+    const dayK = THREE.MathUtils.smoothstep(sunL.y, -0.12, 0.08);   // 0 at night, 1 in daylight
+    sky.material.uniforms.day.value = dayK;
+    const sunLight = new THREE.DirectionalLight(0xfff2dd, 0.15 + 2.45 * dayK); sunLight.castShadow = true;
+    const plumeLight = new THREE.PointLight(0xffa64d, 0, 4000, 1.6); scene.add(plumeLight);
+    const cover = opts.cloudCover ?? 25;                            // % from the forecast hour, or illustrative
+    let clouds = null;
+    if (cover > 3 && !opts.inOrbit) {
+      clouds = new THREE.Mesh(new THREE.PlaneGeometry(60000, 60000), new THREE.MeshLambertMaterial({ map: cloudTexture(cover), transparent: true,
+        opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+      clouds.rotation.x = -Math.PI / 2; clouds.position.y = 2600; clouds.renderOrder = 2; scene.add(clouds);
+    }
     sunLight.shadow.mapSize.set(2048, 2048);
     scene.add(sunLight, sunLight.target);
     sky.scale.setScalar(4e7); scene.add(sky); sky.material.uniforms.sun.value.copy(sunL);
@@ -370,6 +427,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     if (tAlt) tHand = Math.min(tHand, tAlt);
     tHand = Math.min(tHand, S[S.length - 1][0]);
     fl = { flight, vehicle, site, S, F, scene, rk, holder, flames, diamonds, smoke, spark, sunL, sunLight, ground, sepT, fairT, tHand,
+      plumeLight, dayK, clouds, cloudOpacity: 0.85,
       t: -10, rate: 1, camMode: 'auto', spent: [], fairDone: false, toast: [], done: false, opts, base, hadSep: new Set(),
       pos: new THREE.Vector3(), dir: new THREE.Vector3(0, 1, 0), up: new THREE.Vector3(0, 1, 0), along: new THREE.Vector3(1, 0, 0), vel: new THREE.Vector3() };
     // HUD timeline
@@ -384,6 +442,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
       el.title = m.event; el.innerHTML = `<i></i><span>${esc(m.event.replace(/:.*/, '').replace(/ ignition/, ' ign.'))}</span>`; tl.append(el);
     }
     $('cvTitle').textContent = `${vehicle.name} · ${flight.payload_kg} kg · ${site.name}`;
+    root.querySelector('.cv-note').textContent = NOTE;
     // stage stack diagram
     const tot = rk.stages.reduce((a, x) => a + x.dm.L, 0) + rk.lay.fairingL;
     $('cvStack').innerHTML = `<div class="fair" style="flex:${rk.lay.fairingL / tot}"></div>` + [...rk.stages].reverse()
@@ -442,6 +501,7 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     fl.scene.remove(sky); disposeTree(fl.scene); fl = null;
   }
   function playLaunch(flight, vehicle, site, opts = {}) {
+    disposeEncounter();
     mode = 'launch'; setVisible(true);
     root.querySelector('.cv-bay').hidden = true; root.querySelector('.cv-hud').hidden = false;
     clearSlots();
@@ -520,6 +580,8 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     fl.lookOff.lerp(lookOff, ground ? 1 : k);
     fl.lastGround = ground; fl.lastCam = modeName;
     cam.up.copy(U);
+    const shake = modeName === 'pad' && fl.t > -2 && fl.t < 12 ? 0.25 * Math.max(0, 1 - fl.t / 12) : modeName === 'chase' && fl.t < 60 ? 0.04 : 0;
+    if (shake) cam.position.add(new THREE.Vector3((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake));
     cam.lookAt(P.clone().add(fl.lookOff));
     cam.fov += (fov - cam.fov) * (modeName === 'track' ? 1 : k);
     cam.near = Math.max(0.05, cam.position.distanceTo(P) * 0.01); cam.far = 3e7; cam.updateProjectionMatrix();
@@ -628,6 +690,11 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     const sc = Math.max(30, f.rk.height * 2.5);
     Object.assign(f.sunLight.shadow.camera, { left: -sc, right: sc, top: sc, bottom: -sc, near: 1, far: 1200 }); f.sunLight.shadow.camera.updateProjectionMatrix();
     sky.material.uniforms.alt.value = s[1]; sky.position.copy(cam.position);
+    // the plume lights its surroundings (most visible at night); clouds and rumble follow the burn
+    f.plumeLight.visible = burning; f.plumeLight.intensity = burning ? (1.5 + 6 * (1 - f.dayK)) * f.rk.D : 0;
+    f.rk.stages[stIdx]?.eng.getWorldPosition(f.plumeLight.position); f.plumeLight.position.addScaledVector(f.dir, -f.rk.lay.dims[stIdx].bell * 2);
+    if (f.clouds) f.clouds.material.opacity = f.cloudOpacity * (s[1] < 12 ? 1 : Math.max(0, 1 - (s[1] - 12) / 20));
+    rumble(burning && s[1] < 40 ? Math.min(1, 1.2 * pr + 0.15) * (f.camMode === 'onboard' || autoCam(f.t) === 'onboard' ? 0.6 : 1) : 0);
     if (s[1] > 150) {                 // from orbit: the atmosphere as a blue haze over the ground
       f.scene.fog.near = s[1] * 300; f.scene.fog.far = s[1] * 2600; f.scene.fog.color.setRGB(0.22, 0.4, 0.74);
     } else {
@@ -673,19 +740,76 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     setTimeout(() => toast('PAYLOAD DEPLOYED'), 3500);
   }
 
+  // ---------- a close approach in slow motion: the other object's path relative to ours ----------
+  let enc = null;
+  function playEncounter(e, opts = {}) {
+    disposeLaunch(); disposeEncounter();
+    mode = 'encounter'; setVisible(true);
+    root.querySelector('.cv-bay').hidden = true; root.querySelector('.cv-hud').hidden = false;
+    root.classList.add('enc');
+    const scene = new THREE.Scene(), F = frameAt(e.lat, e.lon), alt = e.alt_km * 1000;
+    scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x404030, 0.8));
+    const sunL = toLocal(F, ecef(...subsolar(new Date(e.tca_utc)), 1.5e11)).normalize();
+    const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.copy(sunL).multiplyScalar(1e6); scene.add(sun);
+    sky.scale.setScalar(4e7); sky.material.uniforms.alt.value = e.alt_km; sky.material.uniforms.day.value = 1; sky.material.uniforms.sun.value.copy(sunL); scene.add(sky);
+    scene.fog = new THREE.Fog(0x3866bd, alt * 0.3, alt * 2.6);
+    const ground = buildGround(F, e.lat, e.lon); scene.add(ground);
+    const at = new THREE.Vector3(0, alt, 0);
+    const toV = ([, r, t, n]) => new THREE.Vector3(t * 1000, r * 1000, n * 1000).add(at);   // T east-ish, R up, N across
+    const mk = (col, size) => { const p = new THREE.Points(new THREE.BufferGeometry().setFromPoints([at]),
+      new THREE.PointsMaterial({ color: col, size, sizeAttenuation: false, map: DOT, transparent: true, depthWrite: false })); scene.add(p); return p; };
+    const me = mk(0x4fe3a1, 22), other = mk(0xffb347, 22);
+    const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(e.track_rtn_km.map(toV)), new THREE.LineBasicMaterial({ color: 0xffb347, transparent: true, opacity: 0.85 }));
+    trail.geometry.setDrawRange(0, 0); scene.add(trail);
+    const k0 = Math.floor(e.track_rtn_km.length / 2), pTca = toV(e.track_rtn_km[k0]);
+    const missLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([at, pTca]), new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 120, gapSize: 80 }));
+    missLine.computeLineDistances(); missLine.visible = false; scene.add(missLine);
+    const relDir = toV(e.track_rtn_km[k0 + 5]).sub(pTca).normalize(), missDir = pTca.clone().sub(at).normalize();
+    const side = new THREE.Vector3().crossVectors(relDir, missDir).normalize();
+    const dist = Math.max(3500, e.miss_km * 1000 * 3.2);
+    cam.position.copy(at).add(pTca).multiplyScalar(0.5).addScaledVector(side, dist).addScaledVector(new THREE.Vector3(0, 1, 0), dist * 0.35);
+    cam.up.set(0, 1, 0); cam.fov = 50; cam.near = 1; cam.far = 3e7; cam.updateProjectionMatrix();
+    cam.lookAt(at.clone().add(pTca).multiplyScalar(0.5));
+    const lblMe = label(`<b>${esc(e.ours)}</b>`, 'enc me'), lblOther = label(`<b>${esc(e.other)}</b>`, 'enc'), lblMiss = label('', 'enc miss');
+    $('cvTitle').textContent = `${e.ours} × ${e.other} · closest approach ${e.tca_utc.slice(0, 16).replace('T', ' ')} UTC`;
+    root.querySelector('.cv-note').textContent = 'Positions from SGP4 on public TLE data (about 1 km) · slow motion, 1 s of the encounter = 25 s · markers not to scale';
+    enc = { e, scene, at, toV, me, other, trail, missLine, lbls: [lblMe, lblOther, lblMiss], k0, pTca, t: -1.0, opts, shown: false };
+  }
+  function disposeEncounter() {
+    if (!enc) return;
+    enc.lbls.forEach((l) => l.remove()); enc.scene.remove(sky); disposeTree(enc.scene); enc = null; root.classList.remove('enc');
+  }
+  function stepEncounter(dt) {
+    const E = enc; if (!E) return;
+    E.t = Math.min(1.0, E.t + dt * 0.04);
+    const tr = E.e.track_rtn_km, k = Math.max(0, Math.min(tr.length - 1, Math.round((E.t + 2) / 0.02)));
+    const p = E.toV(tr[k]);
+    E.other.geometry.setFromPoints([p]); E.trail.geometry.setDrawRange(Math.max(0, k - 60), Math.min(k, 60) + 1);
+    if (E.t >= 0 && !E.shown) { E.shown = true; E.missLine.visible = true; toast(`CLOSEST APPROACH · ${fmt(E.e.miss_km, 2)} km · ${fmt(E.e.rel_speed_kms, 1)} km/s`); }
+    const put = (el, v, dy = 0) => { tmp.copy(v).project(cam); el.style.display = tmp.z < 1 ? '' : 'none'; el.style.left = `${(tmp.x + 1) / 2 * innerWidth}px`; el.style.top = `${(1 - tmp.y) / 2 * innerHeight + dy}px`; };
+    put(E.lbls[0], E.at, -14); put(E.lbls[1], p, -14);
+    E.lbls[2].innerHTML = E.shown ? `${fmt(E.e.miss_km * 1000)} m` : ''; put(E.lbls[2], E.at.clone().add(E.pTca).multiplyScalar(0.5), 0);
+    $('cvClock').textContent = `TCA ${E.t < 0 ? '−' : '+'}${Math.abs(E.t).toFixed(2)} s`;
+    if (E.t >= 1.0 && !E.done) { E.done = true; setTimeout(() => E.opts.onDone?.(), 2500); }
+  }
+
   // camera buttons
   root.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => {
     if (!fl) return; fl.camMode = b.dataset.cam;
     root.querySelectorAll('[data-cam]').forEach((x) => x.classList.toggle('on', x === b));
   }));
-  $('cvSkip').addEventListener('click', () => { if (fl && !fl.deploy && !fl.handed) { fl.handed = true; fl.opts.onHandoff?.(fl.tHand); } });
+  $('cvSound').addEventListener('click', (e) => { soundOn = !soundOn; e.target.textContent = soundOn ? '🔊' : '🔇'; audio?.ctx.resume(); });
+  $('cvSkip').addEventListener('click', () => {
+    if (mode === 'encounter' && enc) { enc.done = true; enc.opts.onDone?.(); return; }
+    if (fl && !fl.deploy && !fl.handed) { fl.handed = true; fl.opts.onHandoff?.(fl.tHand); }
+  });
 
   // ---------- visibility and loop ----------
   function setVisible(on) {
     visible = on; root.classList.toggle('on', on);
     if (on) onState?.(mode);
   }
-  function hide() { setVisible(false); mode = 'idle'; }
+  function hide() { disposeEncounter(); setVisible(false); mode = 'idle'; rumble(0); if (audio) audio.gain.gain.value = 0; }
   let insetL = 0, insetR = 0;        // pixels covered by side panels: the scene centres in what is left
   function setInsets(l, r) { insetL = l; insetR = r; }
   let last = performance.now();
@@ -715,6 +839,9 @@ export function createCloseView(root, { earthTex, onState } = {}) {
           s.el.style.left = `${(tmp.x + 1) / 2 * innerWidth}px`;     // the projection already carries the view offset
           s.el.style.top = `${(1 - tmp.y) / 2 * innerHeight}px`; s.el.style.top = `${(1 - tmp.y) / 2 * innerHeight}px`;
         }
+      } else if (mode === 'encounter' && enc) {
+        stepEncounter(dt); sky.position.copy(cam.position);
+        draw(enc.scene, 0.3);
       } else if (mode === 'launch' && fl) {
         stepLaunch(dt);
         draw(fl.scene, fl.deploy ? 0.2 : 0.35);
@@ -723,5 +850,5 @@ export function createCloseView(root, { earthTex, onState } = {}) {
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
-  return { cam, controls, showBay, updateCurrent, select, playLaunch, playDeploy, hide, setInsets, layoutOf, get mode() { return mode; }, get flight() { return fl; } };
+  return { cam, controls, showBay, updateCurrent, select, playLaunch, playDeploy, playEncounter, hide, setInsets, layoutOf, get mode() { return mode; }, get flight() { return fl; } };
 }

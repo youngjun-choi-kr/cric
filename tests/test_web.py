@@ -55,3 +55,39 @@ def test_static_replay_and_approval(site):
         assert page.inner_text("#evalBody").count("Scenarios handled correctly") == 1
         browser.close()
     assert not errors, errors
+
+
+def test_studio_hosted_replay_end_to_end(site):
+    """Mission Studio with no server: the recorded JIMIN-1 run, rocket -> window -> operate -> approval."""
+    with playwright.sync_playwright() as p:
+        try:
+            browser = p.chromium.launch(channel="chrome", headless=True)
+        except Exception as exc:  # noqa: BLE001 - no Chrome on this machine
+            pytest.skip(f"Chrome not available: {exc}")
+        page = browser.new_page(viewport={"width": 1440, "height": 810})
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("dialog", lambda d: (errors.append("dialog: " + d.message), d.accept()))
+        idle = "async () => { const w = (ms) => new Promise(r => setTimeout(r, ms)); await w(300); while (!document.getElementById('busy').hidden) await w(200); }"
+        page.goto(f"{site}/web/studio.html?notour=1")
+        page.wait_for_function("!document.getElementById('loading')", timeout=60000)
+        assert "Hosted replay" in page.inner_text("#serverNote")
+        page.click("#flyBtn"); page.evaluate(idle); page.click("#cvSkip")
+        page.wait_for_function("!document.body.classList.contains('flying')", timeout=120000)
+        assert "Does not reach orbit" in page.inner_text("#verdict")
+        page.click("#adviseBtn"); page.evaluate(idle)
+        page.click("[data-fix]"); page.wait_for_timeout(5500); page.evaluate(idle); page.click("#cvSkip")
+        page.wait_for_function("!document.body.classList.contains('flying')", timeout=180000)
+        assert "Orbit" in page.inner_text("#verdict")
+        page.click("#toStep2"); page.evaluate(idle)
+        page.evaluate("() => document.querySelector('.cells i.go').dispatchEvent(new MouseEvent('click', {bubbles: true}))")
+        page.evaluate(idle)
+        page.click("#teamBtn"); page.evaluate(idle)
+        assert "GO for" in page.inner_text(".brief") and "From the notes" in page.inner_text("#board")
+        page.click("#toStep3"); page.click("#deployBtn"); page.evaluate(idle)
+        page.click("[data-enc='0']"); page.wait_for_selector(".decision", timeout=60000)
+        page.click(".nextPrecise")
+        page.wait_for_function("document.querySelectorAll('.decision').length > 1", timeout=60000)
+        assert "precise ephemeris" in page.evaluate("[...document.querySelectorAll('.decision')].pop().innerText")
+        browser.close()
+    assert not errors, errors

@@ -14,7 +14,8 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev,film]" pyflakes   # film = playwright; tests/test_web.py uses the runner's Chrome
       - run: python -m pyflakes src/cric web/serve.py scripts tests
-      - run: python -m pytest -q   # physics, safety rules, eval grading, a browser replay of the static console; no API keys
+      - run: python -m pytest -q   # physics, safety rules, eval grading, browser replays of the static console and studio; no API keys
+      - run: node tests/test_rocketgen.mjs   # the 3D rocket builder's sizing rules
 
   container:
     runs-on: ubuntu-latest

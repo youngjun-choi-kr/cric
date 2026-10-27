@@ -3,6 +3,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCloseView } from './launch3d/closeview.js';
+import { startTour } from './launch3d/tour.js';
+import { skyPlot, sunElev } from './launch3d/skyplot.js';
+import { HAS_API, REPLAY, NOW, sleep, api, busy, G, ltdnOf, hm, ltdnTarget, ltdnOk } from './launch3d/studio-api.js';
 
 const $ = (id) => document.getElementById(id);
 const RE = 6.378137;                                   // 1 unit = 1000 km, as in the console
@@ -15,63 +18,6 @@ const llv = (lat, lon, alt_km = 0) => {                 // geodetic-ish lat/lon 
   const r = RE + alt_km / 1000, la = lat * D2R, lo = lon * D2R;
   return new THREE.Vector3(r * Math.cos(la) * Math.cos(lo), r * Math.sin(la), -r * Math.cos(la) * Math.sin(lo));
 };
-
-// ---------- API ----------
-const HAS_API = await fetch('/api/incidents', { method: 'HEAD' }).then((r) => r.ok).catch(() => false);
-// Without the server (GitHub Pages) the page replays one recorded run: every answer below comes from that run.
-const REPLAY = HAS_API ? null : await fetch('launch/replay/jimin1.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
-const NOW = () => (REPLAY ? Date.parse(REPLAY.recorded_utc) : Date.now());
-if (!HAS_API) {
-  $('serverNote').hidden = false;
-  if (REPLAY) $('serverNote').innerHTML = `<b>Hosted replay</b> of a run recorded on ${REPLAY.recorded_utc.slice(0, 10)} (Garage One from Naro → JIMIN-1):
-    every number comes from that run, nothing is computed in this page. To fly your own rocket, run it locally (SETUP.md).`;
-}
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-function vehDiff(a, b) {
-  if (!a || !b) return 0;
-  if (a.stages.length !== b.stages.length) return 1e9;
-  return a.stages.reduce((t, s, i) => t + Math.abs(s.prop_kg - b.stages[i].prop_kg) / (s.prop_kg || 1)
-    + Math.abs(s.thrust_vac_n - b.stages[i].thrust_vac_n) / (s.thrust_vac_n || 1), 0);
-}
-async function replayApi(path, body) {
-  const list = REPLAY.entries.filter((e) => e.path === path);
-  if (!list.length) throw new Error('Not in this recording. Run Mission Studio locally to try it (SETUP.md).');
-  let e = list[0];
-  if (body?.vehicle) {
-    e = list.reduce((a, x) => (vehDiff(x.req.vehicle, body.vehicle) < vehDiff(a.req.vehicle, body.vehicle) ? x : a));
-    const same = vehDiff(e.req.vehicle, body.vehicle) < 0.02 && e.req.site === body.site
-      && Math.abs(e.req.payload_kg - body.payload_kg) < 0.01 && Math.abs(e.req.target_alt_km - body.target_alt_km) < 0.01;
-    if (!same) throw new Error('This hosted page replays one recorded run: Garage One with a 5 kg cubesat from Naro to 500 km SSO, '
-      + 'before and after its verified fix. To fly another rocket or orbit, run Mission Studio locally (SETUP.md).');
-  }
-  await sleep(Math.min(2600, 500 + e.seconds * 120));             // a hint of the real wait, shortened
-  return structuredClone(e.res);
-}
-async function api(path, body, raw) {
-  if (!HAS_API) {
-    if (REPLAY && path !== 'presets') return replayApi(path, body);
-    throw new Error('Mission Studio simulates on the local server: run web/serve.py and open http://localhost:8765/studio.html');
-  }
-  const r = await fetch('/api/launch/' + path, raw ? { method: 'POST', headers: { 'Content-Type': raw.type }, body: raw }
-    : body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({ error: r.statusText }));
-  if (!r.ok) throw new Error(j.error || r.statusText);
-  return j;
-}
-let busyN = 0;
-async function busy(text, fn) {
-  busyN++; $('busy').hidden = false;
-  const t0 = performance.now(), tick = () => { $('busyTxt').textContent = `${text} ${Math.round((performance.now() - t0) / 1000)} s`; };
-  tick(); const iv = setInterval(tick, 500);
-  try { return await fn(); }
-  catch (e) { alert(e.message); throw e; }
-  finally { clearInterval(iv); if (--busyN === 0) $('busy').hidden = true; }
-}
-// LTDN: local time when the orbit crosses the equator going south (the imaging side of a sun-synchronous orbit)
-const ltdnOf = (ltan) => (ltan + 12) % 24;
-const hm = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`;
-function ltdnTarget() { const [a, b] = ($('ltdnT')?.value || '10:30').split(':').map(Number); return a + (b || 0) / 60; }
-const ltdnOk = (ltan) => { const d = Math.abs(((ltdnOf(ltan) - ltdnTarget() + 36) % 24) - 12); return d <= (+$('ltdnTol')?.value || 45) / 60; };
 
 // ---------- globe ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -113,6 +59,15 @@ scene.add(new THREE.Mesh(new THREE.SphereGeometry(RE, 128, 96), new THREE.Shader
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`,
+})));
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(RE * 1.035, 96, 64), new THREE.ShaderMaterial({   // atmosphere, as in the console
+  uniforms: { sunDir: sunU }, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+  vertexShader: `varying vec3 vN; varying vec3 vWN; void main(){ vN=normalize(normalMatrix*normal); vWN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 sunDir; varying vec3 vN; varying vec3 vWN;
+    void main(){ float i=pow(max(0.62-dot(vN,vec3(0.,0.,1.)),0.0),2.6);
+      float lit=smoothstep(-0.35,0.45,dot(normalize(vWN),normalize(sunDir)));
+      vec3 c=mix(vec3(0.35,0.55,1.0),vec3(1.0,0.55,0.3),smoothstep(0.35,0.0,abs(dot(normalize(vWN),normalize(sunDir)))));
+      gl_FragColor=vec4(c*i*2.4*(0.12+lit),1.0); }`,
 })));
 const layer = { flight: new THREE.Group(), disp: new THREE.Group(), sites: new THREE.Group(), orbit: new THREE.Group() };
 Object.values(layer).forEach((g) => scene.add(g));
@@ -299,6 +254,7 @@ async function readSheet(file) {
   v.stages.forEach((st) => Object.keys(st.source).forEach((k) => { const p = provOf(st, k); counts[p] = (counts[p] || 0) + 1; }));
   $('sheetStatus').innerHTML = `<div class="card"><b>${esc(v.name)}</b> · ${v.stages.length} stages · ${Object.entries(counts).map(([k, n]) => `<span class="prov ${k}">${n} ${k}</span>`).join(' ')}
     ${v.missing.length ? `<div class="small" style="color:var(--warn)">Not on the sheet: ${esc(v.missing.join(', '))}. Placeholder values were put in; check them in the form.</div>` : ''}
+    ${(r.flags || []).map((f) => `<div class="small" style="color:var(--mid)">⚠ ${esc(f)}</div>`).join('')}
     ${v.notes ? `<div class="small dim">${esc(v.notes)}</div>` : ''}<div class="small dim">${r.usage.calls} model call · $${r.usage.cost_usd.toFixed(4)}</div></div>`;
   setMethod('form');
   setView('bay');
@@ -375,7 +331,7 @@ function dest(lat, lon, brg, km) {
 // ---------- step 1: fly ----------
 const mission = (extra = {}) => ({
   vehicle: S.vehicle, payload_kg: +$('payload').value, site: $('siteSel').value, target_alt_km: +$('alt').value,
-  incl_deg: +$('incl').value, guidance: S.guidance, ...extra,
+  incl_deg: +$('incl').value, guidance: S.guidance, q_limit_kpa: +$('qLim')?.value || null, ...extra,
 });
 $('flyBtn').addEventListener('click', fly);
 async function fly() {
@@ -396,7 +352,12 @@ function launch3d(r) {
   document.body.classList.add('flying');
   globeOn = false;
   if (anim) { anim.playing = false; anim.trail.geometry.setDrawRange(0, 0); }
+  // the launch time, if one was chosen, sets the light (and night); its forecast cloud cover sets the clouds
+  const when = S.liftoff || S.hour?.start || null;
+  const row = S.heat?.rows.find((x) => x.site === r.site.id);
+  const hr = when && row?.hours?.find((h) => h.t.slice(0, 13) === when.slice(0, 13));
   CV.playLaunch(f, r.vehicle, r.site, {
+    date: when ? new Date(when) : new Date(), cloudCover: hr?.cloud_cover ?? 25,
     onHandoff: (tH) => {
       globeOn = true;
       const k = Math.max(0, f.samples.findIndex((x) => x[0] >= tH));
@@ -424,22 +385,24 @@ function renderFlight(r) {
     (ok ? `<div class="big ok">✓ Orbit: ${fmt(f.perigee_km)} × ${fmt(f.apogee_km)} km, ${f.inclination_deg}°</div>
           <div class="kv"><span>Margin</span><b>${fmt(f.margin_dv_ms)} m/s left in the last stage${f.margin_kg != null ? ` (≈ ${fmt(f.margin_kg, 1)} kg of propellant)` : ''}</b>
           ${thin ? '<span>Reserve</span><b style="color:var(--mid)">under 50 m/s: normal thrust and Isp scatter will make many real flights miss. Check the dispersion.</b>' : ''}
-          <span>Max Q</span><b>${fmt(f.max_q_kpa, 1)} kPa at ${tplus(f.max_q_t)}</b><span>Insertion</span><b>${tplus(f.insertion.t)}</b></div>`
+          <span>${G('Max Q')}</span><b>${fmt(f.max_q_kpa, 1)} kPa at ${tplus(f.max_q_t)}</b><span>Insertion</span><b>${tplus(f.insertion.t)}</b></div>`
       : orbit ? `<div class="big mid">Orbit, but short of target: ${fmt(f.perigee_km)} × ${fmt(f.apogee_km)} km</div>`
       : `<div class="big bad">✗ Does not reach orbit</div>
           <div class="kv"><span>Highest point</span><b>${fmt(f.apex_km)} km</b>
-          ${f.perigee_km > 0 ? `<span>Perigee</span><b>${fmt(f.perigee_km)} km: below the ~150 km needed to stay up, so the atmosphere pulls it down</b>` : ''}
+          ${f.perigee_km > 0 ? `<span>${G('Perigee')}</span><b>${fmt(f.perigee_km)} km: below the ~150 km needed to stay up, so the atmosphere pulls it down</b>` : ''}
           ${f.impact ? `<span>Comes down</span><b>${fmtLL(f.impact.lat, f.impact.lon)} · ${fmt(f.impact.t / 60)} min after liftoff${f.impact.t > 3000 ? ' (after most of an orbit)' : `, ${fmt(Math.abs(f.impact.downrange_km))} km downrange`}</b>` : ''}</div>`) +
     `<div class="kv">${f.stage_impacts.map((s) => {
       const land = r.range?.nominal.find((n) => n.stage === s.stage)?.on_land;
       return `<span>${esc(s.stage)}</span><b>${s.stays_in_orbit ? 'stays in orbit' : `falls at ${fmtLL(s.lat, s.lon)}, ${fmt(Math.abs(s.downrange_km))} km downrange
         ${land == null ? '' : land ? '<span class="tag bad">ON LAND · range no-go</span>' : '<span class="tag ok">at sea</span>'}`}</b>`;
     }).join('')}</div>`;
-  $('flightBar').innerHTML = `<button id="replayBtn">⟲ Replay ascent</button>
+  $('flightBar').innerHTML = `<span class="whatif"><button id="eoBtn" title="Fly the same planned guidance with one first-stage engine lost">What if an engine fails at T+</button><input id="eoT" value="60" size="3">s</span>
+    <button id="replayBtn">⟲ Replay ascent</button>
     ${ok && !thin ? '' : `<button id="adviseBtn" class="primary">${ok ? 'Add a reserve' : 'Why? How do I fix it?'}</button>`}
     <button id="dispBtn">Where could it fall? (500 runs)</button>
     ${ok ? `<button id="toStep2" class="${thin ? '' : 'primary'}">Next: launch window →</button>` : ''}`;
   $('replayBtn').onclick = () => launch3d(r);
+  $('eoBtn').onclick = () => engineOut(+$('eoT').value || 60);
   $('dispBtn').onclick = runDispersion;
   if ($('adviseBtn')) $('adviseBtn').onclick = runAdvise;
   if ($('toStep2')) $('toStep2').onclick = () => showStep(2);
@@ -487,6 +450,20 @@ function stepAnim(dt) {
   if (anim.t >= last) { anim.playing = false; const cb = anim.onEnd; anim.onEnd = null; cb?.(); }
 }
 
+async function engineOut(t) {
+  const w = await busy(`Flying the same guidance with one first-stage engine lost at T+${t} s…`, () => api('whatif', mission({ engine_out_t: t })));
+  const f = w.flight;
+  dropLabels('eo'); layer.flight.children.filter((c) => c.userData.eo).forEach((c) => { layer.flight.remove(c); c.geometry.dispose(); });
+  const ln = line(f.samples.map((x) => llv(x[4], x[5], x[1])), 0xff3b2f, 0.9); ln.userData.eo = true; layer.flight.add(ln);
+  if (f.impact) { const p = llv(f.impact.lat, f.impact.lon, 2); const pt = points([p], 0xff3b2f, 12); pt.userData.eo = true; layer.flight.add(pt); label('✕ with an engine out', p, 'eo'); }
+  setView('globe');
+  $('eoOut')?.remove();
+  const box = document.createElement('div'); box.id = 'eoOut'; box.className = 'card mt';
+  box.innerHTML = `<b>Engine out at T+${t} s</b> <span class="dim small">(${w.engines === 1 ? 'single engine: all first-stage thrust lost' : `1 of ${w.engines} engines`} · same guidance, not re-planned)</span>
+    <div>${f.target_reached ? '✓ still reaches the target orbit' : f.orbit ? `reaches a lower orbit: ${fmt(f.perigee_km)} × ${fmt(f.apogee_km)} km` : `✗ no orbit${f.impact ? `: comes down at ${fmtLL(f.impact.lat, f.impact.lon)}, ${fmt(f.impact.t / 60)} min after liftoff` : ''}`}</div>
+    <div class="small" style="color:var(--${w.range.status === 'go' ? 'ok' : 'warn'})">Range: ${w.range.status === 'go' ? 'clear of land' : esc(w.range.reasons.join('; '))}</div>`;
+  $('flightBar').after(box);
+}
 async function runAdvise() {
   const r = await busy('Searching for fixes, each one verified by re-flying the rocket (parallel)…', () => api('advise', mission({ explain: true })));
   S.fixes = r.fixes;
@@ -513,7 +490,8 @@ function applyFix(x) {
 }
 
 async function runDispersion() {
-  const r = await busy('Monte Carlo: 500 flights with thrust, Isp, mass, pitch and azimuth scatter…', () => api('dispersion', mission({ runs: 500 })));
+  const r = await busy('Monte Carlo: 500 flights with thrust, Isp, mass, pitch and azimuth scatter, and the forecast winds aloft…',
+    () => api('dispersion', mission({ runs: 500, wind_utc: S.liftoff || S.hour?.start || null })));
   clear(layer.disp);
   const ell = (e, color) => { if (!e) return; for (const [k, op] of [['p50', 0.9], ['p95', 0.55]]) layer.disp.add(line(e[k].map(([la, lo]) => llv(la, lo, 3)), color, op)); };
   if (r.vehicle_impacts.length) { layer.disp.add(points(r.vehicle_impacts.map(([la, lo]) => llv(la, lo, 2)), 0xff3b2f, 3)); ell(r.vehicle_ellipse, 0xff6b57); }
@@ -525,6 +503,7 @@ async function runDispersion() {
     ${r.vehicle_impacts.length ? `<tr><td>whole vehicle</td><td>${r.vehicle_impacts.length}</td><td>${r.vehicle_ellipse ? `${r.vehicle_ellipse.p95_axes_km[0]} × ${r.vehicle_ellipse.p95_axes_km[1]} km` : 'along the ground track (no ellipse)'}</td></tr>` : ''}</table>
     ${r.range ? `<div class="row small mt"><span>Range safety (land check)</span><b class="${r.range.status === 'go' ? '' : 'bad'}" style="color:var(--${r.range.status === 'go' ? 'ok' : 'warn'})">${r.range.status === 'go' ? 'clear of land' : esc(r.range.reasons.join('; '))}</b></div>
       <div class="small dim">${Object.entries(r.range.dispersed_land_share).map(([k, v]) => `${esc(k)}: ${(v * 100).toFixed(1)}% of impacts on land`).join(' · ')} (limit ${r.range.land_limit * 100}% per spent stage; ${esc(r.range.source)})</div>` : ''}
+    ${r.wind ? `<div class="small mt">Winds aloft (${esc(r.wind.source)}, ${esc(r.wind.hour_utc.slice(5, 16).replace('T', ' '))} UTC): ${Object.entries(r.wind.mean_drift_km).map(([k, v]) => `${esc(k)} carried ${fmt(Math.hypot(v.east, v.north), 1)} km toward ${['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((Math.atan2(v.east, v.north) * 180 / Math.PI + 360) % 360) / 45) % 8]}`).join(' · ')} on the way down (±20% speed, ±15° direction per run)</div>` : ''}
     <div class="small dim">1σ: thrust ${r.sigma.thrust * 100}%, Isp ${r.sigma.isp * 100}%, dry mass ${r.sigma.dry * 100}%, pitch ${r.sigma.kick_add}°, azimuth ${r.sigma.az_add}°. Same code runs as a batch job for thousands of runs (Nebius Serverless Jobs).</div></div>`;
 }
 
@@ -585,17 +564,17 @@ async function pickHour(row, k, el) {
   S.lcola = r;
   const best = [...r.rows].filter((x) => x.status === 'go').sort((a, b) => (b.closest_km ?? 1e9) - (a.closest_km ?? 1e9));
   const worst = [...r.rows].sort((a, b) => (a.closest_km ?? 1e9) - (b.closest_km ?? 1e9))[0];
-  $('lcolaBox').innerHTML = `<h2><span>COLLISION AVOIDANCE AFTER INSERTION (LCOLA) · ${esc(row.name)} · ${start.slice(0, 10)} ${hhmm(start)}–${hhmm(r.rows[r.rows.length - 1].liftoff_utc)} UTC</span>
+  $('lcolaBox').innerHTML = `<h2><span>COLLISION AVOIDANCE AFTER INSERTION (${G('LCOLA')}) · ${esc(row.name)} · ${start.slice(0, 10)} ${hhmm(start)}–${hhmm(r.rows[r.rows.length - 1].liftoff_utc)} UTC</span>
       <span class="dim small">${fmt(r.objects_screened)} objects in your altitude band · first orbit</span></h2>
     <div class="strip">${r.rows.map((x, i) => `<i class="${x.status}${i % 10 === 0 ? ' lab' : ''}" data-i="${i}" data-l="${hhmm(x.liftoff_utc)}"></i>`).join('')}</div>
     <div class="lcmsg">${worst?.closest_km != null ? `Liftoff <b>${hhmm(worst.liftoff_utc)}</b>: your satellite would pass <b style="color:var(--warn)">${fmt(worst.closest_km, 1)} km</b> from ${esc(worst.object)} ${fmt(worst.minutes_after_insertion)} min after insertion. ` : ''}
       ${best[0] ? `Liftoff <b>${hhmm(best[0].liftoff_utc)}</b>: nearest object ${fmt(best[0].closest_km, 1)} km.` : 'No minute in this hour is clear.'}
-      <span class="dim small">Caution &lt; ${r.criteria_km.caution} km, no-go &lt; ${r.criteria_km.nogo} km (assumed). ${esc(r.note)}.</span></div>`;
+      <span class="dim small">No-go if closer than ${r.criteria_km.nogo} km or ${G('Pc')} ≥ ${r.criteria_pc ? r.criteria_pc.nogo.toExponential(0) : '1e-4'}; caution under ${r.criteria_km.caution} km or Pc ≥ ${r.criteria_pc ? r.criteria_pc.caution.toExponential(0) : '1e-5'} (assumed uncertainties: new satellite ${r.criteria_pc ? r.criteria_pc.sigma_new_rtn_km.join('/') : '1/6/1'} km, catalogue ${r.criteria_pc ? r.criteria_pc.sigma_catalog_rtn_km.join('/') : '0.4/2/0.4'} km). ${esc(r.note)}.</span></div>`;
   const strip = $('lcolaBox').querySelector('.strip');
   strip.addEventListener('mousemove', (ev) => {
     const i = ev.target.dataset.i; if (i == null) return; const x = r.rows[i];
     const lt = S.hour?.row?.ltan_h ? `<br>orbit LTDN ${hm(ltdnOf(S.hour.row.ltan_h[S.hour.k] + (Date.parse(x.liftoff_utc) - Date.parse(S.hour.start)) / 3600e3))}` : '';
-    tip(ev, `<b>Liftoff ${hhmm(x.liftoff_utc)} UTC</b> · ${x.status}${lt}<br>${x.closest_km != null ? `closest: ${fmt(x.closest_km, 2)} km from ${esc(x.object)}<br>${fmt(x.minutes_after_insertion, 1)} min after insertion` : 'nothing within the search radius'}`);
+    tip(ev, `<b>Liftoff ${hhmm(x.liftoff_utc)} UTC</b> · ${x.status}${lt}<br>${x.closest_km != null ? `closest: ${fmt(x.closest_km, 2)} km from ${esc(x.object)}${x.pc != null ? ` · Pc ${x.pc ? x.pc.toExponential(1) : '≈ 0'}` : ''}<br>${fmt(x.minutes_after_insertion, 1)} min after insertion` : 'nothing within the search radius'}`);
   });
   strip.addEventListener('mouseleave', () => { $('tip').hidden = true; });
   strip.addEventListener('click', (ev) => { const i = ev.target.dataset.i; if (i != null) toggleCand(r.rows[i].liftoff_utc); });
@@ -758,9 +737,10 @@ function showDecision(e, enc, preset, prev) {
     ${prev ? `<div class="pcmove">Collision probability <b>${pc(prev.pc)}</b> on public TLE data → <b>${pc(e.risk.pc)}</b> with precise ephemeris${
       e.risk.pc < 1e-6 && !opt ? ' · <span style="color:var(--ok)">cleared, no propellant spent</span>' : ''}</div>` : ''}
     <div>${esc(e.decision.rationale)}</div>
-    <div class="small dim mt">Pc ${pc(e.risk.pc)} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${e.options.length} burn options verified (${e.options.map((o) => `${o.id} ${o.dv_ms.toFixed(2)} m/s`).join(', ')}) · ${esc(e.other.name)} can manoeuvre: ${esc(e.other.capability?.can_maneuver)}</div>
+    <div class="small dim mt">${G('Pc')} ${pc(e.risk.pc)} · miss ${fmt(e.conjunction.miss_km, 2)} km · ${e.options.length} burn options verified (${e.options.map((o) => `${o.id} ${o.dv_ms.toFixed(2)} m/s`).join(', ')}) · ${esc(e.other.name)} can manoeuvre: ${esc(e.other.capability?.can_maneuver)}</div>
     <div class="ctl mt"><input class="opName" placeholder="Your name (who decides)" value="${esc($('satOwner').value)}">
       <button class="apOk primary">Approve</button><button class="apNo">Reject</button></div><div class="apOut small"></div>
+    <div class="ctl mt"><button class="encView">See the encounter in 3D</button></div>
     ${preset === 'quiet' && fin !== 'MANEUVER' ? '<div class="ctl mt"><button class="nextPrecise">Precise ephemeris arrives → decide again</button><span class="small dim">simulated: the screening provider\'s covariance (CDM grade)</span></div>' : ''}`;
   $('incOut').append(box);
   box.scrollIntoView({ block: 'end', behavior: 'smooth' });
@@ -775,30 +755,12 @@ function showDecision(e, enc, preset, prev) {
   };
   q('.apOk').onclick = () => send('approve'); q('.apNo').onclick = () => send('reject');
   if (q('.nextPrecise')) q('.nextPrecise').onclick = () => { q('.nextPrecise').disabled = true; assess(enc, 'precise', e.risk); };
-}
-
-// sky track of one pass: azimuth around, elevation inward (90° at the centre)
-function skyPlot(p, home) {
-  const c = $('skyPlot'); if (!c || !p?.track) return;
-  const g = c.getContext('2d'), R = c.width / 2 - 26, cx = c.width / 2, cy = c.height / 2;
-  const xy = (az, el) => { const r = R * (1 - el / 90), a = az * D2R; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
-  g.clearRect(0, 0, c.width, c.height);
-  g.strokeStyle = 'rgba(120,160,255,.3)'; g.lineWidth = 1.5;
-  for (const el of [0, 30, 60]) { g.beginPath(); g.arc(cx, cy, R * (1 - el / 90), 0, 7); g.stroke(); }
-  g.fillStyle = 'rgba(219,230,255,.75)'; g.font = '20px sans-serif'; g.textAlign = 'center';
-  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([n, az]) => { const [x, y] = xy(az, -12); g.fillText(n, x, y + 7); });
-  g.strokeStyle = '#4fe3a1'; g.lineWidth = 4; g.beginPath();
-  p.track.forEach(([az, el], i) => { const [x, y] = xy(az, Math.max(0, el)); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
-  const [x0, y0] = xy(p.track[0][0], p.track[0][1]); g.fillStyle = '#4fe3a1'; g.beginPath(); g.arc(x0, y0, 6, 0, 7); g.fill();
-  g.fillStyle = 'rgba(219,230,255,.85)'; g.textAlign = 'left'; g.font = '18px sans-serif';
-  g.fillText(`${home} · ${p.max_utc.slice(11, 16)} UTC · max ${p.max_elevation_deg}°`, 10, c.height - 10);
-}
-function sunElev(t, lat, lon) {                     // same almanac as the server (cric.launch.sun)
-  const doy = (t - Date.UTC(t.getUTCFullYear(), 0, 0)) / 864e5, gm = 2 * Math.PI / 365.25 * (doy - 1);
-  const decl = 0.006918 - 0.399912 * Math.cos(gm) + 0.070257 * Math.sin(gm) - 0.006758 * Math.cos(2 * gm) + 0.000907 * Math.sin(2 * gm) - 0.002697 * Math.cos(3 * gm) + 0.00148 * Math.sin(3 * gm);
-  const eot = 229.18 * (0.000075 + 0.001868 * Math.cos(gm) - 0.032077 * Math.sin(gm) - 0.014615 * Math.cos(2 * gm) - 0.040849 * Math.sin(2 * gm));
-  const ha = ((t.getUTCHours() * 60 + t.getUTCMinutes() + eot + 4 * lon) / 4 - 180) * D2R, la = lat * D2R;
-  return Math.asin(Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(ha)) / D2R;
+  q('.encView').onclick = async () => {
+    const g = await busy('The other object\'s path relative to ours, around closest approach (SGP4)…',
+      () => api('encounter', { ours: enc.object_a.norad_id, other: enc.object_b.norad_id, tca_utc: enc.tca_utc }));
+    globeOn = false; document.body.classList.add('flying');
+    CV.playEncounter(g, { onDone: () => { CV.hide(); globeOn = true; document.body.classList.remove('flying'); } });
+  };
 }
 
 // ---------- loop ----------
@@ -827,4 +789,5 @@ $('targetText').value = 'My 5 kg cubesat JIMIN-1 should photograph Seoul, where 
 updateIncl();
 const s0 = P.sites.naro; lookAt(s0.lat, s0.lon, 15);
 $('loading').classList.add('done'); setTimeout(() => $('loading').remove(), 800);
+setTimeout(startTour, 1200);
 requestAnimationFrame(frame);
