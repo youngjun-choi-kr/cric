@@ -60,8 +60,10 @@ def _mission(b: dict) -> dict:
     incl = float(b["incl_deg"]) if b.get("incl_deg") is not None else sso_inclination(alt)
     azs = azimuths_for(site.lat, incl)
     ok = [a for a in azs if in_corridor(site, a)]
-    if b.get("az") is not None:
-        az, az_note = float(b["az"]), "set by user"
+    if b.get("az") is not None:          # a user's azimuth is checked against the corridor like any other
+        az = float(b["az"])
+        ok = [az] if in_corridor(site, az) else []
+        az_note = "set by user" if ok else "set by user, outside the site's corridor"
     elif ok:
         az, az_note = ok[0], "from the target inclination, inside the site's corridor"
     else:
@@ -70,7 +72,7 @@ def _mission(b: dict) -> dict:
         az_note = ("the inclination is below this site's latitude" if not azs else
                    "the azimuth for this inclination would overfly land; flown at the corridor edge instead")
     return {"veh": veh, "payload": float(b.get("payload_kg", veh.payload_kg)), "site": site, "alt": alt,
-            "incl": incl, "az": az, "az_note": az_note, "az_ok": bool(ok) or b.get("az") is not None,
+            "incl": incl, "az": az, "az_note": az_note, "az_ok": bool(ok),
             "g": ascent.Guidance(*b["guidance"]) if b.get("guidance") else None,
             "q_lim": float(b["q_limit_kpa"]) if b.get("q_limit_kpa") else None}
 
@@ -206,21 +208,48 @@ def _window_facts(m: dict, r: dict, t: str, wx_hours: dict, lc_rows: dict, rng: 
     h = wx_hours.get(t[:13] + ":00:00Z") or {}
     lc = lc_rows.get(t) or {}
     kp = next((c for c in h.get("checks", []) if c["check"].startswith("space weather")), None)
+    # a check that did not run is not a pass: no forecast or no collision screening for this minute holds it
+    order = ["go", "caution", "hold", "nogo"]
+    missing = (["no weather forecast for this hour"] if not h else []) + (["no collision screening for this minute"] if not lc else [])
+    status = max((h.get("status", "hold"), lc.get("status", "hold"), rng["status"]), key=order.index)
     return {
         "liftoff_utc": t,
-        "status": max((h.get("status", "go"), lc.get("status", "go")), key=["go", "caution", "nogo"].index),
+        "status": status,
+        "not_checked": missing,
         "weather": [c for c in h.get("checks", []) if not c["check"].startswith("space weather")] or "no forecast",
         "range": {"site": m["site"].name, "azimuth_deg": round(m["az"], 2), "azimuth_inside_corridor": m["az_ok"],
                   "corridor_deg": m["site"].corridors,
                   "stage_impacts": [{k: s.get(k) for k in ("stage", "lat", "lon", "downrange_km", "on_land")}
                                     for s in rng["nominal"]],
                   "land_check": rng["status"], "land_check_source": rng["source"],
-                  "rule": "no-go if the azimuth is outside the corridor or any spent stage comes down on land"},
+                  "dispersed_land_share": rng.get("dispersed_land_share"), "dispersion": rng.get("dispersion"),
+                  "rule": "no-go if the azimuth is outside the corridor, a spent stage comes down on land, or more "
+                          "than 1% of dispersed impacts do; hold if the dispersion could not run"},
         "lcola": {"closest_km": lc.get("closest_km"), "object": lc.get("object"),
                   "minutes_after_insertion": lc.get("minutes_after_insertion"),
                   "caution_km": windows.CRITERIA["lcola_km"][0], "nogo_km": windows.CRITERIA["lcola_km"][1]},
         "kp": {"value": kp["value"], "caution": kp["caution"], "nogo": kp["nogo"]} if kp else "not forecast",
     }
+
+
+def _range(m: dict, r: dict, when) -> dict:
+    """Range check for the go / no-go: nominal impacts plus the same dispersion step 1 shows (500 flights, winds
+    aloft at the first candidate), so dispersed impacts on land count too. A range that could not be checked holds."""
+    from .land import range_check
+
+    try:
+        d = disp.dispersion(m["veh"], m["payload"], m["g"], runs=500, wind=windows.wind_profile(m["site"].id, when),
+                            **_kw(m)) if m["g"] else None
+    except Exception as exc:  # noqa: BLE001 - a range that was not checked is not clear
+        d, why = None, f"not run: {exc.__class__.__name__}"
+    else:
+        why = "500 dispersed flights with the forecast winds aloft" if d else "not run: fly the rocket first"
+    rng = range_check(r, d)
+    rng["dispersion"] = why
+    if d is None and rng["status"] == "go":
+        rng["status"] = "hold"
+        rng["reasons"] = rng["reasons"] + ["dispersion " + why]
+    return rng
 
 
 def gonogo(b: dict) -> dict:
@@ -241,11 +270,10 @@ def gonogo(b: dict) -> dict:
     lc = windows.lcola(r, start, _catalog(), minutes=max(span, 1))
     lc_rows = {x["liftoff_utc"]: x for x in lc.get("rows", [])}
     from .agents import apply_rules, read_launch_notes
-    from .land import range_check
 
-    rng = range_check(r)
+    rng = _range(m, r, parse_utc(cands[0]))
     facts = [_window_facts(m, r, t, wx, lc_rows, rng) for t in cands]
-    if not m["az_ok"] or rng["status"] == "nogo":
+    if not m["az_ok"]:
         for f in facts:
             f["status"] = "nogo"
     u = Usage()

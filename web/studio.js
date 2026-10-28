@@ -628,6 +628,7 @@ $('teamBtn').addEventListener('click', async () => {
   $('board').innerHTML = r.windows.map((w) => {
     const vs = r.votes[w.liftoff_utc];
     return `<div class="win"><div class="hd"><span>${w.liftoff_utc.slice(5, 10)} ${hhmm(w.liftoff_utc)} UTC</span><span class="tag ${w.status === 'go' ? 'ok' : w.status === 'nogo' ? 'bad' : 'mid'}">checks: ${w.status}</span></div>
+      ${w.not_checked?.length ? `<div class="small" style="color:var(--mid)">Not checked, so held: ${w.not_checked.map(esc).join('; ')}</div>` : ''}
       ${Object.entries(vs).map(([k, v]) => `<div class="vote"><span class="r">${ROLE[k]}</span><span class="tag ${v.vote === 'go' ? 'ok' : 'bad'}">${v.vote}</span><span>${esc(v.reason)}</span></div>`).join('')}
       ${(w.team_notes || []).filter((x) => x.effect !== 'ok').map((x) => `<div class="vote"><span class="r">Notes</span><span class="tag ${x.effect === 'nogo' ? 'bad' : 'blue'}">${esc(x.effect)}</span><span>${esc(x.kind.replace(/_/g, ' '))}: “${esc(x.quote)}”</span></div>`).join('')}
       <div class="small dim">LCOLA ${w.lcola.closest_km != null ? fmt(w.lcola.closest_km, 1) + ' km (' + esc(w.lcola.object) + ')' : 'clear'} · Kp ${typeof w.kp === 'object' ? w.kp.value : w.kp}</div></div>`;

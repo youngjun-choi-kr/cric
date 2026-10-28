@@ -203,6 +203,7 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
                                  "vl_role": sw["vl_role"], "vl_noaa_disagreement": sw["vl_noaa_disagreement"]}
     emit("context", now_utc=ctx["now_utc"], conjunction=ctx["conjunction"], risk=ctx["risk"],
          space_weather=ctx["space_weather"], mission=ctx["mission"], policy_text=policy["text"])
+    unread: list[str] = []              # safety inputs that could not be read: no burn without them
     for shot in screenshots or []:      # screenshots the team shared: VL transcribes, the notes path does the rest
         from .agent.screens import as_note, read_screen
 
@@ -214,8 +215,9 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
             ctx["mission"]["notes"] = (ctx["mission"]["notes"] + "\n" + as_note(read)).strip()
             emit("screen", model=MODEL_VL, image=shot, kind=read.kind, transcript=read.transcript,
                  affects=read.affects_manoeuvres)
-        except Exception as exc:  # an unreadable screenshot must not block the decision
+        except Exception as exc:  # an unreadable screenshot must not stop the run, but it must not be ignored either
             emit("screen_error", image=shot, message=str(exc)[:300])
+            unread.append(f"screenshot {Path(shot).name} could not be read")
     if (ctx["mission"].get("notes") or "").strip() not in ("", "No mission constraints today."):
         from .agent.constraints import apply, extract
 
@@ -226,8 +228,9 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
             emit("constraints", constraints=ctx["mission"]["extracted_constraints"],
                  excluded=ctx["mission"]["excluded_options"], problems=problems,
                  max_dv_ms=ctx["operator_policy"]["max_dv_ms"], blackouts=ctx["mission"]["blackouts"])
-        except Exception as exc:  # the decision model still reads the notes; the validator just knows less
+        except Exception as exc:  # the decision model still reads the notes, but the code cannot check them
             emit("constraints_error", message=str(exc)[:300])
+            unread.append("the mission notes could not be turned into checked constraints")
     emit("decision_start", model=model, votes=votes)
     decision, individual, reasoning = decide_votes(ctx, n=votes, model=model, usage=usage)
     emit("decision", decision=decision, individual=[{k: d.get(k) for k in ("action", "option_id", "confidence")}
@@ -248,6 +251,12 @@ def run_incident(ours: int, other: int, tca_utc: str, *, now_utc: str | None = N
         check = {**check, "final_action": final["action"], "final_option_id": final.get("option_id"),
                  "accepted_as_is": False, "overrides": check["overrides"] + [
                      {"from": check["final_action"], "to": final["action"], "reason": reason}]}
+    if unread and check["final_action"] == "MANEUVER":
+        check = {**check, "final_action": "ESCALATE", "final_option_id": None, "accepted_as_is": False,
+                 "overrides": check["overrides"] + [{"from": "MANEUVER", "to": "ESCALATE",
+                                                     "reason": "no burn while a safety input is unread: " + "; ".join(unread)}]}
+        emit("unread_inputs", unread=unread, final={"action": "ESCALATE", "option_id": None})
+    check = {**check, "unread_inputs": unread}
 
     report = None
     if with_report and check["final_action"] in ("COORDINATE", "ESCALATE"):

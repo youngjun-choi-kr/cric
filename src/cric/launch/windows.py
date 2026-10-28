@@ -96,6 +96,10 @@ def _grade(value, caution, nogo, higher_is_worse=True):
     return "nogo" if value <= nogo else "caution" if value <= caution else "go"
 
 
+# Without these a launch hour is not checked at all (hold); Kp is only forecast ~3 days ahead, so it may be n/a
+REQUIRED = ("gusts", "ground wind", "rain", "lightning (CAPE)", "upper winds 250 hPa")
+
+
 def assess_hour(h: dict, kp: float | None) -> dict:
     checks = {
         "gusts": (h.get("wind_gusts_10m"), *CRITERIA["gust_ms"], "m/s"),
@@ -106,14 +110,17 @@ def assess_hour(h: dict, kp: float | None) -> dict:
         "space weather (Kp)": (kp, *CRITERIA["kp"], ""),
     }
     items, worst = [], "go"
-    rank = {"go": 0, "n/a": 0, "caution": 2, "nogo": 3}   # n/a: not forecast that far (Kp: ~3 days)
+    rank = {"go": 0, "n/a": 0, "caution": 2, "hold": 2.5, "nogo": 3}   # n/a: not forecast that far (Kp: ~3 days)
     for name, (v, c, n, unit) in checks.items():
         g = _grade(v, c, n)
+        if g == "n/a" and name in REQUIRED:     # no forecast for a launch-critical value: not checked, so not go
+            g = "hold"
         items.append({"check": name, "value": v, "unit": unit, "status": g, "caution": c, "nogo": n})
         if rank[g] > rank[worst]:
             worst = g
     return {"status": worst, "checks": items, "reasons": [f"{i['check']} {i['value']}{i['unit']}" for i in items
-                                                         if i["status"] in ("nogo", "caution")]}
+                                                         if i["status"] in ("nogo", "caution")]
+            + [f"no forecast for {i['check']}" for i in items if i["status"] == "hold"]}
 
 
 def heatmap(incl_deg: float, *, days: int = 7, sites: list[str] | None = None) -> dict:

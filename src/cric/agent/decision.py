@@ -78,7 +78,7 @@ def decide(context: dict, *, model: str = MODEL_SUPER, usage: Usage | None = Non
 
 
 def majority(decisions: list[dict]) -> dict:
-    """Combine independent decisions: majority action (and option), otherwise escalate.
+    """Combine independent decisions: majority action (for a burn, a majority on the same burn), otherwise escalate.
 
     A safety tool should not hand back a different answer each time it is asked. When most runs agree, that
     answer stands; when they split, the disagreement itself is the finding and a person decides.
@@ -97,7 +97,16 @@ def majority(decisions: list[dict]) -> dict:
                 "unknowns": ["which of the split answers is right"], "votes": dict(actions)}
     agreeing = [d for d in decisions if d["action"] == action]
     options = Counter(d.get("option_id") for d in agreeing)
-    option = options.most_common(1)[0][0]
+    option, k = options.most_common(1)[0]
+    if action == "MANEUVER" and k * 2 <= len(decisions):
+        # most runs want to move, but no burn has a majority of all runs: agreeing to act is not agreeing on how
+        split = ", ".join(f"{o} x{c}" for o, c in options.most_common())
+        return {"action": "ESCALATE", "option_id": None, "message_to_other_operator": None,
+                "rationale": f"Most runs chose to manoeuvre but split on the burn ({split}); a person should decide.",
+                "key_factors": [{"factor": "model disagreement", "evidence": f"MANEUVER options: {split}", "effect": "escalate"},
+                                {"factor": "policy", "evidence": "a burn needs a majority of all runs", "effect": "no automatic action"}],
+                "mission_conflicts": [], "recheck_at_utc": None, "confidence": 0.0,
+                "unknowns": ["which burn, if any"], "votes": dict(actions)}
     chosen = next(d for d in agreeing if d.get("option_id") == option)
     return {**chosen, "votes": dict(actions)}
 

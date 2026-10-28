@@ -242,3 +242,42 @@ def test_lifetime_rule_and_deorbit_burn():
     poor = control.lifetime({"perigee_km": 600, "apogee_km": 620}, {"mass_kg": 5.0, "dv_left_ms": 1.0})
     assert not poor["deorbit"]["affordable"]
     assert low["hold_ms_per_year"] > high["hold_ms_per_year"] > 0
+
+
+def test_missing_checks_hold_instead_of_go():
+    from cric.launch import api
+
+    assert windows.assess_hour({}, None)["status"] == "hold"                       # no forecast at all
+    partial = {"wind_gusts_10m": 5, "wind_speed_10m": 3, "precipitation_probability": 0, "cape": 0}
+    assert windows.assess_hour(partial, 2.0)["status"] == "hold"                   # upper winds missing
+    m = api._mission({"vehicle": "electron", "site": "mahia"})
+    rng = {"nominal": [], "status": "go", "source": "test"}
+    t = "2026-11-01T02:46:00Z"
+    f = api._window_facts(m, {}, t, {}, {}, rng)                                   # neither weather nor LCOLA
+    assert f["status"] == "hold" and len(f["not_checked"]) == 2
+    good_wx = {t[:13] + ":00:00Z": windows.assess_hour({**partial, "wind_speed_250hPa": 20}, 2.0)}
+    assert api._window_facts(m, {}, t, good_wx, {t: {"status": "go"}}, rng)["status"] == "go"
+    assert api._window_facts(m, {}, t, good_wx, {t: {"status": "go"}}, rng | {"status": "nogo"})["status"] == "nogo"
+
+
+def test_user_azimuth_is_checked_against_the_corridor():
+    from cric.launch import api
+
+    site = SITES["mahia"]
+    inside = (site.corridors[0][0] + site.corridors[0][1]) / 2
+    assert api._mission({"vehicle": "electron", "site": "mahia", "az": inside})["az_ok"]
+    assert not api._mission({"vehicle": "electron", "site": "mahia", "az": (inside + 180) % 360})["az_ok"]
+
+
+def test_range_holds_when_the_dispersion_cannot_run(monkeypatch, flight):
+    from cric.launch import api
+
+    m = api._mission({"vehicle": "electron", "site": "mahia", "guidance": [35.5, 19.41, 10.88, 2.93]})
+
+    def broken(*a, **k):
+        raise RuntimeError("no winds")
+    monkeypatch.setattr(api.disp, "dispersion", broken)
+    rng = api._range(m, flight, T0)
+    assert rng["status"] == "hold" and "not run" in rng["dispersion"]
+    no_guidance = api._range(api._mission({"vehicle": "electron", "site": "mahia"}), flight, T0)
+    assert no_guidance["status"] == "hold"

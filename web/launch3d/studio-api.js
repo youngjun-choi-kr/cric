@@ -34,6 +34,15 @@ async function replayApi(path, body) {
       && Math.abs(e.req.payload_kg - body.payload_kg) < 0.01 && Math.abs(e.req.target_alt_km - body.target_alt_km) < 0.01;
     if (!same) throw new Error('This hosted page replays recorded flights: Garage One from Naro (as loaded, then with its fix) and each published rocket as it loads, from its own site. Changed numbers need the simulator: run Mission Studio locally (SETUP.md).');
   }
+  // inputs the answer depends on must be the recorded ones: an edited note, sentence or satellite gets a refusal,
+  // never the recorded answer to a different question
+  const SAME = { target: ['text'], gonogo: ['notes', 'candidates'], deploy: ['name', 'home', 'can_maneuver', 'prop_kg', 'isp_s'],
+    lcola: ['start_utc'], dispersion: ['runs', 'wind_utc'] }[path] || [];
+  const norm = (v) => JSON.stringify(Array.isArray(v) ? [...v].sort() : typeof v === 'string' ? v.trim() : v ?? null);
+  const changed = SAME.filter((k) => body && e.req && k in e.req && norm(body[k]) !== norm(e.req[k]));
+  if (changed.length) {
+    throw new Error(`This hosted page replays one recorded run, and ${changed.join(', ')} ${changed.length > 1 ? 'differ' : 'differs'} from it, so there is no recorded answer. Put the recorded value back, or run Mission Studio locally to try your own (SETUP.md).`);
+  }
   for (const k of ['engine_out_t', 'ours', 'other']) {           // what-if time and encounter pair must match too
     if (body && k in body && e.req && String(e.req[k]) !== String(body[k])) {
       throw new Error(`This hosted page replays one recorded run${k === 'engine_out_t' ? ` (engine out at T+${e.req[k]} s)` : ''}. Run Mission Studio locally to try other cases (SETUP.md).`);

@@ -216,8 +216,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                  **{k: str(body.get(k, ""))[:1000] for k in ("file", "action", "option_id", "verdict", "reason", "operator")},
                  "sent": False}
         incident = INCIDENTS / entry["file"]
-        if entry["file"] and incident.resolve().parent == INCIDENTS.resolve() and incident.exists():
-            entry["incident_sha256"] = hashlib.sha256(incident.read_bytes()).hexdigest()   # what exactly was approved
+        if not entry["file"] or incident.resolve().parent != INCIDENTS.resolve() or not incident.exists():
+            return self.send_error(400, "unknown incident: approve a saved CRIC decision")
+        final = json.loads(incident.read_text()).get("validation") or {}
+        if (entry["action"], entry["option_id"] or None) != (final.get("final_action"), final.get("final_option_id")):
+            # what a person approves is the decision CRIC saved, not whatever the page sent
+            return self.send_error(409, f"the incident's final decision is {final.get('final_action')} "
+                                        f"{final.get('final_option_id') or ''}".strip())
+        entry["incident_sha256"] = hashlib.sha256(incident.read_bytes()).hexdigest()   # what exactly was approved
         with APPROVAL_LOCK:
             prev = _approval_entries()[-1]["hash"] if _approval_entries() else "0" * 64
             entry["prev_hash"] = prev

@@ -113,7 +113,11 @@ CRIC is a research prototype for decision support. It is not an operational coll
   service ("temporarily unavailable") both times we tried, so that path has not run end to end.
 - `cric watch` and the Dockerfile are written for a Nebius Serverless AI Job. The image builds (in CI on every push)
   and the loop ran inside it in dry-run mode; nothing was run on Nebius AI Cloud.
-- The approval step logs a decision; it does not send anything. There is no uplink.
+- The approval step logs a decision; it does not send anything. There is no uplink. The server only accepts an
+  approval of the decision it saved for that incident (or, in Mission control, of the burn it checked). The logs
+  (`data/approvals.jsonl`, `data/studio/commands.jsonl`) are a local audit trail: the hash chain shows an edited or
+  removed entry in the middle, but not the newest entries being cut off, since nothing outside the machine holds
+  the latest hash. A real deployment would anchor it elsewhere (a signed copy, a write-once store).
 
 ## Mission Studio
 - The ascent is 3-DOF in one plane: no yaw steering or dog-legs, no winds in the powered flight (winds aloft only

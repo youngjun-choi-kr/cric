@@ -216,3 +216,14 @@ def test_approval_log_chain_detects_edits():
     assert _chain_ok(entries)
     entries[1]["verdict"] = "reject"
     assert not _chain_ok(entries)
+
+
+def test_a_burn_needs_a_majority_on_the_same_burn():
+    from cric.agent.decision import majority
+
+    m = majority([{"action": "MANEUVER", "option_id": "O1"}, {"action": "MANEUVER", "option_id": "O2"},
+                  {"action": "MONITOR", "option_id": None}])
+    assert m["action"] == "ESCALATE" and m["option_id"] is None
+    m = majority([{"action": "MANEUVER", "option_id": "O1"}, {"action": "MANEUVER", "option_id": "O1"},
+                  {"action": "MONITOR", "option_id": None}])
+    assert m["action"] == "MANEUVER" and m["option_id"] == "O1"

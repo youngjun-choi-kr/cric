@@ -63,3 +63,22 @@ def test_burn_commands_reject_bad_input():
     assert code == 400 and "unknown plan" in out["error"]
     code, out = api.handle_post("/api/launch/burn", json.dumps({"norad_id": 1, "burn_utc": "2026-11-01T00:00:00Z", "direction": "up", "dv_ms": 1}).encode(), "application/json")
     assert code == 400
+
+
+def test_approval_must_match_the_saved_decision(server):
+    import serve
+
+    url, h = server
+    name = "zz_test_approval_incident.json"
+    path = serve.INCIDENTS / name
+    serve.INCIDENTS.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"validation": {"final_action": "MONITOR", "final_option_id": None}}))
+    try:
+        body = {"file": name, "action": "MANEUVER", "option_id": "O1", "verdict": "approve", "operator": "test"}
+        r = requests.post(f"{url}/api/approval", headers=h | {"Content-Type": "application/json"}, data=json.dumps(body), timeout=30)
+        assert r.status_code == 409                       # the page asked to approve a burn CRIC did not decide
+        r = requests.post(f"{url}/api/approval", headers=h | {"Content-Type": "application/json"},
+                          data=json.dumps(body | {"file": "no_such_incident.json"}), timeout=30)
+        assert r.status_code == 400
+    finally:
+        path.unlink()

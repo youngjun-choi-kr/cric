@@ -72,6 +72,12 @@ def test_studio_hosted_replay_end_to_end(site):
         page.goto(f"{site}/web/studio.html?notour=1")
         page.wait_for_function("!document.getElementById('loading')", timeout=60000)
         assert "Hosted replay" in page.inner_text("#serverNote")
+        original = page.input_value("#targetText")               # an edited sentence gets a refusal, not the recording
+        page.fill("#targetText", "My 3 kg cubesat should fly at 600 km."); page.click("#targetBtn"); page.evaluate(idle)
+        refused = [e for e in errors if "text differs" in e]          # the alert, and the rejected call behind it
+        assert refused and len(refused) == len(errors)
+        errors.clear()
+        page.fill("#targetText", original)
         page.click("#flyBtn"); page.evaluate(idle); page.click("#cvSkip")
         page.wait_for_function("!document.body.classList.contains('flying')", timeout=120000)
         assert "Does not reach orbit" in page.inner_text("#verdict")

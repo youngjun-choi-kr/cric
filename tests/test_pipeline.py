@@ -116,3 +116,20 @@ def test_agreement_result_is_applied_not_only_disagreements(monkeypatch, tmp_pat
     assert calls["decide"] == 3
     assert res["validation"]["final_action"] in ("COORDINATE", "ESCALATE")
     assert res["validation"]["final_action"] == res["coded_policy"]["action"] or res["validation"]["final_action"] != "MANEUVER"
+
+
+def test_unread_notes_never_lead_to_a_burn(monkeypatch, tmp_path, small_catalog):
+    # Votes and coded policy would burn (debris, precise data); the notes cannot be turned into checked constraints.
+    _patch(monkeypatch, tmp_path, ["MANEUVER", "MANEUVER", "MANEUVER"])
+    import cric.agent.constraints as constraints
+
+    def broken(*a, **k):
+        raise RuntimeError("model unavailable")
+    monkeypatch.setattr(constraints, "extract", broken)
+    now = iso(parse_utc(TCA) - timedelta(hours=9))
+    events = []
+    res = pipeline.run_incident(OURS, OTHER, TCA, now_utc=now, use_tavily=False, cat=small_catalog, data_quality="cdm",
+                                mission={"notes": "Imaging campaign over Busan: no burns between 01:00 and 03:00 UTC."},
+                                emit=lambda kind, **kw: events.append(kind))
+    assert "constraints_error" in events
+    assert res["validation"]["final_action"] != "MANEUVER" and res["validation"]["unread_inputs"]
