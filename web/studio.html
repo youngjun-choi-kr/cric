@@ -56,7 +56,7 @@
   </div>
 
   <h2 class="mt">Your orbit</h2>
-  <div class="ctl"><textarea id="targetText" rows="2" placeholder="e.g. My 5 kg cubesat JIMIN-1 should photograph Seoul from a 500 km sun-synchronous orbit."></textarea></div>
+  <div class="ctl"><textarea id="targetText" rows="2" placeholder="e.g. My 5 kg cubesat CUBE-1 should photograph Seoul from a 500 km sun-synchronous orbit."></textarea></div>
   <div class="ctl"><button id="targetBtn">Read it <span class="model">Nemotron Nano</span></button><span id="targetStatus" class="small dim"></span></div>
   <div class="grid2">
     <label>Altitude <span class="dim">km</span><input id="alt" type="number" value="500" min="160" max="2000" step="10"></label>
@@ -88,16 +88,17 @@
   <div id="lcolaBox"></div>
 </div>
 <div class="panel scol" id="right2" data-for="2" hidden>
-  <h2>Go / no-go</h2>
-  <div class="small dim">Pick an hour, then up to 4 minutes. The team votes; a vetoed minute can’t win.</div>
+  <h2>Launch poll</h2>
+  <div class="small dim">Choose an hour on the map, then up to four candidate liftoff minutes. Weather, range and orbital
+    safety each poll GO or NO-GO on every minute; one NO-GO rules a minute out.</div>
   <label class="full">Notes from the team, the customer and the range <span class="dim">(any language · example notes, edit them)</span>
     <textarea id="teamNotes" rows="5">Range notice (Naro): the sea area south of the pad is closed to launches from 11:25 to 11:30 KST on 1 Nov for a fishing fleet transit.
-고객사 요청: 발사는 현지 일출 이후에만 해 주세요.
+Customer request: launch only after local sunrise.
 Weather officer: for this campaign treat gusts of 12 m/s or more as no-go.
 If several windows are clear, the customer prefers the earliest one.</textarea></label>
   <div class="small dim">Each rule must quote your notes word for word, or it’s dropped. <span class="model">Nemotron 3 Super</span></div>
   <div id="candList" class="chips mt"></div>
-  <div class="ctl"><button id="teamBtn" class="primary" disabled>Ask the launch team</button></div>
+  <div class="ctl"><button id="teamBtn" class="primary" disabled>Poll the launch team</button></div>
   <div id="board"></div>
 </div>
 
@@ -105,8 +106,8 @@ If several windows are clear, the customer prefers the earliest one.</textarea><
 <div class="panel scol" id="left3" data-for="3" hidden>
   <h2>Your satellite</h2>
   <div class="grid2">
-    <label>Name<input id="satName" value="JIMIN-1" maxlength="24"></label>
-    <label>Owner<input id="satOwner" value="Jimin"></label>
+    <label>Name<input id="satName" value="CUBE-1" maxlength="24"></label>
+    <label>Owner<input id="satOwner" value="Mission lead"></label>
     <label class="full">Mission<input id="satMission" value="imaging"></label>
     <label>Home <input id="homeName" value="Seoul"></label>
     <label>lat, lon<input id="homeLL" value="37.5665, 126.978"></label>

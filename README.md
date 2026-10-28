@@ -11,7 +11,7 @@ tried by a real operations team (that is the next step).
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/).
 
 **Live demo, no install: https://youngjun-choi-kr.github.io/cric/** · **Demo video:** *(link added at submission)*
-- **Mission Studio** (rocket, launch, operate): a recorded run of the JIMIN-1 story, replayed in the page. All five
+- **Mission Studio** (rocket, launch, operate): a recorded run of the CUBE-1 story, replayed in the page. All five
   rockets fly in step 1; in step 3 the two goal burns ("lower it", "raise it") and CRIC's safer times are recorded.
 - **Operations console**: recorded conjunction decisions; pick a situation and press *Replay recorded run*.
 
@@ -174,7 +174,7 @@ decision's rationale cites the blackout. The final answer was ESCALATE both time
 split (escalate, manoeuvre, coordinate), so a person decides anyway. We report it as it came out. A: 28 s,
 $0.019; B: 38 s, $0.024 in model tokens, Tavily on.
 
-**What a decision costs in a live run.** The JIMIN-1 incident in the film (precise data, 2026-11-03 encounter):
+**What a decision costs in a live run.** The CUBE-1 incident in the film (precise data, 2026-11-03 encounter):
 Nemotron 3 Super 4 calls ($0.0095: notes and votes), Nemotron 3 Ultra 1 call ($0.012: the brief for a person),
 **$0.021 in model tokens** at Token Factory list prices, 42 s wall-clock; Tavily: 3 searches and 1 page extract
 for the other satellite's dossier (billed by Tavily, not included); orbit and Pc computation on the laptop (not

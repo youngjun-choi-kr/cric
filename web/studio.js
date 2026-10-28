@@ -105,6 +105,8 @@ function lookAt(lat, lon, dist = 13) { camGoal = llv(lat, lon).normalize().multi
 
 // ---------- state ----------
 const P = await (HAS_API ? api('presets') : fetch('launch/presets.json').then((r) => r.json()));
+// how a poll result is shown: launch-ops capitals, not code values
+const POLL = { go: 'GO', 'no-go': 'NO-GO', nogo: 'NO-GO', caution: 'CAUTION', hold: 'HOLD', 'n/a': 'not forecast', 'for the director': 'for the director' };
 const S = { method: 'preset', vehicle: null, prov: {}, flight: null, guidance: null, fixes: null, site: 'naro', target: null, cands: [], liftoff: null, lcola: null, deployed: null };
 const VAL = P.validation;                               // keyed by vehicle name
 
@@ -565,7 +567,7 @@ function renderHeat(r) {
     c.addEventListener('mousemove', (ev) => {
       const k = ev.target.dataset.k; if (k == null) return;
       const x = row.hours[k];
-      tip(ev, `<b>${esc(row.name)}</b><br>${x.t.slice(0, 16).replace('T', ' ')} UTC · <b>${x.status}</b>${row.ltan_h ? `<br>orbit LTDN ${hm(ltdnOf(row.ltan_h[k]))} (target ${hm(ltdnTarget())})` : ''}<br>${x.checks.map((c2) => `${c2.check}: ${c2.value ?? '–'}${c2.unit}`).join('<br>')}`);
+      tip(ev, `<b>${esc(row.name)}</b><br>${x.t.slice(0, 16).replace('T', ' ')} UTC · <b>${POLL[x.status] || x.status}</b>${row.ltan_h ? `<br>orbit LTDN ${hm(ltdnOf(row.ltan_h[k]))} (target ${hm(ltdnTarget())})` : ''}<br>${x.checks.map((c2) => `${c2.check}: ${c2.value ?? '–'}${c2.unit}`).join('<br>')}`);
     });
     c.addEventListener('mouseleave', () => { $('tip').hidden = true; });
     c.addEventListener('click', (ev) => { const k = ev.target.dataset.k; if (k != null) pickHour(row, +k, ev.target); });
@@ -601,7 +603,7 @@ async function pickHour(row, k, el) {
   strip.addEventListener('mousemove', (ev) => {
     const i = ev.target.dataset.i; if (i == null) return; const x = r.rows[i];
     const lt = S.hour?.row?.ltan_h ? `<br>orbit LTDN ${hm(ltdnOf(S.hour.row.ltan_h[S.hour.k] + (Date.parse(x.liftoff_utc) - Date.parse(S.hour.start)) / 3600e3))}` : '';
-    tip(ev, `<b>Liftoff ${hhmm(x.liftoff_utc)} UTC</b> · ${x.status}${lt}<br>${x.closest_km != null ? `closest: ${fmt(x.closest_km, 2)} km from ${esc(x.object)}${x.pc != null ? ` · Pc ${x.pc ? x.pc.toExponential(1) : '≈ 0'}` : ''}<br>${fmt(x.minutes_after_insertion, 1)} min after insertion` : 'nothing within the search radius'}`);
+    tip(ev, `<b>Liftoff ${hhmm(x.liftoff_utc)} UTC</b> · ${POLL[x.status] || x.status}${lt}<br>${x.closest_km != null ? `closest: ${fmt(x.closest_km, 2)} km from ${esc(x.object)}${x.pc != null ? ` · Pc ${x.pc ? x.pc.toExponential(1) : '≈ 0'}` : ''}<br>${fmt(x.minutes_after_insertion, 1)} min after insertion` : 'nothing within the search radius'}`);
   });
   strip.addEventListener('mouseleave', () => { $('tip').hidden = true; });
   strip.addEventListener('click', (ev) => { const i = ev.target.dataset.i; if (i != null) toggleCand(r.rows[i].liftoff_utc); });
@@ -623,14 +625,14 @@ function renderCands() {
 $('teamBtn').addEventListener('click', async () => {
   const r = await busy('The launch team is voting…',
     () => api('gonogo', mission({ candidates: [...S.cands].sort(), notes: $('teamNotes').value })));
-  const ROLE = { weather: 'Weather', range: 'Range', orbital: 'Orbital' };
+  const ROLE = { weather: 'Weather', range: 'Range safety', orbital: 'Orbital safety' };
   const b = r.brief;
   $('board').innerHTML = r.windows.map((w) => {
     const vs = r.votes[w.liftoff_utc];
-    return `<div class="win"><div class="hd"><span>${w.liftoff_utc.slice(5, 10)} ${hhmm(w.liftoff_utc)} UTC</span><span class="tag ${w.status === 'go' ? 'ok' : w.status === 'nogo' ? 'bad' : 'mid'}">checks: ${w.status}</span></div>
+    return `<div class="win"><div class="hd"><span>${w.liftoff_utc.slice(5, 10)} ${hhmm(w.liftoff_utc)} UTC</span><span class="tag ${w.status === 'go' ? 'ok' : w.status === 'nogo' ? 'bad' : 'mid'}">checks: ${POLL[w.status] || w.status}</span></div>
       ${w.not_checked?.length ? `<div class="small" style="color:var(--mid)">Not checked, so held: ${w.not_checked.map(esc).join('; ')}</div>` : ''}
-      ${Object.entries(vs).map(([k, v]) => `<div class="vote"><span class="r">${ROLE[k]}</span><span class="tag ${v.vote === 'go' ? 'ok' : 'bad'}">${v.vote}</span><span>${esc(v.reason)}</span></div>`).join('')}
-      ${(w.team_notes || []).filter((x) => x.effect !== 'ok').map((x) => `<div class="vote"><span class="r">Notes</span><span class="tag ${x.effect === 'nogo' ? 'bad' : 'blue'}">${esc(x.effect)}</span><span>${esc(x.kind.replace(/_/g, ' '))}: “${esc(x.quote)}”</span></div>`).join('')}
+      ${Object.entries(vs).map(([k, v]) => `<div class="vote"><span class="r">${ROLE[k]}</span><span class="tag ${v.vote === 'go' ? 'ok' : 'bad'}">${POLL[v.vote] || v.vote}</span><span>${esc(v.reason)}</span></div>`).join('')}
+      ${(w.team_notes || []).filter((x) => x.effect !== 'ok').map((x) => `<div class="vote"><span class="r">Notes</span><span class="tag ${x.effect === 'nogo' ? 'bad' : 'blue'}">${esc(POLL[x.effect] || x.effect)}</span><span>${esc(x.kind.replace(/_/g, ' '))}: “${esc(x.quote)}”</span></div>`).join('')}
       <div class="small dim">LCOLA ${w.lcola.closest_km != null ? fmt(w.lcola.closest_km, 1) + ' km (' + esc(w.lcola.object) + ')' : 'clear'} · Kp ${typeof w.kp === 'object' ? w.kp.value : w.kp}</div></div>`;
   }).join('') + (r.notes ? `<div class="card mt"><b>From the notes</b> <span class="model">Nemotron 3 Super · quotes checked in code</span>
       ${r.notes.rules.map((x) => `<div class="small">✓ ${esc(x.kind.replace(/_/g, ' '))}${x.start_utc ? ` ${esc(x.start_utc.slice(11, 16))}–${esc((x.end_utc || '').slice(11, 16))} UTC` : ''}${x.value ? ` ≥ ${x.value}` : ''} · <span class="dim">“${esc(x.quote)}”</span></div>`).join('')}
@@ -1105,7 +1107,7 @@ function frame(now) {
 }
 window.studio = { S, camera, llv, CV, simNow: () => simMs, setSim: (ms) => { simMs = ms; clock.trackAt = -1; burnPreview(); } };                   // for debugging from the console
 loadPreset('garage');
-$('targetText').value = 'My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit.';
+$('targetText').value = 'My 5 kg cubesat CUBE-1 should photograph Seoul from a 500 km sun-synchronous orbit.';
 updateIncl();
 restoreOnLoad();
 const s0 = P.sites[$('siteSel').value] || P.sites.naro; lookAt(s0.lat, s0.lon, 15);

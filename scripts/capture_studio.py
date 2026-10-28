@@ -1,4 +1,4 @@
-"""Record Mission Studio for the film: the JIMIN-1 story, three acts, driven end to end in headless Chrome.
+"""Record Mission Studio for the film: the CUBE-1 story, three acts, driven end to end in headless Chrome.
 
 Every number on screen comes from the live run (simulator, Open-Meteo, NOAA, catalog, Nemotron). One choice is made
 for the film before recording act 2, and the film says so: the launch hour. The script screens a few upcoming go

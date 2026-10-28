@@ -1,4 +1,4 @@
-"""Record one Mission Studio run (the JIMIN-1 story) so the hosted page can replay it with no server and no API.
+"""Record one Mission Studio run (the CUBE-1 story) so the hosted page can replay it with no server and no API.
 
 Calls the local server's /api/launch/* endpoints in the order the page does, with the same request bodies, and
 stores every response, plus the CRIC decision stream for the first close approach. The static page
@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "web" / "launch" / "replay" / "jimin1.json"
 URL = "http://localhost:8765"
 H = {"Host": "localhost:8765"}
-TEXT = "My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit."
+TEXT = "My 5 kg cubesat CUBE-1 should photograph Seoul from a 500 km sun-synchronous orbit."
 NOTES = html.unescape(re.search(r'<textarea id="teamNotes"[^>]*>(.*?)</textarea>', (ROOT / "web" / "studio.html").read_text(), re.S).group(1))
 LTDN_H, LTDN_TOL_H = 10.5, 0.75          # imaging orbit: equator crossing 10:30 local, as the page defaults
 entries: list[dict] = []
@@ -123,14 +123,14 @@ def main() -> None:
           (board.get("notes") or {}).get("dropped"), flush=True)
     if not liftoff:
         raise SystemExit("the director held; nothing to launch")
-    dep = call("deploy", m_ok | {"liftoff_utc": liftoff, "name": "JIMIN-1", "owner": "Jimin", "mission": "photograph Seoul",
+    dep = call("deploy", m_ok | {"liftoff_utc": liftoff, "name": "CUBE-1", "owner": "Mission lead", "mission": "photograph Seoul",
                                  "can_maneuver": True, "home": {"name": "Seoul", "lat": 37.5665, "lon": 126.978}})
     for enc in dep["encounters"][:1]:                 # the 3D encounter view and the engine-out what-if
         call("encounter", {"ours": enc["object_a"]["norad_id"], "other": enc["object_b"]["norad_id"], "tca_utc": enc["tca_utc"]})
     call("whatif", m_ok | {"engine_out_t": 60})
     burns(dep)
     # step 1 for every published preset as the page sets it up (its own site and published orbit),
-    # so a visitor can fly any of them in the hosted replay; steps 2-3 stay the JIMIN-1 story
+    # so a visitor can fly any of them in the hosted replay; steps 2-3 stay the CUBE-1 story
     from cric.launch.geo import sso_inclination
 
     for vid, v in presets["vehicles"].items():

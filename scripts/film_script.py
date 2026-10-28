@@ -36,30 +36,30 @@ SAY_TIME = {"02:49": "two forty-nine", "02:46": "two forty-six", "02:26": "two t
 # zoom box: (x, y, w, h) in the 1920x1080 capture, None for the full frame; big text: a number shown large
 BEATS = [
     ("hook", "There are almost nineteen thousand objects in orbit right now. "
-             "Jimin's university team wants to add one more: a five-kilogram camera satellite they've spent two years building.",
+             "Your university team wants to add one more: a five-kilogram camera satellite you've spent two years building.",
      [("cine:overview-push", None, None, None, None)]),
-    ("problem", "[thoughtful] But they don't have a flight dynamics department. They have a group chat, a launch notice in Korean... "
-                "and a lot of questions.",
+    ("problem", "[thoughtful] But you don't have a flight dynamics department. You have a group chat, a notice from the launch range, "
+                "a customer with opinions... and a lot of questions.",
      [("act2", "start", "heat", (1340, 60, 560, 520), None)]),
-    ("title", "This is CRIC. It rehearses the whole mission with them, and shows its work.",
+    ("title", "This is CRIC. It rehearses the whole mission with you, and shows its work.",
      [("card", None, None, None, "CRIC Mission Studio\nMission rehearsal for small satellite teams")]),
-    ("rocket", "First question: can this small rocket actually get them there? "
+    ("rocket", "First question: can this small rocket actually get you there? "
                "CRIC builds it from its own numbers, at true scale, and flies it.",
      [("act1", "start", "xray", None, None), ("act1", "target", "liftoff", None, None)]),
-    ("launch", "", [("act1", "liftoff", "handoff", None, None)]),          # the launch speaks for itself: music and rumble
+    ("launch", "", [("act1", "liftoff", "landed", None, None)]),           # the launch speaks for itself, until it falls back
     ("fail", "[sighs] It doesn't make it. The satellite never gets high enough, and comes back down.",
-     [("act1", "handoff", "advise", (1340, 60, 560, 420), "137 km\ntoo low to stay up")]),
+     [("act1", "landed", "advise", (1340, 60, 560, 420), "137 km\ntoo low to stay up")]),
     ("fix", "So CRIC looks for fixes, and test-flies every one before it suggests it. The answer: a bigger first stage.",
      [("act1", "advise", "apply", (1340, 60, 560, 620), None), ("act1", "apply", "fly2", None, "+30%\nfirst stage")]),
-    ("orbit", "[excited] Second try... and they're in orbit.",
+    ("orbit", "[excited] Second try... and you're in orbit.",
      [("act1", "liftoff2", "handoff2", None, None), ("act1", "deploy2", "landed2", None, "502 × 543 km")]),
     ("sea", "Five hundred more test flights, with the forecast winds, show the spent stage falls safely into the sea.",
      [("act1", "disp", "end", (1340, 60, 560, 700), None)]),
-    ("window", "Next: when to launch. The range notice, in Korean, closes the sea south of the pad for a few minutes. "
-               "CRIC turns it into a rule it can check, word for word.",
+    ("window", "Next: when to launch. The range has closed the sea south of the pad for a few minutes, and the customer "
+               "wants daylight. CRIC turns each note, in any language, into a rule it can check, word for word.",
      [("act2", "heat", "hour", (1340, 60, 560, 460), None)]),
     ("minute", f"Then it checks every launch minute against every tracked object. At {SAY_TIME.get(F['worst_t'], F['worst_t'])}, "
-               f"they would pass {SAY_NUM.get(F['worst_km'], F['worst_km'])} kilometers from another satellite. "
+               f"you would pass {SAY_NUM.get(F['worst_km'], F['worst_km'])} kilometers from another satellite. "
                f"At {SAY_TIME.get(F['liftoff'], F['liftoff'])}, the sky is clear.",
      [("act2", "hour", "team", (0, 640, 1920, 440), f"{F['worst_t']} UTC → {F['worst_km']} km")]),
     ("vote", "Three AI launch officers vote, and Nemotron Ultra makes the call: go.",
@@ -70,12 +70,12 @@ BEATS = [
      [("act3", "start", "assess", None, None), ("act3", "assess", "decision", (1340, 60, 560, 900), None)]),
     ("precise", "Better orbit data arrives. The risk drops to almost zero. No fuel spent.",
      [("act3", "precise", "encounter", (1340, 60, 560, 900), None), ("act3", "encounter", "encounter_end", None, "2.5 km")]),
-    ("burn", "Then Jimin wants sharper photos, and asks to lower the orbit. "
+    ("burn", "Then you want sharper photos, so you ask to lower the orbit. "
              "CRIC checks it against every tracked object... [pause] and says: not now. "
              f"That burn would pass {SAY_NUM.get(F['burn_km'], F['burn_km'])} kilometers from another satellite.",
      [("act3", "ctl", "burn", (0, 60, 560, 760), None), ("act3", "burn", "burn_checked", None, None),
       ("act3", "burn_checked", "alt", (0, 60, 560, 900), f"{F['burn_km']} km\nfrom another satellite")]),
-    ("safer", f"{F['shift']} minutes {'later' if F['later'] else 'earlier'}, it's clear. Jimin approves. "
+    ("safer", f"{F['shift']} minutes {'later' if F['later'] else 'earlier'}, it's clear. You approve. "
               "Every command is logged... and nothing moves without a person.",
      [("act3", "alt", "burn_approved", (0, 60, 560, 900), None), ("act3", "burn_approved", "end", None, None)]),
     ("close", "CRIC. Mission rehearsal for small satellite teams. It finds the risks and the rules to check. "

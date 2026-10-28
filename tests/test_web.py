@@ -58,7 +58,7 @@ def test_static_replay_and_approval(site):
 
 
 def test_studio_hosted_replay_end_to_end(site):
-    """Mission Studio with no server: the recorded JIMIN-1 run, rocket -> window -> operate -> approval."""
+    """Mission Studio with no server: the recorded CUBE-1 run, rocket -> window -> operate -> approval."""
     with playwright.sync_playwright() as p:
         try:
             browser = p.chromium.launch(channel="chrome", headless=True)
