@@ -207,7 +207,7 @@ def main() -> None:
         # back to insertion on the mission clock, so "burn in 3 hours" (the default) is the recorded burn time
         page.evaluate("studio.setSim(Date.parse(studio.S.deployed.epoch_utc))")
         page.click("[data-goal='lower']"); rec.hold(1)
-        if page.evaluate(f"() => {{ const t = new Date(Math.max(studio.simNow(), Date.parse(studio.S.deployed.epoch_utc)) + 3 * 3600e3); t.setUTCSeconds(0, 0); return t.toISOString().replace('.000', ''); }}") != burn_at:
+        if page.evaluate("() => { const t = new Date(Math.max(studio.simNow(), Date.parse(studio.S.deployed.epoch_utc)) + 3 * 3600e3); t.setUTCSeconds(0, 0); return t.toISOString().replace('.000', ''); }") != burn_at:
             raise SystemExit(f"burn time drifted from the recorded {burn_at}")
         rec.hold(2)
         page.click("#burnBtn"); rec.mark("burn"); idle(); rec.mark("burn_checked"); rec.hold(3)

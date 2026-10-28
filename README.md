@@ -10,7 +10,7 @@ tried by a real operations team (that is the next step).
 
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/).
 
-**Live demo, no install: https://youngjun-choi-kr.github.io/cric/** · **Demo video:** *(link added at submission)*
+**Live demo, no install: https://youngjun-choi-kr.github.io/cric/** · **Demo video (2:31): https://youtu.be/0iWYRakiegE**
 - **Mission Studio** (rocket, launch, operate): a recorded run of the CUBE-1 story, replayed in the page. All five
   rockets fly in step 1; in step 3 the two goal burns ("lower it", "raise it") and CRIC's safer times are recorded.
 - **Operations console**: recorded conjunction decisions; pick a situation and press *Replay recorded run*.
