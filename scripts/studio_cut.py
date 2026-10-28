@@ -97,14 +97,16 @@ SHOTS = [
     ("C4", 6, "app", ("act3", "encounter", "encounter_end"), "The pass, slowed down",
      f"Here's that pass: {F['miss_km']} kilometers apart."),
     ("C5", 3, "app", ("act3", "encounter_end", "ctl"), "The owner decides", "Jimin signs off."),
-    ("M1", 8, "app", ("act3", "ctl", "burn"), "You command a burn",
+    ("M1", 6, "app", ("act3", "ctl", "burn"), "You command a burn",
      "Now Jimin takes the controls: lower the orbit, for sharper photos."),
-    ("M2", 9, "app", ("act3", "burn", "alt_checked" if F["burn_alt"] else "burn_approved"), "CRIC finds a close pass, and a safer time",
-     f"CRIC checks every tracked object: that burn passes {F['burn_close']} from a satellite. {F['burn_alt'].capitalize()}, it's clear."
-     if F["burn_alt"] else "CRIC checks the burn against every tracked object."),
-    ("M3", 7, "app", ("act3", "alt_checked" if F["burn_alt"] else "burn_approved", "ff"), "Approved and logged. Nothing is sent.",
-     "Jimin takes the safer time and approves. Every command is logged." if F["burn_alt"] else "Jimin approves. Every command is logged."),
-    ("M4", 6, "app", ("act3", "ff", "end"), "Mission clock ×600", "The mission clock runs on: next, a photo pass over Seoul."),
+    ("M2", 4, "app", ("act3", "burn", "burn_checked"), "CRIC checks every tracked object", "CRIC checks every tracked object."),
+    ("M3", 6, "app", ("act3", "burn_checked", "alt" if F["burn_alt"] else "burn_approved"),
+     f"Caught: {F['burn_close'].replace(' kilometers', ' km').replace(' meters', ' m')} from a satellite" if F["burn_alt"] else "Safe to do",
+     f"That burn passes {F['burn_close']} from a satellite. {F['burn_alt'].capitalize()}, it's clear." if F["burn_alt"]
+     else "The burn is clear."),
+    ("M4", 5, "app", ("act3", "alt" if F["burn_alt"] else "burn_approved", "burn_approved" if F["burn_alt"] else "ff"),
+     "Approved and logged. Nothing is sent.", "Jimin takes the safer time and approves." if F["burn_alt"] else "Jimin approves."),
+    ("M5", 5, "app", ("act3", "burn_approved", "end"), "Mission clock ×600", "Every command is logged. The mission clock runs on."),
     ("J14", 7, "card", None, "CRIC does the math and the reading.\nThe decisions stay with people.",
      "CRIC does the math and the reading. The decisions stay with people."),
     ("J15", 5, "title", None, "CRIC Mission Studio\nSimulated flights; visuals illustrative. Launch hour picked after checking the live forecast.\n"
@@ -131,6 +133,9 @@ def app_segment(tmp: Path, sid: str, seconds: float, src: tuple, caption: str) -
     if act == "act2":  # the heatmap and the LCOLA strip fill the bottom: caption at the top
         vf += (f",drawtext=expansion=none:fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_cap', caption)}':fontcolor=white:"
                f"fontsize=40:x=(w-text_w)/2:y=110:box=1:boxcolor=black@0.55:boxborderw=18")
+    elif act == "act3" and caption:   # the mission clock bar sits at the bottom: caption above it
+        vf += (f",drawtext=expansion=none:fontfile='{BOLD}':textfile='{_txt(tmp, sid + '_cap', caption)}':fontcolor=white:"
+               f"fontsize=40:x=(w-text_w)/2:y=h-290:box=1:boxcolor=black@0.55:boxborderw=18")
     else:
         vf += _caption_filter(tmp, sid, caption)
     out = tmp / f"{sid}.mp4"

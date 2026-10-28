@@ -6,7 +6,8 @@
 
 For each shot with a line it asks ElevenLabs text-to-speech for the line, then transcribes the take with
 ElevenLabs speech-to-text and compares it with the script, so a misread word or number is caught. A take
-longer than its shot is re-asked a little faster. Takes are cached by text and voice in data/film/vo/, so
+longer than its shot is re-asked a little faster; a take that matches the script under 70% gets up to two retakes
+and the best one is kept. Takes are cached by text and voice in data/film/vo/, so
 re-running only pays for lines that changed. The mix: each line starts 0.3 s into its shot, loudness
 normalized to -16 LUFS, written to data/film/studio_cut_vo.mp4. A report goes to data/film/vo/report.json.
 """
@@ -72,20 +73,40 @@ def stt(path: Path) -> str:
     return r.json().get("text", "")
 
 
+ONES = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
+TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+
+def say_number(n: int) -> str:
+    """12345 -> 'twelve thousand three hundred forty-five' (speech-to-text writes digits, the script writes words)."""
+    if n < 20:
+        return ONES[n]
+    if n < 100:
+        return TENS[n // 10] + ("" if n % 10 == 0 else "-" + ONES[n % 10])
+    if n < 1000:
+        return ONES[n // 100] + " hundred" + ("" if n % 100 == 0 else " " + say_number(n % 100))
+    return say_number(n // 1000) + " thousand" + ("" if n % 1000 == 0 else " " + say_number(n % 1000))
+
+
 def words(s: str) -> list[str]:
-    return re.findall(r"[a-z0-9']+", s.lower())
+    s = re.sub(r"(\d),(\d{3})", r"\1\2", s.lower())
+    s = re.sub(r"\b\d+\.\d+\b", lambda m: " point ".join(say_number(int(x)) for x in m.group().split(".")), s)
+    s = re.sub(r"\b\d{1,6}\b", lambda m: say_number(int(m.group())), s)
+    return re.findall(r"[a-z']+", s.replace("nemmo-tron", "nemotron").replace("-", " ").replace("lift off", "liftoff"))
+
+
+# spellings speech-to-text may use for the names the narrator says
+HEARD_AS = {"cric": "crick", "krick": "crick", "crik": "crick", "gemin": "jimin", "jiminy": "jimin", 
+            "nematron": "nemotron"}
 
 
 def match(script: str, heard: str) -> float:
-    """Share of the script's words found, in order, in what speech-to-text heard (names read as spelled)."""
-    a, b = words(spoken(script)), words(heard)
-    i = hits = 0
-    for w in a:
-        while i < len(b) and b[i] != w:
-            i += 1
-        if i < len(b):
-            hits += 1
-            i += 1
+    """Share of the script's words that speech-to-text heard, in order (aligned, so one misheard word costs one)."""
+    from difflib import SequenceMatcher
+
+    a = words(spoken(script))
+    b = [HEARD_AS.get(w, w) for w in words(heard)]
+    hits = sum(m.size for m in SequenceMatcher(None, a, b, autojunk=False).get_matching_blocks())
     return hits / max(len(a), 1)
 
 
@@ -112,9 +133,20 @@ def main() -> None:
                 dur = _duration(f)
                 if dur <= sec - 0.4 or speed >= 1.15:
                     break
-                speed = round(min(1.15, speed * (sec - 0.4) / dur + 0.02), 2)   # a little faster to fit the shot
+                speed = round(min(1.15, speed * dur / (sec - 0.4) + 0.02), 2)   # a little faster to fit the shot
             heard = stt(f)
             m = match(line, heard) if heard else None
+            for retake in (1, 2):                  # takes vary: a misread line gets up to two more tries, best kept
+                if m is None or m >= 0.7:            # names spelled differently are not misreadings; retakes cost credits
+                    break
+                g = VO / f"{sid}_{h}_r{retake}.mp3"
+                if not g.exists():
+                    tts(line, a.voice, speed, g)
+                heard2 = stt(g)
+                m2 = match(line, heard2) if heard2 else 0.0
+                print(f"  {sid:4} retake {retake}: match {m2:.0%}", flush=True)
+                if m2 > m and _duration(g) <= sec - 0.3:
+                    f, heard, m, dur = g, heard2, m2, _duration(g)
             report.append({"shot": sid, "line": line, "file": f.name, "seconds": round(dur, 2), "shot_seconds": sec,
                            "speed": speed, "fits": dur <= sec - 0.3, "heard": heard, "match": None if m is None else round(m, 2)})
             print(f"  {sid:4} {dur:4.1f}/{sec}s speed {speed:.2f} match {'-' if m is None else f'{m:.0%}'}"
@@ -127,8 +159,8 @@ def main() -> None:
         inputs += ["-i", str(f)]
         ms = int(start * 1000)
         filters.append(f"[{k + 1}:a]adelay={ms}|{ms}[v{k}]")
-    mix = ";".join(filters) + "".join(f"[v{k}]" for k in range(len(takes))) + \
-        f"amix=inputs={len(takes)}:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[vo]"
+    mix = ";".join(filters) + ";" + "".join(f"[v{k}]" for k in range(len(takes))) + \
+        f"amix=inputs={len(takes)}:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,apad[vo]"   # silence to the end: the closing card has no line
     out = OUT / "studio_cut_vo.mp4"
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(cut), *inputs, "-filter_complex", mix,
                     "-map", "0:v", "-map", "[vo]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", str(out)], check=True)

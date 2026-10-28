@@ -1102,7 +1102,7 @@ function frame(now) {
   if (globeOn) renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
-window.studio = { S, camera, llv, CV, simNow: () => simMs };                   // for debugging from the console
+window.studio = { S, camera, llv, CV, simNow: () => simMs, setSim: (ms) => { simMs = ms; clock.trackAt = -1; burnPreview(); } };                   // for debugging from the console
 loadPreset('garage');
 $('targetText').value = 'My 5 kg cubesat JIMIN-1 should photograph Seoul, where I live, from a 500 km sun-synchronous orbit.';
 updateIncl();

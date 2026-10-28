@@ -204,9 +204,11 @@ def main() -> None:
         page.click("#clockBar [data-r='0']")                             # pause the clock so the burn time is exact
         page.evaluate("document.getElementById('ctlBox').scrollIntoView({behavior: 'smooth', block: 'start'})"); rec.hold(1.5)
         rec.mark("ctl")
+        # back to insertion on the mission clock, so "burn in 3 hours" (the default) is the recorded burn time
+        page.evaluate("studio.setSim(Date.parse(studio.S.deployed.epoch_utc))")
         page.click("[data-goal='lower']"); rec.hold(1)
-        page.evaluate(f"""() => {{ const t = Date.parse('{burn_at}'), s = studio.simNow();
-            const el = document.getElementById('burnIn'); el.value = ((t - s) / 3600e3 + 0.1 / 60).toFixed(4); el.dispatchEvent(new Event('input')); }}""")
+        if page.evaluate(f"() => {{ const t = new Date(Math.max(studio.simNow(), Date.parse(studio.S.deployed.epoch_utc)) + 3 * 3600e3); t.setUTCSeconds(0, 0); return t.toISOString().replace('.000', ''); }}") != burn_at:
+            raise SystemExit(f"burn time drifted from the recorded {burn_at}")
         rec.hold(2)
         page.click("#burnBtn"); rec.mark("burn"); idle(); rec.mark("burn_checked"); rec.hold(3)
         page.evaluate("document.querySelector('#burnOut .alt')?.scrollIntoView({behavior: 'smooth', block: 'center'})"); rec.hold(3)
