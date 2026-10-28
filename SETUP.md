@@ -1,37 +1,69 @@
-# API 키 설정 (팀원용)
+# Run CRIC locally
 
-키는 **각자 본인 계정으로** 발급합니다. 크레딧이 계정마다 따로 나옵니다.
+The hosted pages replay recorded runs. To fly your own rocket, read your own notes or get a live decision, run it
+on your machine. Python 3.11 or newer; tested on macOS with Python 3.14.
 
-## 1. Nebius Token Factory 키
-1. https://tokenfactory.nebius.com 가입 및 로그인
-2. 오른쪽 위 **Get API key** → 키 생성 → 바로 복사 (한 번만 보임)
-3. 크레딧 받기 (Token Factory 가입과 같은 이메일로)
-   - 해커톤 $25: https://nebius.com/promo-code 양식, 활성화 코드 `NEBIUS-DEVPOST-GLOBAL26`
-   - Builder Program $25: https://dev.nebius.com/builders 가입
+## 1. Install (about 20 s)
 
-## 2. Tavily 키
-1. https://app.tavily.com 가입 (Google/GitHub 로그인 가능)
-2. 대시보드의 API Key 복사 (`tvly-`로 시작, 무료 월 1,000 크레딧)
+```bash
+git clone https://github.com/youngjun-choi-kr/cric && cd cric
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/python -m pytest -q        # offline: no keys, no network for the core tests
+```
 
-## 3. `.env` 파일에 저장
-프로젝트 폴더에서:
+The browser tests (`tests/test_web.py`) need Playwright and an installed Chrome:
+`.venv/bin/pip install -e ".[film]"`; without them they are skipped.
+
+## 2. Run it
+
+```bash
+.venv/bin/python web/serve.py 8765
+```
+
+- Mission Studio: http://localhost:8765/studio.html
+- Operations console: http://localhost:8765/
+
+The server only answers requests from this machine.
+
+**Without any key** these work: flying any rocket (3-DOF ascent, guidance search, fixes, engine-out what-if,
+500-flight dispersion with forecast winds), launch-window weather and collision screening (Open-Meteo, NOAA,
+CelesTrak are public), putting the satellite in orbit with a 72 h screening, mission control burns, lifetime,
+the photo planner, and every replay. Anything that needs a model answers with "NEBIUS_API_KEY is not set": reading a
+sentence or a spec sheet, the launch-team votes, the notes reader, and CRIC's decisions on close approaches.
+
+## 3. Keys (for the live model parts)
+
 ```bash
 cp .env.example .env
 ```
-`.env`를 열어 `=` 뒤에 붙여 넣고 저장 (따옴표 없이):
-```
-NEBIUS_API_KEY=여기에_Nebius_키
-TAVILY_API_KEY=tvly-여기에_Tavily_키
-```
-Windows는 `copy .env.example .env`
 
-## 4. 확인
+Open `.env` and paste each key after `=` (no quotes). `.env` is in `.gitignore`.
+
+| Key | What uses it | Where to get it |
+|---|---|---|
+| `NEBIUS_API_KEY` | every Nemotron call (Nano, Super, Ultra, Super VL) on Nebius Token Factory | https://tokenfactory.nebius.com, **Get API key** |
+| `TAVILY_API_KEY` | web evidence for the other satellite's dossier | https://app.tavily.com (free tier: 1,000 credits a month) |
+| `ELEVENLABS_API_KEY` | only `scripts/narrate.py`, the film's narration | https://elevenlabs.io, Developers, API Keys (Text to Speech and Speech to Text) |
+
+Check the model connection:
+
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cd archive/spike && ../../.venv/bin/python 00_list_models.py
+cd archive/spike && ../../.venv/bin/python 00_list_models.py     # the configured models should all say [OK]
 ```
-`Configured models` 세 줄이 모두 `[OK]`이면 끝.
 
-## 주의
-- 키를 채팅, 코드, 스크린샷에 올리지 마세요. `.env`는 `.gitignore`에 있어 GitHub에 올라가지 않습니다.
-- 키가 노출되면 발급 사이트에서 즉시 삭제하고 새로 만드세요.
+A live decision costs about $0.02 in model tokens and takes under a minute:
+
+```bash
+.venv/bin/cric incident --ours 60454 --other 61786      # EOS-08 x SITRO-AIS 38, decided 3 h before closest approach
+```
+
+## 4. Reproduce the results
+
+```bash
+.venv/bin/cric eval --set heldout3 --models super+hybrid --repeats 3     # one row of the README's comparison
+.venv/bin/python scripts/live_new_input.py                               # the live run on a new note
+.venv/bin/python scripts/validate_socrates.py                            # screening vs CelesTrak SOCRATES
+```
+
+Every published run is in `results/` (see `results/README.md`). The team's Korean key guide is in
+[SETUP.ko.md](SETUP.ko.md).
