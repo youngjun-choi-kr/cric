@@ -84,7 +84,7 @@ quality, time left for better data). `archive/spike/` keeps the original day-1 f
 
 | What | Result |
 |---|---|
-| Conjunction decisions, held-out 3 (written after the final design, run once) | pipeline 11/12 scenarios, 0 burns past the checks in 138 runs |
+| Conjunction decisions, held-out 3 (written after the final design, run once) | pipeline 11/12 scenarios; no policy-violating burn in any of the 138 test runs (our scenarios, not a safety rate) |
 | Screening vs CelesTrak SOCRATES | 99.7% of encounters found |
 | Pc vs NASA CARA test cases | matches |
 | Studio notes → rules, held-out (written after the fixes, run once) | 24/24 runs |
@@ -118,22 +118,55 @@ What this shows, and what we chose:
 - **But a reading error becomes an unchecked action**: that arm burned after a ground-contact cut-off in 2 of
   27 held-out runs, because the validator trusts the fields it was given.
 - **The CRIC pipeline requires two independent routes to agree** before anything spends propellant: Super's three
-  votes after the hard rules, and the operator policy in code. It is the only arm with **zero policy-violating
-  burns in all 138 runs**. Its misses are cautious: asking for precise data where monitoring was enough, or
+  votes after the hard rules, and the operator policy in code. It is the only arm with **no policy-violating
+  burn in all 138 test runs** (our scenarios: this is what we observed, not a guarantee for new situations). Its misses are cautious: asking for precise data where monitoring was enough, or
   escalating when the routes split on a burn (unneeded escalations: 3% on held-out 3).
 - The coded policy alone did well on held-out 3 (11/12) but burned once with a French note saying propulsion was
   unavailable; it cannot read.
 - Intervals over scenarios are wide (held-out 3: 0.65-1.00 for 11/12); the burn counts are the clearest signal.
 
+**The trade-off, in one table.** The same runs as above, counted by outcome (all four sets, 126 runs per arm;
+held-out 3 alone in brackets). "Policy-violating burns" passed the validator; an "unneeded escalation" sent a
+case to a person when the expected answer did not need one. Model cost covers the decision step (note reading
+and votes); time is the median wall-clock of that step on Token Factory.
+
+| Arm | Right | Policy-violating burns | Unneeded escalations | Median time | Model $ per decision |
+|---|---|---|---|---|---|
+| Coded policy, fields only (one run per scenario) | 81% (92%) | 8 of 42 (1 of 12) | 0% | instant | 0 |
+| Super, one call | 83% (75%) | 2 (1) | 2% (3%) | 11 s | 0.0025 |
+| Super, 3 votes | 89% (-) | 2 (-) | 0% (-) | 14 s | 0.0075 |
+| Super reads the notes, code decides | **98% (100%)** | 2 (0) | 1% (0%) | 7 s* | **0.0005** |
+| **CRIC pipeline** | 89% (89%) | **0 (0)** | 4% (3%) | 20 s | 0.0084 |
+
+\* timed on 66 of 126 runs; on the other sets the note reading was shared with the pipeline arm and not timed.
+
+So the price of zero violating burns in these runs is about 17x the model cost of the cheapest accurate arm,
+13 more seconds, and 4 more unneeded escalations in 126 runs. We chose it because a wrong burn spends propellant and can
+create a new close approach, while an extra escalation costs a person a few minutes. What we have **not** tested:
+reading the notes, one decision call (instead of three votes) and the coded-policy agreement; that would show
+whether the three votes add anything beyond the agreement rule. The three votes are separate calls to the same
+model with the same input, so they are not independent experts: what makes the second route independent is the
+policy in code.
+
+**What a decision costs in a live run.** The JIMIN-1 incident in the film (precise data, 2026-11-03 encounter):
+Nemotron 3 Super 4 calls ($0.0095: notes and votes), Nemotron 3 Ultra 1 call ($0.012: the brief for a person),
+**$0.021 in model tokens** at Token Factory list prices, 42 s wall-clock; Tavily: 3 searches and 1 page extract
+for the other satellite's dossier (billed by Tavily, not included); orbit and Pc computation on the laptop (not
+included). The `$ per decision` figures above are model tokens for the decision step only.
+
 **Screening checked against an independent source.** CelesTrak SOCRATES ran at 2026-10-24 15:00, five minutes
 before our snapshot. Of its 1,885 crossing pairs under 2 km in the same 24 h (both objects in our catalog), CRIC
-found 1,879 (99.7%); all 6 misses involve "analyst" objects whose elements differ between data pulls. Times of
+found 1,879 (99.7%); all 6 misses involve "analyst" objects whose elements differ between data pulls. This is
+agreement with another screener on the same public data, not a detection rate for everything in orbit: the public
+catalog lacks most small debris (see LIMITATIONS). Times of
 closest approach agree within 1 ms and miss distances within 1.1 m at the 95th percentile
 (`scripts/validate_socrates.py`, `results/socrates.json`).
 
 **Collision probability checked against NASA.** `cric cdm` reads a CCSDS Conjunction Data Message and computes Pc
 by integrating the combined covariance over the hard-body disk. It reproduces NASA CARA's published unit-test
-values (Omitron case 01: 2.706e-5 within 0.1%; the CDM of case 08: 2.27e-20 within 1%; `tests/test_cdm.py`). The
+values (Omitron case 01: 2.706e-5 within 0.1%; the CDM of case 08: 2.27e-20 within 1%; `tests/test_cdm.py`).
+This checks our arithmetic, not the inputs: on public TLE data the covariances are assumed, so a Pc is only as
+good as that assumption. The
 same exact integral now replaces the small-object shortcut CRIC used before, which overestimated Pc about 2x when
 the covariance is as tight as precise ephemeris (no scenario's risk level changed). Against SOCRATES's maximum Pc
 the ranking agrees only moderately (Spearman 0.39 over the 300 closest pairs): both are screening numbers from
