@@ -1,8 +1,12 @@
-# CRIC: from a garage rocket to a safe orbit
+# CRIC: mission rehearsal for small satellite teams
 
-Bring your rocket and your satellite. CRIC tells you if the rocket makes it to orbit, and what to change if it
-doesn't. It finds a good time to launch. Then it watches your satellite among 18,806 other objects, works out
-the risk when something comes close, and hands the final call to a person.
+**Who it is for.** A university cubesat team or a small satellite startup: no flight dynamics department, mission
+constraints scattered across chat threads, range notices and spreadsheets (in more than one language), and orbit
+data from the public catalog. **What it does.** CRIC turns those into decisions the team can review, rehearsing the
+mission end to end: can this rocket get our satellite to its orbit, when should we launch, and what do we do when
+something comes close or we want to move. Every decision comes with its evidence, the checks it passed and a
+person's sign-off. CRIC finds the risks and rules to check; it does not guarantee safety, and it has not yet been
+tried by a real operations team (that is the next step).
 
 Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackathon.devpost.com/).
 
@@ -14,13 +18,13 @@ Built for the [Nebius x NVIDIA Global AI Hackathon](https://nebiusglobalaihackat
 Both run live (your own rocket, live decisions) with the local server and API keys: [SETUP.md](SETUP.md).
 Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) · limits: [LIMITATIONS.md](LIMITATIONS.md).
 
-| 1 · Your rocket | 2 · When and where | 3 · Operate |
+| 1 · The ride to orbit | 2 · When and where | 3 · Operate |
 |---|---|---|
 | ![Hangar](web/launch/img/hangar.jpg) | ![Launch window](web/launch/img/window.jpg) | ![Operations](web/launch/img/ops.jpg) |
 | Does it make it to orbit? If not, test-flown fixes. | Weather, time of day, your team's notes, and a collision check for every minute. | Passes over home, close approaches, your own burns (CRIC checks each), your final call. |
 
 **In one minute**
-- **Your rocket.** Pick a real rocket, drop in a spec sheet (Nemotron 3.5 Super VL reads it and labels every number),
+- **The ride to orbit.** Pick a real rocket, drop in a spec sheet (Nemotron 3.5 Super VL reads it and labels every number),
   or type your own. Watch it fly in 3D. If it falls short, CRIC suggests fixes and test-flies each one first.
   500 test flights with the forecast winds show where the spent stages land, and whether that's at sea.
 - **When and where.** A week of weather for every launch site. For a camera satellite, the hours that give the
@@ -142,11 +146,33 @@ and votes); time is the median wall-clock of that step on Token Factory.
 
 So the price of zero violating burns in these runs is about 17x the model cost of the cheapest accurate arm,
 13 more seconds, and 4 more unneeded escalations in 126 runs. We chose it because a wrong burn spends propellant and can
-create a new close approach, while an extra escalation costs a person a few minutes. What we have **not** tested:
-reading the notes, one decision call (instead of three votes) and the coded-policy agreement; that would show
-whether the three votes add anything beyond the agreement rule. The three votes are separate calls to the same
-model with the same input, so they are not independent experts: what makes the second route independent is the
-policy in code.
+create a new close approach, while an extra escalation costs a person a few minutes. The three votes are separate
+calls to the same model with the same input, so they are not independent experts: what makes the second route
+independent is the policy in code.
+
+**Do the three votes add anything beyond the agreement rule?** We tested it on 2026-10-28 (after this review, with
+the current code): the same pipeline with one decision call instead of three, both arms on all four sets, 3 runs
+per scenario (`results/eval/votes_ablation_*.json`).
+
+| Pipeline (notes read, code must agree) | Scenarios | Runs right | Violating burns | Unneeded escalations | Same answer 3/3 | Model $ | Median time |
+|---|---|---|---|---|---|---|---|
+| 3 votes | **39/42** | **91%** | 0 | 5 | **36/42** | 0.0085 | 18 s |
+| 1 decision | 36/42 | 87% | 0 | 4 | 34/42 | **0.0031** | 15 s |
+
+Both kept zero violating burns, so **the agreement with code, not the voting, is what blocks bad burns** in these
+runs. The votes bought 3 more scenarios and steadier answers (mostly cases where one call wavered between asking
+for precise data and monitoring) for 2.7x the model cost. That difference is within the noise of 42 scenarios. We
+keep three votes as the default because a steadier answer is worth a fraction of a cent here; a team watching many
+satellites could run one call with the same safety property.
+
+**A live decision on a note no test contains** (`scripts/live_new_input.py`, `results/live_new_input.json`, run
+once on 2026-10-28). The console's demo pair (EOS-08 x 61786, precise data, Pc 0.07, 6 h before TCA), twice: (A)
+with no constraints, (B) with a note written for this run in Korean and English, a ground-station maintenance
+window that blocks command uplink over both burn options. In B, Super read the note into a quoted blackout,
+18:44 to 00:36 UTC across midnight, and the coded route changed from "coordinate, then burn O1" to "escalate"; the
+decision's rationale cites the blackout. The final answer was ESCALATE both times, though: in A the three votes
+split (escalate, manoeuvre, coordinate), so a person decides anyway. We report it as it came out. A: 28 s,
+$0.019; B: 38 s, $0.024 in model tokens, Tavily on.
 
 **What a decision costs in a live run.** The JIMIN-1 incident in the film (precise data, 2026-11-03 encounter):
 Nemotron 3 Super 4 calls ($0.0095: notes and votes), Nemotron 3 Ultra 1 call ($0.012: the brief for a person),
@@ -233,7 +259,8 @@ then open `/web/`): it replays the recordings in `web/demo/` (refresh with `scri
 .venv/bin/python web/serve.py 8765        # http://localhost:8765/studio.html
 ```
 
-Three steps for someone who builds a small rocket or owns a cubesat. Step 1 has a close-up 3D stage next to the
+Three steps a small satellite team rehearses before and after launch (the fictional Garage One stands in for a
+small launcher whose numbers the team has; the published launchers work the same way). Step 1 has a close-up 3D stage next to the
 globe: a hangar where every rocket is built from its own numbers at true scale (X-ray colors each part by where its
 number came from, and a fix visibly grows the stage), and a launch view driven by the simulation (pad, Max Q, stage
 and fairing separation, broadcast HUD, payload deploy) that hands over to the globe above ~150 km. Shapes are

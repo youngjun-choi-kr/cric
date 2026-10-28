@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRIC · From a garage rocket to a safe orbit</title>
-<meta name="description" content="Fly your rocket, pick a launch time, and keep your satellite safe in orbit. NVIDIA Nemotron on Nebius.">
+<title>CRIC · Mission rehearsal for small satellite teams</title>
+<meta name="description" content="Mission rehearsal for small satellite teams: scattered notes and public orbit data become decisions you can review. NVIDIA Nemotron on Nebius.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&display=swap">
 <style>
   :root { --bg:#03060e; --panel:#0a1222; --line:rgba(120,160,255,.18); --text:#dbe6ff; --dim:#8196c4; --accent:#5ab0ff; --ok:#4fe3a1; --mid:#ffc857; }
@@ -47,10 +47,12 @@
 <div class="wrap">
 <header>
   <div class="brand">CRIC · NEBIUS × NVIDIA GLOBAL AI HACKATHON</div>
-  <h1>From a garage rocket<br>to a safe orbit.</h1>
-  <p class="lead">Bring your rocket and your satellite. CRIC tells you if the rocket makes it to orbit, and what to change if it
-    doesn't. It finds a good time to launch. Then it watches your satellite among 18,806 other objects. CRIC does the
-    heavy lifting, and asks you when it matters.</p>
+  <h1>Mission rehearsal<br>for small satellite teams.</h1>
+  <p class="lead">A university cubesat or a small startup has no flight dynamics department. Its constraints live in
+    chat threads, range notices and spreadsheets; its orbit data is the public catalog. CRIC turns those into decisions
+    you can review: can this rocket get the satellite there, when to launch, and what to do when something comes close
+    or you want to move. Each comes with its evidence, the checks it passed, and a person's sign-off. CRIC finds the
+    risks and rules to check; it does not guarantee safety.</p>
   <div class="cta">
     <a class="btn primary" href="web/studio.html">▶ Open Mission Studio <small>· no install</small></a>
     <a class="btn" href="web/">Operations console <small>· recorded decisions</small></a>
@@ -61,9 +63,9 @@
 
 <section class="steps">
   <div class="step"><img src="web/launch/img/hangar.jpg" alt="Hangar with rockets at true scale">
-    <div class="b"><div class="n">STEP 1 · YOUR ROCKET</div><h3>Does it reach orbit?</h3>
-      <p>Pick a real rocket, drop in a spec sheet, or type your own numbers. Watch it fly. If it falls short, CRIC
-        suggests fixes, and test-flies each one first.</p>
+    <div class="b"><div class="n">STEP 1 · THE RIDE</div><h3>Can this rocket get us there?</h3>
+      <p>Pick a real launcher, drop in its spec sheet, or type a small rocket's numbers. Watch it fly to your orbit.
+        If it falls short, CRIC suggests fixes, and test-flies each one first.</p>
       <ul><li>Nemotron 3.5 Super VL reads the spec sheet</li>
         <li>500 test flights show where the spent stages land</li></ul></div></div>
   <div class="step"><img src="web/launch/img/window.jpg" alt="Launch window heatmap and collision strip">
@@ -75,7 +77,7 @@
   <div class="step"><img src="web/launch/img/ops.jpg" alt="Operations: passes and a close approach decision">
     <div class="b"><div class="n">STEP 3 · OPERATE</div><h3>Look after it</h3>
       <p>Your satellite joins the catalog. CRIC tells you when it flies over home and warns you about close approaches.
-        You make the final call.</p>
+        Command a burn yourself and CRIC checks it against every tracked object first. You make the final call.</p>
       <ul><li>Collision math checked against NASA test cases</li>
         <li>No burn unless the model and the rules agree</li></ul></div></div>
 </section>

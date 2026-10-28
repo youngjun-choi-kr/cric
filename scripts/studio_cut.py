@@ -65,10 +65,10 @@ F = facts()
 # (id, seconds, kind, source (act, from marker, to marker) or cine/card text, caption, voice-over)
 SHOTS = [
     ("J1", 5, "cine", "overview-push", "18,806 objects in orbit today",
-     "Eighteen thousand objects circle Earth. Jimin wants one more."),
-    ("J2", 4, "title", None, "CRIC Mission Studio\nYour rocket, your launch, your satellite in orbit", "This is CRIC Mission Studio."),
+     "Eighteen thousand objects circle Earth. Jimin's small team wants to add one."),
+    ("J2", 4, "title", None, "CRIC Mission Studio\nMission rehearsal for small satellite teams", "This is CRIC Mission Studio."),
     ("A1", 7, "app", ("act1", "start", "target"), "Built from its numbers, to scale",
-     "Jimin's small rocket, Garage One, stands to scale next to real launchers."),
+     "First, the ride. Can a small rocket, Garage One, get their cubesat there?"),
     ("A2", 8, "app", ("act1", "target", "liftoff"), "One sentence in, an orbit out",
      "Jimin describes the mission in one sentence. Nemotron Nano turns it into an orbit. Liftoff."),
     ("A3", 8, "app", ("act1", "liftoff", "handoff"), "Simulated flight",
@@ -107,8 +107,8 @@ SHOTS = [
     ("M4", 5, "app", ("act3", "alt" if F["burn_alt"] else "burn_approved", "burn_approved" if F["burn_alt"] else "ff"),
      "Approved and logged. Nothing is sent.", "Jimin takes the safer time and approves." if F["burn_alt"] else "Jimin approves."),
     ("M5", 5, "app", ("act3", "burn_approved", "end"), "Mission clock ×600", "Every command is logged. The mission clock runs on."),
-    ("J14", 7, "card", None, "CRIC does the math and the reading.\nThe decisions stay with people.",
-     "CRIC does the math and the reading. The decisions stay with people."),
+    ("J14", 7, "card", None, "CRIC finds the risks and the rules to check.\nPeople make the calls.",
+     "CRIC finds the risks and the rules to check. People make the calls."),
     ("J15", 5, "title", None, "CRIC Mission Studio\nSimulated flights; visuals illustrative. Launch hour picked after checking the live forecast.\n"
                              "NVIDIA Nemotron on Nebius Token Factory · youngjun-choi-kr.github.io/cric", ""),
 ]

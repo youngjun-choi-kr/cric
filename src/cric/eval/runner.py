@@ -179,16 +179,16 @@ def _llm_case(model: str, s: Scenario, ctx: dict, now) -> dict:
     usage, t0 = Usage(), time.time()
     base, _, variant = model.partition("+")
     try:
-        if variant in ("extract", "vote3+constraints", "hybrid"):   # read the notes into structured constraints first
+        if variant in ("extract", "vote3+constraints", "hybrid", "hybrid1"):   # read the notes into structured constraints first
             from ..agent.constraints import apply, extract
             c, problems = extract(ctx, model=base, usage=usage)
             ctx = apply(ctx, c, problems)
         if variant == "extract":                          # then let the coded policy decide: no model judgement
             from ..agent.constraints import coded_policy
             dec = coded_policy(ctx, now)
-        elif variant == "hybrid":                         # coded policy and 3 votes must agree, else escalate
+        elif variant in ("hybrid", "hybrid1"):            # coded policy and the votes (3, or 1) must agree, else escalate
             from ..agent.constraints import agree, coded_policy
-            voted, _, _ = decide_votes(ctx, n=3, model=base, usage=usage)
+            voted, _, _ = decide_votes(ctx, n=3 if variant == "hybrid" else 1, model=base, usage=usage)
             v = validate(voted, ctx, now)                 # the model route is the vote after the hard rules
             dec = agree(coded_policy(ctx, now), {**voted, "action": v["final_action"], "option_id": v["final_option_id"]})
         elif variant.startswith("vote3"):                 # 3 independent calls, majority or escalate
@@ -348,7 +348,8 @@ def main_cli(args) -> None:
         return
     models = {"super": MODEL_SUPER, "nano": MODEL_NANO, "super+vote3": MODEL_SUPER + "+vote3",
               "super+extract": MODEL_SUPER + "+extract", "nano+extract": MODEL_NANO + "+extract",
-              "super+vote3+constraints": MODEL_SUPER + "+vote3+constraints", "super+hybrid": MODEL_SUPER + "+hybrid"}
+              "super+vote3+constraints": MODEL_SUPER + "+vote3+constraints", "super+hybrid": MODEL_SUPER + "+hybrid",
+              "super+hybrid1": MODEL_SUPER + "+hybrid1"}
     summary = run([models[m] for m in args.models.split(",")], repeats=args.repeats,
                   scenario_ids=args.scenarios.split(",") if args.scenarios else None, workers=args.workers,
                   scenario_set=args.set, log=lambda *a: print(*a, flush=True))

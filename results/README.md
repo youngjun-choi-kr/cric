@@ -57,3 +57,9 @@ not runs. Burns = policy-violating burns before -> after the validator, summed o
 | Super reads notes, code decides | 4/4 (0.51-1.00) | 1.00 | 1.0 | 0 -> 0 | 0.00 (0.00) | 0.0000 |
 | CRIC pipeline: votes and code must agree | 4/4 (0.51-1.00) | 1.00 | 1.0 | 0 -> 0 | 0.00 (0.00) | 0.0080 |
 
+
+## Votes ablation (2026-10-28)
+
+`eval/votes_ablation_<set>.json`: the full pipeline with three votes (`+hybrid`) against the same pipeline with one
+decision call (`+hybrid1`), current code, all four sets, 3 runs each (`cric eval --models super+hybrid,super+hybrid1`).
+Both 0 violating burns; 39/42 vs 36/42 scenarios; $0.0085 vs $0.0031 per decision. See the main README.
